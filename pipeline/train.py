@@ -32,6 +32,7 @@ import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
 from torch.cuda.amp import GradScaler, autocast
+from tqdm import tqdm
 
 # Make src/ importable when running from repo root
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -68,7 +69,7 @@ def validate(
     total_dice = {k: 0.0 for k in ["WT", "TC", "ET"]}
     n_batches = 0
 
-    for batch in val_loader:
+    for batch in tqdm(val_loader, desc="  validating", leave=False):
         image = batch["image"].to(device, non_blocking=True)
         label = batch["label"].to(device, non_blocking=True)
 
@@ -236,12 +237,17 @@ def main() -> None:
     total_epochs = config.ccr.curriculum.total_epochs
 
     # --- Training loop ---
-    for epoch in range(start_epoch, total_epochs + 1):
+    epoch_bar = tqdm(range(start_epoch, total_epochs + 1), desc="Epochs", unit="epoch")
+    for epoch in epoch_bar:
         loss_fn.set_epoch(epoch)
         model.train()
 
         epoch_losses: dict = {}
-        for batch_idx, batch in enumerate(train_loader):
+        batch_bar = tqdm(
+            enumerate(train_loader), total=len(train_loader),
+            desc=f"  epoch {epoch}", unit="batch", leave=False,
+        )
+        for batch_idx, batch in batch_bar:
             if args.smoke_test and batch_idx >= 2:
                 break
 
@@ -269,8 +275,11 @@ def main() -> None:
             tracker.update(out["assignments"])
             epoch_losses = losses
 
+            batch_bar.set_postfix(
+                loss=f"{losses['total'].item():.4f}", phase=losses["phase"],
+            )
             if batch_idx % config.training.log_every == 0:
-                _log(
+                tqdm.write(
                     f"  epoch {epoch} batch {batch_idx}/{len(train_loader)} "
                     f"loss={losses['total'].item():.4f} "
                     f"phase={losses['phase']}"

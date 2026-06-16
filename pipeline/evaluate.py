@@ -35,6 +35,7 @@ from typing import Dict, List
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "data"))
@@ -124,7 +125,7 @@ def evaluate(
     results = []
     saved = 0
 
-    for batch in data_loader:
+    for batch in tqdm(data_loader, desc="  evaluating"):
         image = batch["image"].to(device, non_blocking=True)
         label = batch["label"].to(device, non_blocking=True)
         pid   = batch["patient_id"][0] if isinstance(batch["patient_id"], list) else batch["patient_id"]
