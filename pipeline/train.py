@@ -227,9 +227,10 @@ def main() -> None:
     concept_names = tuple(config.ccr.concept_names)
     cas     = ConceptAlignmentScore(config.ccr.router.num_concepts, concept_names)
     tracker = ExpertUtilizationTracker(
-        num_concepts  = config.ccr.router.num_concepts,
-        concept_names = concept_names,
-        collapse_threshold = 5,
+        num_concepts     = config.ccr.router.num_concepts,
+        concept_names    = concept_names,
+        warmup_end_epoch = config.ccr.curriculum.warmup_end_epoch,
+        min_utilization_pct = 5.0,
     )
 
     total_epochs = config.ccr.curriculum.total_epochs

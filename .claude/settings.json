@@ -14,7 +14,11 @@
       "Bash('C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe' -c ' *)",
       "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" -m pytest tests/ -q --tb=short)",
       "Bash(gh auth *)",
-      "Bash(gcloud storage *)"
+      "Bash(gcloud storage *)",
+      "Bash(git credential-manager *)",
+      "Bash(cmdkey /list)",
+      "PowerShell(cmdkey /delete:\"GitHub - https://api.github.com/Vayuputra2401\")",
+      "PowerShell(cmdkey /delete:\"LegacyGeneric:target=GitHub - https://api.github.com/Vayuputra2401\")"
     ]
   }
 }
