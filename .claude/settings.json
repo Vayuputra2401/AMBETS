@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" -m pytest tests/phase2/test_ccrnet.py -v --tb=short)",
+      "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" -m pytest tests/phase2/test_ccrnet.py -v --tb=line -x)",
+      "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" -m pytest tests/phase2/test_training_step.py -v --tb=short)",
+      "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" -m pytest tests/ -v --tb=short)",
+      "PowerShell(Rename-Item \"C:\\\\Users\\\\pathi\\\\OneDrive\\\\Desktop\\\\AMBETS\\\\aws\" \"aws-agent\")",
+      "PowerShell(Rename-Item \"C:\\\\Users\\\\pathi\\\\OneDrive\\\\Desktop\\\\AMBETS\\\\gcp\" \"gcp-agent\")",
+      "PowerShell(Rename-Item \"C:\\\\Users\\\\pathi\\\\OneDrive\\\\Desktop\\\\AMBETS\\\\detector_agent\" \"detector_agent-agent\")",
+      "Read(//d/BraTS2024-BraTS-GLI-TrainingData/**)",
+      "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" pipeline/train.py --help)",
+      "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" pipeline/evaluate.py --help)",
+      "Bash('C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe' -c ' *)",
+      "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" -m pytest tests/ -q --tb=short)",
+      "Bash(gh auth *)"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+pretrained/*.pt
+checkpoints/
+checkpoints_gcp/
+*.nii.gz
+data/BraTS-GLI-00005-100/
+visualizations/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+*.log
+.DS_Store
+*.pt
+*.tfevents.*
+*.jpg
+*.png
+
+# Old unrelated projects — not part of CCR research, see CLAUDE.md
+aws-agent/
+gcp-agent/
+detector_agent-agent/
+
+# Local IDE settings
+.claude/settings.local.json

@@ -1,0 +1,9 @@
+# Local development environment paths
+# Loaded when: python pipeline/train.py --env local
+
+env: local
+
+paths:
+  data_root:       "E:/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
+  checkpoint_dir:  "checkpoints/"
+  pretrained_path: "pretrained/model_swinvit.pt"

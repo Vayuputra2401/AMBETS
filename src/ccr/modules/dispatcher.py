@@ -1,0 +1,220 @@
+"""
+dispatcher.py — CCRBottleneckModule: the complete CCR bottleneck replacement.
+
+Combines ClinicalConceptRouter with K ClinicalConceptExperts into a single
+drop-in module for the encoder bottleneck.  This is the architectural unit
+that is swapped into any segmentation model to add faithful intrinsic explanation.
+
+Dispatch modes
+--------------
+SOFT dispatch (training, model.train()):
+    expert_output(t) = Σ_k P(t→k) · Expert_k(X[b, t, :])
+
+    Every expert processes every token; outputs are weighted-summed by routing
+    probabilities.  Fully differentiable: gradients flow through:
+        expert outputs → weighting by P(t→k) → routing probs → router MLP → encoder.
+    This end-to-end gradient flow is required for L_align to shape routing semantics.
+
+HARD dispatch (inference, model.eval(), when config.hard_routing_inference=True):
+    k*(b, t) = argmax_k P(t→k)
+    expert_output(t) = Expert_{k*(b,t)}(X[b, t, :])
+
+    Each token is processed by exactly one expert.  This produces crisp,
+    deterministic concept maps: every voxel is assigned to exactly one clinical
+    concept without ambiguity.  Not differentiable; only used for inference.
+
+The soft→hard switch is automatic based on self.training.
+
+Plan reference: CCR-Net_Research_Plan.md Section 6.1 and 6.3.
+"""
+
+from __future__ import annotations
+
+from typing import Dict
+
+import torch
+import torch.nn as nn
+
+from ccr.config.ccr_config import CCRConfig
+from ccr.modules.expert import ClinicalConceptExpert
+from ccr.modules.router import ClinicalConceptRouter
+
+
+class CCRBottleneckModule(nn.Module):
+    """
+    Complete CCR bottleneck replacement module.
+
+    Drop-in replacement for the encoder bottleneck in any encoder-decoder
+    segmentation model.  Accepts bottleneck token sequences, performs routing,
+    dispatches tokens to concept experts, and returns concept-conditioned
+    representations together with the routing evidence.
+
+    Parameters
+    ----------
+    config : CCRConfig
+        Complete CCR configuration (router, expert, curriculum, concept names).
+
+    Inputs
+    ------
+    bottleneck_tokens : Tensor [B, N, D]
+        Encoder bottleneck token sequence.
+        B = batch size
+        N = number of spatial tokens
+        D = token embedding dimension (config.router.embed_dim)
+
+    Returns
+    -------
+    dict with keys:
+        routing_probs  : Tensor [B, N, K]  — THE EXPLANATION.  P(token t → concept k).
+                          Soft during training; hard one-hot during eval (if configured).
+        expert_outputs : Tensor [B, N, D]  — concept-conditioned bottleneck features.
+                          These replace or augment the backbone bottleneck in CCR-Retrofit.
+        entropy        : Tensor [B, N]     — routing entropy per token (Proposition 2).
+                          High entropy = uncertain concept assignment = boundary region.
+        assignments    : Tensor [B, N]     — integer hard concept assignment (argmax).
+                          Used for ExpertUtilizationTracker and hard-routing inference.
+        logits         : Tensor [B, N, K]  — pre-softmax router logits (diagnostics).
+    """
+
+    def __init__(self, config: CCRConfig) -> None:
+        super().__init__()
+        self.config = config
+
+        self.router = ClinicalConceptRouter(config.router)
+
+        self.experts = nn.ModuleList(
+            [
+                ClinicalConceptExpert(
+                    config.expert,
+                    concept_id=k,
+                    concept_name=name,
+                )
+                for k, name in enumerate(config.concept_names)
+            ]
+        )
+
+    # ------------------------------------------------------------------
+    # Forward pass
+    # ------------------------------------------------------------------
+
+    def forward(self, bottleneck_tokens: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Route tokens and dispatch to concept experts.
+
+        Parameters
+        ----------
+        bottleneck_tokens : Tensor [B, N, D]
+
+        Returns
+        -------
+        dict  (keys: routing_probs, expert_outputs, entropy, assignments, logits)
+        """
+        B, N, D = bottleneck_tokens.shape
+
+        # --- Step 1: Compute routing probabilities ---
+        router_out = self.router(bottleneck_tokens)
+        routing_probs = router_out["routing_probs"]   # [B, N, K]
+        entropy       = router_out["entropy"]         # [B, N]
+        logits        = router_out["logits"]          # [B, N, K]
+
+        # Hard assignment for metrics and hard-dispatch inference
+        assignments = routing_probs.argmax(dim=-1)    # [B, N]
+
+        # --- Step 2: Dispatch to experts ---
+        if self.training or not self.config.hard_routing_inference:
+            # Soft dispatch: differentiable, gradients flow to all experts and router
+            expert_outputs = self._soft_dispatch(bottleneck_tokens, routing_probs)
+        else:
+            # Hard dispatch: each token goes to exactly one expert
+            expert_outputs = self._hard_dispatch(bottleneck_tokens, assignments)
+
+        return {
+            "routing_probs":  routing_probs,   # [B, N, K]
+            "expert_outputs": expert_outputs,  # [B, N, D]
+            "entropy":        entropy,         # [B, N]
+            "assignments":    assignments,     # [B, N]
+            "logits":         logits,          # [B, N, K]
+        }
+
+    # ------------------------------------------------------------------
+    # Dispatch implementations
+    # ------------------------------------------------------------------
+
+    def _soft_dispatch(
+        self,
+        tokens: torch.Tensor,
+        routing_probs: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Weighted combination of all expert outputs.
+
+        expert_output(b, t) = Σ_k  P(b, t → k) · Expert_k(tokens[b, t])
+
+        All K experts process every token.  The contribution of Expert_k to
+        token t is weighted by the routing probability P(b, t → k).
+
+        Parameters
+        ----------
+        tokens        : Tensor [B, N, D]
+        routing_probs : Tensor [B, N, K]
+
+        Returns
+        -------
+        Tensor [B, N, D]
+        """
+        B, N, D = tokens.shape
+
+        # Reshape for expert input: [B*N, D]
+        flat_tokens = tokens.reshape(B * N, D)
+
+        # Accumulate weighted expert contributions
+        output = torch.zeros_like(flat_tokens)  # [B*N, D]
+
+        for k, expert in enumerate(self.experts):
+            # Expert_k processes all tokens: [B*N, D] → [B*N, D]
+            expert_k_out = expert(flat_tokens)  # [B*N, D]
+
+            # Weight by P(b, t → k): reshape routing_probs[..., k] to [B*N, 1]
+            p_k = routing_probs[..., k].reshape(B * N, 1)  # [B*N, 1]
+
+            output = output + p_k * expert_k_out  # [B*N, D]
+
+        return output.reshape(B, N, D)  # [B, N, D]
+
+    def _hard_dispatch(
+        self,
+        tokens: torch.Tensor,
+        assignments: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Route each token to its single highest-probability expert.
+
+        expert_output(b, t) = Expert_{k*(b,t)}(tokens[b, t])
+        where k*(b,t) = argmax_k P(b, t → k)
+
+        Not differentiable.  Used for inference only.
+
+        Parameters
+        ----------
+        tokens      : Tensor [B, N, D]
+        assignments : Tensor [B, N]     integer concept indices
+
+        Returns
+        -------
+        Tensor [B, N, D]
+        """
+        B, N, D = tokens.shape
+
+        flat_tokens      = tokens.reshape(B * N, D)        # [B*N, D]
+        flat_assignments = assignments.reshape(B * N)      # [B*N]
+        output           = torch.zeros_like(flat_tokens)   # [B*N, D]
+
+        for k, expert in enumerate(self.experts):
+            # Select only the tokens assigned to expert k
+            mask = flat_assignments == k   # [B*N] boolean
+
+            if mask.any():
+                # Expert_k processes only the tokens assigned to it
+                output[mask] = expert(flat_tokens[mask])   # [mask.sum(), D]
+
+        return output.reshape(B, N, D)  # [B, N, D]
