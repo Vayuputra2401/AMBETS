@@ -243,6 +243,9 @@ def main() -> None:
         model.train()
 
         epoch_losses: dict = {}
+        accum_steps = max(config.training.grad_accum_steps, 1)
+        accum_count = 0
+        optimizer.zero_grad()
         batch_bar = tqdm(
             enumerate(train_loader), total=len(train_loader),
             desc=f"  epoch {epoch}", unit="batch", leave=False,
@@ -254,7 +257,6 @@ def main() -> None:
             image = batch["image"].to(device, non_blocking=True)
             label = batch["label"].to(device, non_blocking=True)
 
-            optimizer.zero_grad()
             with autocast(enabled=config.training.amp and device.type == "cuda"):
                 out          = model(image)
                 token_labels = downsample_labels_to_tokens(label, model.get_grid_shape())
@@ -266,11 +268,17 @@ def main() -> None:
                     tau_current   = model.ccr.router.temperature,
                 )
 
-            scaler.scale(losses["total"]).backward()
-            scaler.unscale_(optimizer)
-            clip_grad_norm_(model.parameters(), config.training.grad_clip)
-            scaler.step(optimizer)
-            scaler.update()
+            scaler.scale(losses["total"] / accum_steps).backward()
+            accum_count += 1
+
+            is_last_batch = (batch_idx + 1) == len(train_loader)
+            if accum_count == accum_steps or is_last_batch:
+                scaler.unscale_(optimizer)
+                clip_grad_norm_(model.parameters(), config.training.grad_clip)
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+                accum_count = 0
 
             tracker.update(out["assignments"])
             epoch_losses = losses
@@ -284,6 +292,14 @@ def main() -> None:
                     f"loss={losses['total'].item():.4f} "
                     f"phase={losses['phase']}"
                 )
+
+        # Flush leftover accumulated gradients (e.g. smoke_test break mid-window)
+        if accum_count > 0:
+            scaler.unscale_(optimizer)
+            clip_grad_norm_(model.parameters(), config.training.grad_clip)
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
 
         # --- Collapse check ---
         collapsed = tracker.check_collapse(epoch)

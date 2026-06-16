@@ -29,11 +29,12 @@ data:
   spatial_size: [128, 128, 128]
   val_fraction: 0.125
   test_fraction: 0.125
-  num_workers: 4
+  num_workers: 6  # of 8 vCPUs — leaves headroom for main process + CUDA driver
   seed: 42
 
 training:
   batch_size: 1  # T4 (16GB) OOMs at batch_size=2 even with AMP; bump if running on >=24GB GPU
+  grad_accum_steps: 4  # effective batch size = 1*4 = 4, compensates for batch_size=1 gradient noise
   learning_rate: 1.0e-4
   weight_decay: 1.0e-5
   grad_clip: 1.0

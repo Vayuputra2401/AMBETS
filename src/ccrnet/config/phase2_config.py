@@ -95,6 +95,7 @@ class TrainingConfig:
     """
 
     batch_size: int = 2
+    grad_accum_steps: int = 1  # effective batch = batch_size * grad_accum_steps
     learning_rate: float = 1e-4
     weight_decay: float = 1e-5
     grad_clip: float = 1.0
