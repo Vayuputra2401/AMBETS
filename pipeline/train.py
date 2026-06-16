@@ -112,19 +112,32 @@ def _dice_et(pred, label):
     return _dice(pred.eq(3), label.eq(3)).item()
 
 
-def _log_metrics(epoch: int, losses: dict, val_metrics: dict, utilization: dict) -> None:
-    cas_fg = val_metrics.get("cas_fg", {})
-    dice   = val_metrics.get("dice", {})
+_CONCEPT_SHORT = {
+    "background":       "bg",
+    "necrotic_core":     "ncr",
+    "edema":             "edema",
+    "enhancing_tumor":   "et",
+}
+
+
+def _kv(d: dict, fmt: str = ".4f") -> str:
+    return " ".join(f"{k}={v:{fmt}}" for k, v in d.items())
+
+
+def _log_train_metrics(epoch: int, phase: str, tau_target: float, train_avg: dict, train_time: float) -> None:
     _log(
-        f"Epoch {epoch:3d} | "
-        f"phase={losses['phase']} τ={losses.get('tau_target', 0):.2f} | "
-        f"L={losses['total'].item():.4f} seg={losses['seg'].item():.4f} "
-        f"align={losses['align'].item():.4f} | "
-        f"CAS_fg ncr={cas_fg.get('necrotic_core', 0):.3f} "
-        f"edema={cas_fg.get('edema', 0):.3f} "
-        f"et={cas_fg.get('enhancing_tumor', 0):.3f} | "
-        f"Dice WT={dice.get('WT', 0):.3f} TC={dice.get('TC', 0):.3f} ET={dice.get('ET', 0):.3f} | "
-        f"util={utilization}"
+        f"[epoch {epoch:3d}] train | phase={phase} tau={tau_target:.2f} | "
+        f"{_kv(train_avg)} | time={train_time:.1f}s"
+    )
+
+
+def _log_val_metrics(epoch: int, val_metrics: dict, utilization: dict, val_time: float) -> None:
+    cas_fg = {f"cas_fg_{_CONCEPT_SHORT.get(k, k)}": v for k, v in val_metrics.get("cas_fg", {}).items()}
+    dice   = {f"dice_{k.lower()}": v for k, v in val_metrics.get("dice", {}).items()}
+    util   = {f"util_{_CONCEPT_SHORT.get(k, k)}": v * 100.0 for k, v in utilization.items()}
+    _log(
+        f"[epoch {epoch:3d}] val   | "
+        f"{_kv(cas_fg, '.3f')} {_kv(dice, '.3f')} {_kv(util, '.1f')} | time={val_time:.1f}s"
     )
 
 
@@ -265,6 +278,7 @@ def main() -> None:
     # --- Training loop ---
     epoch_bar = tqdm(range(start_epoch, end_epoch + 1), desc="Epochs", unit="epoch")
     for epoch in epoch_bar:
+        epoch_start = time.time()
         loss_fn.set_epoch(epoch)
         model.train()
 
@@ -321,12 +335,6 @@ def main() -> None:
                 accum=accum_steps,
                 lr=f"{optimizer.param_groups[0]['lr']:.1e}",
             )
-            if batch_idx % config.training.log_every == 0:
-                tqdm.write(
-                    f"  epoch {epoch} batch {batch_idx}/{len(train_loader)} "
-                    f"loss={losses['total'].item():.4f} "
-                    f"phase={losses['phase']}"
-                )
 
         # Flush leftover accumulated gradients (e.g. smoke_test break mid-window)
         if accum_count > 0:
@@ -337,6 +345,8 @@ def main() -> None:
             optimizer.zero_grad()
 
         train_avg = {k: v / max(n_train_batches, 1) for k, v in loss_sums.items()}
+        train_time = time.time() - epoch_start
+        _log_train_metrics(epoch, epoch_losses["phase"], epoch_losses["tau_target"], train_avg, train_time)
 
         # --- Collapse check ---
         collapsed = tracker.check_collapse(epoch)
@@ -352,9 +362,12 @@ def main() -> None:
 
         # --- Validation + checkpoint ---
         val_metrics = None
+        val_time = 0.0
         if epoch % config.training.checkpoint_every == 0 or force_validate_every_epoch:
+            val_start   = time.time()
             val_metrics = validate(model, val_loader, cas, device)
-            _log_metrics(epoch, epoch_losses, val_metrics, epoch_utilization)
+            val_time    = time.time() - val_start
+            _log_val_metrics(epoch, val_metrics, epoch_utilization, val_time)
             ckpt_path = save_checkpoint(
                 model, optimizer, scheduler, epoch, val_metrics,
                 config, run_dir,
@@ -363,6 +376,9 @@ def main() -> None:
             if gcs_run_dir:
                 if sync_checkpoint_to_gcs(ckpt_path, gcs_run_dir):
                     _log(f"  Synced to {gcs_run_dir}/")
+
+        epoch_total_time = time.time() - epoch_start
+        _log(f"[epoch {epoch:3d}] done  | sec/epoch={epoch_total_time:.1f}s ({epoch_total_time/60:.1f}min)")
 
         # --- Per-epoch metrics record (always written; val included only when run) ---
         epoch_record = {
@@ -377,6 +393,9 @@ def main() -> None:
             "train_loss":           train_avg,
             "val":                  val_metrics,
             "expert_utilization":   epoch_utilization,
+            "train_time_sec":       round(train_time, 1),
+            "val_time_sec":         round(val_time, 1),
+            "total_time_sec":       round(epoch_total_time, 1),
             "timestamp":            time.strftime("%Y-%m-%d %H:%M:%S"),
         }
         all_epoch_metrics.append(epoch_record)
