@@ -6,6 +6,7 @@ Usage
     python pipeline/train.py --env local          # paths from configs/env/local.yaml
     python pipeline/train.py --env gcp            # paths from configs/env/gcp.yaml
     python pipeline/train.py --env local --smoke_test  # 2-batch pipeline check
+    python pipeline/train.py --env gcp  --epochs 2     # 2 full real epochs, train+val tracked
     python pipeline/train.py --env gcp  --resume /gcs/ccr-brats-training/checkpoints/epoch_0050.pth
 
 Paths are loaded from configs/env/{env}.yaml — edit that file, not this script.
@@ -17,12 +18,15 @@ CLI args
     --config      path to base YAML (default: configs/brats_phase2.yaml, auto-resolved)
     --resume      path to .pth checkpoint to resume from
     --smoke_test  run 2 batches then exit
+    --epochs      run only this many full epochs then stop (train+val every epoch,
+                   metrics written to <run_dir>/metrics.json). 0 = full curriculum.
     --device      cuda / cpu (default: auto-detect)
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -140,6 +144,10 @@ def main() -> None:
                         help="Path to checkpoint .pth to resume training from")
     parser.add_argument("--smoke_test", action="store_true",
                         help="Run 2 batches then exit (pipeline verification)")
+    parser.add_argument("--epochs", type=int, default=0,
+                        help="Run only this many full epochs then stop (train+val "
+                             "tracked every epoch, written to <run_dir>/metrics.json). "
+                             "0 = run the full curriculum (config total_epochs).")
     parser.add_argument("--device", type=str, default="",
                         help="Force device: cuda or cpu (default: auto-detect)")
     args = parser.parse_args()
@@ -247,13 +255,21 @@ def main() -> None:
     )
 
     total_epochs = config.ccr.curriculum.total_epochs
+    end_epoch = min(total_epochs, start_epoch + args.epochs - 1) if args.epochs > 0 else total_epochs
+    force_validate_every_epoch = args.smoke_test or args.epochs > 0
+
+    os.makedirs(run_dir, exist_ok=True)
+    metrics_path = os.path.join(run_dir, "metrics.json")
+    all_epoch_metrics: list = []
 
     # --- Training loop ---
-    epoch_bar = tqdm(range(start_epoch, total_epochs + 1), desc="Epochs", unit="epoch")
+    epoch_bar = tqdm(range(start_epoch, end_epoch + 1), desc="Epochs", unit="epoch")
     for epoch in epoch_bar:
         loss_fn.set_epoch(epoch)
         model.train()
 
+        loss_sums = {k: 0.0 for k in ["total", "seg", "align", "diversity", "entropy", "boundary", "tau_reg"]}
+        n_train_batches = 0
         epoch_losses: dict = {}
         accum_steps = max(config.training.grad_accum_steps, 1)
         accum_count = 0
@@ -294,9 +310,16 @@ def main() -> None:
 
             tracker.update(out["assignments"])
             epoch_losses = losses
+            n_train_batches += 1
+            for k in loss_sums:
+                loss_sums[k] += losses[k].item()
 
             batch_bar.set_postfix(
-                loss=f"{losses['total'].item():.4f}", phase=losses["phase"],
+                loss=f"{losses['total'].item():.4f}",
+                phase=losses["phase"],
+                bs=config.training.batch_size,
+                accum=accum_steps,
+                lr=f"{optimizer.param_groups[0]['lr']:.1e}",
             )
             if batch_idx % config.training.log_every == 0:
                 tqdm.write(
@@ -313,20 +336,23 @@ def main() -> None:
             scaler.update()
             optimizer.zero_grad()
 
+        train_avg = {k: v / max(n_train_batches, 1) for k, v in loss_sums.items()}
+
         # --- Collapse check ---
         collapsed = tracker.check_collapse(epoch)
         if collapsed:
             _log(f"  Expert collapse detected: {collapsed} — reinitializing fc2")
             reinitialize_experts(model.ccr, collapsed)
 
-        # Snapshot utilization BEFORE reset so _log_metrics can report it
+        # Snapshot utilization BEFORE reset so logging/metrics can report it
         epoch_utilization = tracker.compute()
         tracker.reset()
 
         scheduler.step()
 
         # --- Validation + checkpoint ---
-        if epoch % config.training.checkpoint_every == 0 or args.smoke_test:
+        val_metrics = None
+        if epoch % config.training.checkpoint_every == 0 or force_validate_every_epoch:
             val_metrics = validate(model, val_loader, cas, device)
             _log_metrics(epoch, epoch_losses, val_metrics, epoch_utilization)
             ckpt_path = save_checkpoint(
@@ -338,11 +364,35 @@ def main() -> None:
                 if sync_checkpoint_to_gcs(ckpt_path, gcs_run_dir):
                     _log(f"  Synced to {gcs_run_dir}/")
 
+        # --- Per-epoch metrics record (always written; val included only when run) ---
+        epoch_record = {
+            "epoch":                epoch,
+            "phase":                epoch_losses.get("phase"),
+            "tau_target":           epoch_losses.get("tau_target"),
+            "lr":                   optimizer.param_groups[0]["lr"],
+            "batch_size":           config.training.batch_size,
+            "grad_accum_steps":     accum_steps,
+            "effective_batch_size": config.training.batch_size * accum_steps,
+            "n_train_batches":      n_train_batches,
+            "train_loss":           train_avg,
+            "val":                  val_metrics,
+            "expert_utilization":   epoch_utilization,
+            "timestamp":            time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        all_epoch_metrics.append(epoch_record)
+        with open(metrics_path, "w") as f:
+            json.dump(all_epoch_metrics, f, indent=2, default=str)
+
+        postfix = {"train_loss": f"{train_avg['total']:.4f}"}
+        if val_metrics is not None:
+            postfix["val_dice_wt"] = f"{val_metrics['dice'].get('WT', 0):.3f}"
+        epoch_bar.set_postfix(postfix)
+
         if args.smoke_test:
             _log("Smoke test complete — 2 batches ran successfully.")
             break
 
-    _log("Training complete.")
+    _log(f"Training complete. Per-epoch metrics written to {metrics_path}")
 
 
 if __name__ == "__main__":
