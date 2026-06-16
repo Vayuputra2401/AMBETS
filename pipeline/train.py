@@ -41,7 +41,7 @@ from ccrnet.config.phase2_config import Phase2Config
 from ccrnet.config.env_config import apply_env
 from ccrnet.models.ccrnet import CCRNet
 from ccrnet.utils.token_labels import downsample_labels_to_tokens
-from ccrnet.utils.checkpoint import save_checkpoint, load_checkpoint, reinitialize_experts
+from ccrnet.utils.checkpoint import save_checkpoint, load_checkpoint, reinitialize_experts, sync_checkpoint_to_gcs
 from brats_dataset import get_dataloader
 
 from ccr.losses.total import CCRTotalLoss
@@ -153,8 +153,12 @@ def main() -> None:
         g = env_cfg["gcp"]
         _log(f"GCP project={g.get('project')}  bucket={g.get('bucket')}  "
              f"instance={g.get('instance')}  zone={g.get('zone')}")
+    gcs_checkpoint_dir = env_cfg.get("paths", {}).get("gcs_checkpoint_dir", "")
+
     _log(f"data_root   : {config.data.data_root}")
     _log(f"checkpoint  : {config.training.checkpoint_dir}")
+    if gcs_checkpoint_dir:
+        _log(f"gcs sync    : {gcs_checkpoint_dir}")
     _log(f"pretrained  : {config.swin.pretrained_path}")
 
     if not config.data.data_root:
@@ -292,6 +296,9 @@ def main() -> None:
                 config, config.training.checkpoint_dir,
             )
             _log(f"  Checkpoint saved: {ckpt_path}")
+            if gcs_checkpoint_dir:
+                if sync_checkpoint_to_gcs(ckpt_path, gcs_checkpoint_dir):
+                    _log(f"  Synced to {gcs_checkpoint_dir}/")
 
         if args.smoke_test:
             _log("Smoke test complete — 2 batches ran successfully.")

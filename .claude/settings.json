@@ -13,7 +13,8 @@
       "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" pipeline/evaluate.py --help)",
       "Bash('C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe' -c ' *)",
       "Bash(\"C:\\\\Users\\\\pathi\\\\envs\\\\ai_research\\\\Scripts\\\\python.exe\" -m pytest tests/ -q --tb=short)",
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "Bash(gcloud storage *)"
     ]
   }
 }

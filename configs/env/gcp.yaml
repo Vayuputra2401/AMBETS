@@ -6,15 +6,18 @@ env: gcp
 # GCP metadata (informational — printed at training start, not used by PyTorch code)
 gcp:
   project:      "research-454007"
-  bucket:       "ccr-brats-training"
+  bucket:       "research-brats"
   instance:     "ccr-research"
   zone:         "asia-east1-c"
   machine_type: "n1-standard-8"
   accelerator:  "nvidia-tesla-t4"
 
 # Paths — bucket mounted at /gcs/<bucket> via gcsfuse
-# checkpoint_dir uses local disk (/home) to avoid read-only scope issue — sync to GCS after training
+# checkpoint_dir is local disk (instance's attached service account is read-only on GCS);
+# gcs_checkpoint_dir is synced to after each save using `gcloud storage cp` under a
+# separately-authenticated user account (gcloud auth login), which is not scope-limited.
 paths:
-  data_root:       "/gcs/ccr-brats-training/brats2024"
-  checkpoint_dir:  "/home/user/checkpoints"
-  pretrained_path: "/gcs/ccr-brats-training/pretrained/model_swinvit.pt"
+  data_root:          "/gcs/research-brats/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
+  checkpoint_dir:      "/home/g21cs2026/checkpoints"
+  pretrained_path:    "/gcs/research-brats/pretrained/model_swinvit.pt"
+  gcs_checkpoint_dir: "gs://research-brats/checkpoints"

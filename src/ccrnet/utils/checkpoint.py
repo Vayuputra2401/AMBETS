@@ -9,6 +9,7 @@ reinitialize_experts : resets fc2 weights of collapsed experts (called by collap
 from __future__ import annotations
 
 import os
+import subprocess
 from typing import Dict, List, Optional, Tuple
 
 import torch
@@ -45,6 +46,29 @@ def save_checkpoint(
         path,
     )
     return path
+
+
+def sync_checkpoint_to_gcs(ckpt_path: str, gcs_checkpoint_dir: str) -> bool:
+    """
+    Copy a local checkpoint file to a GCS path via `gcloud storage cp`.
+
+    Uses whatever gcloud credentials are active in the shell (e.g. a
+    user account from `gcloud auth login`, since the VM's attached
+    service account may be read-only). Failures are logged, not raised,
+    so a sync hiccup never aborts training.
+
+    Returns True on success, False otherwise.
+    """
+    dest = f"{gcs_checkpoint_dir.rstrip('/')}/{os.path.basename(ckpt_path)}"
+    try:
+        subprocess.run(
+            ["gcloud", "storage", "cp", ckpt_path, dest],
+            check=True, capture_output=True, text=True, timeout=300,
+        )
+        return True
+    except Exception as e:
+        print(f"  [warn] checkpoint GCS sync failed for {ckpt_path}: {e}")
+        return False
 
 
 def load_checkpoint(
