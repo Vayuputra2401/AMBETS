@@ -52,6 +52,7 @@ class SwinConfig:
     mlp_ratio: float = 4.0
     drop_path_rate: float = 0.0
     pretrained_path: str = ""
+    use_checkpoint: bool = False  # gradient checkpointing — trades compute for VRAM (set True on <24GB GPUs)
 
 
 @dataclass

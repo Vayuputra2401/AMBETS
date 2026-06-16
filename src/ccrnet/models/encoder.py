@@ -86,7 +86,7 @@ class SwinEncoder3D(nn.Module):
             attn_drop_rate=0.0,
             drop_path_rate=config.drop_path_rate,
             norm_layer=nn.LayerNorm,
-            use_checkpoint=False,
+            use_checkpoint=config.use_checkpoint,
             spatial_dims=3,
         )
 
