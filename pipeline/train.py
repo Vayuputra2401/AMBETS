@@ -156,10 +156,22 @@ def main() -> None:
              f"instance={g.get('instance')}  zone={g.get('zone')}")
     gcs_checkpoint_dir = env_cfg.get("paths", {}).get("gcs_checkpoint_dir", "")
 
+    # --- Run folder: one dated sub-directory per training run, so checkpoints
+    # from different launches never mix. Resuming reuses the run folder the
+    # checkpoint came from instead of starting a new one.
+    if args.resume:
+        run_dir = os.path.dirname(os.path.abspath(args.resume))
+        run_id  = os.path.basename(run_dir)
+    else:
+        run_id  = "smoke_test" if args.smoke_test else time.strftime("%Y%m%d_%H%M%S")
+        run_dir = os.path.join(config.training.checkpoint_dir, run_id)
+    gcs_run_dir = f"{gcs_checkpoint_dir.rstrip('/')}/{run_id}" if gcs_checkpoint_dir else ""
+
     _log(f"data_root   : {config.data.data_root}")
-    _log(f"checkpoint  : {config.training.checkpoint_dir}")
-    if gcs_checkpoint_dir:
-        _log(f"gcs sync    : {gcs_checkpoint_dir}")
+    _log(f"run id      : {run_id}")
+    _log(f"checkpoint  : {run_dir}")
+    if gcs_run_dir:
+        _log(f"gcs sync    : {gcs_run_dir}")
     _log(f"pretrained  : {config.swin.pretrained_path}")
 
     if not config.data.data_root:
@@ -319,12 +331,12 @@ def main() -> None:
             _log_metrics(epoch, epoch_losses, val_metrics, epoch_utilization)
             ckpt_path = save_checkpoint(
                 model, optimizer, scheduler, epoch, val_metrics,
-                config, config.training.checkpoint_dir,
+                config, run_dir,
             )
             _log(f"  Checkpoint saved: {ckpt_path}")
-            if gcs_checkpoint_dir:
-                if sync_checkpoint_to_gcs(ckpt_path, gcs_checkpoint_dir):
-                    _log(f"  Synced to {gcs_checkpoint_dir}/")
+            if gcs_run_dir:
+                if sync_checkpoint_to_gcs(ckpt_path, gcs_run_dir):
+                    _log(f"  Synced to {gcs_run_dir}/")
 
         if args.smoke_test:
             _log("Smoke test complete — 2 batches ran successfully.")
