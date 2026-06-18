@@ -36,6 +36,7 @@ import torch.nn as nn
 from ccr.config.ccr_config import CCRConfig
 from ccr.losses.alignment    import ConceptAlignmentLoss
 from ccr.losses.boundary     import BoundaryAwareLoss
+from ccr.losses.contrastive  import ContrastiveConceptLoss
 from ccr.losses.diversity    import ExpertDiversityLoss
 from ccr.losses.entropy      import EntropyRegularizationLoss
 from ccr.losses.segmentation import SegmentationLoss
@@ -94,15 +95,16 @@ class CCRTotalLoss(nn.Module):
     Returns
     -------
     dict with keys:
-        total     : Tensor []   L_total (call .backward() on this)
-        seg       : Tensor []   L_seg component
-        align     : Tensor []   L_align component (0 during warmup)
-        diversity : Tensor []   L_diversity component
-        entropy   : Tensor []   L_entropy_reg component (0 during warmup)
-        boundary  : Tensor []   L_boundary component (0 during warmup)
-        tau_reg   : Tensor []   L_tau_reg component (0.0 if tau_current is None)
-        phase     : str         current curriculum phase name
-        weights   : tuple       (λ₁, λ₂, λ₃, λ₄) active this epoch
+        total       : Tensor []   L_total (call .backward() on this)
+        seg         : Tensor []   L_seg component
+        align       : Tensor []   L_align component (0 during warmup)
+        diversity   : Tensor []   L_diversity component
+        entropy     : Tensor []   L_entropy_reg component (0 during warmup)
+        boundary    : Tensor []   L_boundary component (0 during warmup)
+        contrastive : Tensor []   L_contrastive NCR-ET component (0 during warmup or if weight=0)
+        tau_reg     : Tensor []   L_tau_reg component (0.0 if tau_current is None)
+        phase       : str         current curriculum phase name
+        weights     : tuple       (λ₁, λ₂, λ₃, λ₄) active this epoch
         tau_target: float       current τ target (0.0 if tau_current is None)
     """
 
@@ -117,20 +119,23 @@ class CCRTotalLoss(nn.Module):
             num_concepts    = num_concepts,
             foreground_only = lc.align_foreground_only,
             focal_gamma     = lc.align_focal_gamma,
+            concept_weights = lc.align_concept_weights,
         )
         self.diversity_loss = ExpertDiversityLoss(
             num_concepts = num_concepts,
             eps          = lc.diversity_eps,
         )
-        self.entropy_loss   = EntropyRegularizationLoss(eps=lc.entropy_eps)
-        self.boundary_loss  = BoundaryAwareLoss(
+        self.entropy_loss      = EntropyRegularizationLoss(eps=lc.entropy_eps)
+        self.boundary_loss     = BoundaryAwareLoss(
             num_classes    = num_concepts,
             dilation_iters = lc.boundary_dilation_iters,
             base_weight    = lc.boundary_base_weight,
             boost_factor   = lc.boundary_boost_factor,
         )
-        self.scheduler      = CurriculumWeightScheduler(config.curriculum)
-        self._tau_reg_weight = lc.tau_reg_weight
+        self.contrastive_loss  = ContrastiveConceptLoss(ncr_idx=1, et_idx=num_concepts - 1)
+        self.scheduler         = CurriculumWeightScheduler(config.curriculum)
+        self._tau_reg_weight   = lc.tau_reg_weight
+        self._contrastive_w    = lc.contrastive_ncr_et_weight
         self._current_epoch: int = 1
 
     def set_epoch(self, epoch: int) -> None:
@@ -163,9 +168,11 @@ class CCRTotalLoss(nn.Module):
 
         # --- L_align (skip during warmup for speed and collapse prevention) ---
         if lam_align > 0.0:
-            l_align = self.align_loss(routing_probs, token_labels)
+            l_align        = self.align_loss(routing_probs, token_labels)
+            l_contrastive  = self.contrastive_loss(routing_probs, token_labels)
         else:
-            l_align = pred_logits.new_zeros(())
+            l_align        = pred_logits.new_zeros(())
+            l_contrastive  = pred_logits.new_zeros(())
 
         # --- L_diversity (always computed; prevents collapse from epoch 1) ---
         l_diversity = self.diversity_loss(routing_probs)
@@ -195,22 +202,24 @@ class CCRTotalLoss(nn.Module):
         # --- Weighted sum ---
         l_total = (
             l_seg
-            + lam_align     * l_align
-            + lam_diversity * l_diversity
-            + lam_entropy   * l_entropy
-            + lam_boundary  * l_boundary
+            + lam_align              * l_align
+            + lam_diversity          * l_diversity
+            + lam_entropy            * l_entropy
+            + lam_boundary           * l_boundary
+            + self._contrastive_w    * l_contrastive
             + l_tau_reg
         )
 
         return {
-            "total":      l_total,
-            "seg":        l_seg,
-            "align":      l_align,
-            "diversity":  l_diversity,
-            "entropy":    l_entropy,
-            "boundary":   l_boundary,
-            "tau_reg":    l_tau_reg,
-            "phase":      phase,
-            "weights":    (lam_align, lam_diversity, lam_entropy, lam_boundary),
-            "tau_target": tau_target,
+            "total":       l_total,
+            "seg":         l_seg,
+            "align":       l_align,
+            "diversity":   l_diversity,
+            "entropy":     l_entropy,
+            "boundary":    l_boundary,
+            "contrastive": l_contrastive,
+            "tau_reg":     l_tau_reg,
+            "phase":       phase,
+            "weights":     (lam_align, lam_diversity, lam_entropy, lam_boundary),
+            "tau_target":  tau_target,
         }

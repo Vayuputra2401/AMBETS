@@ -46,6 +46,8 @@ Plan reference: CCR-Net_Research_Plan.md Section 7.1, alignment_loss code block.
 
 from __future__ import annotations
 
+from typing import Optional, Sequence
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -55,8 +57,8 @@ class ConceptAlignmentLoss(nn.Module):
     """
     L_align — per-concept BCE between routing probabilities and GT subregion masks.
 
-    Supports foreground-only computation and focal modulation.
-    Both are enabled by default (see module docstring for rationale).
+    Supports foreground-only computation, focal modulation, and per-concept
+    gradient weighting (concept_weights) to address class imbalance in NCR.
 
     Parameters
     ----------
@@ -72,6 +74,12 @@ class ConceptAlignmentLoss(nn.Module):
         When γ > 0: bce_focal(t) = (1−p_correct(t))^γ × BCE(t)
         Easy tokens (p_correct ≈ 1) receive weight ≈ 0; hard tokens receive
         weight ≈ 1.  γ=2 is standard (Lin et al., 2017).
+    concept_weights : sequence of float, optional
+        Per-concept scalar multipliers applied to each concept's BCE contribution
+        before averaging.  Length must equal num_concepts.  When None (default),
+        all concepts are weighted equally (equivalent to all-ones weights).
+        Example for BraTS Run 2: [1.0, 3.0, 1.0, 1.0] — upweights NCR 3× to
+        counteract its small token count relative to Edema and ET.
 
     Inputs
     ------
@@ -96,11 +104,17 @@ class ConceptAlignmentLoss(nn.Module):
         num_concepts: int,
         foreground_only: bool = True,
         focal_gamma: float = 2.0,
+        concept_weights: Optional[Sequence[float]] = None,
     ) -> None:
         super().__init__()
         self.num_concepts    = num_concepts
         self.foreground_only = foreground_only
         self.focal_gamma     = focal_gamma
+        if concept_weights is not None:
+            assert len(concept_weights) == num_concepts, (
+                f"concept_weights length {len(concept_weights)} != num_concepts {num_concepts}"
+            )
+        self.concept_weights = list(concept_weights) if concept_weights is not None else None
 
     def forward(
         self,
@@ -146,10 +160,12 @@ class ConceptAlignmentLoss(nn.Module):
             fg_count = float(B * N)
             k_start  = 0
 
-        n_concepts = K - k_start    # number of concepts in the average
         loss       = routing_probs.new_zeros(())
+        weight_sum = 0.0
 
         for k in range(k_start, K):
+            w_k = self.concept_weights[k] if self.concept_weights is not None else 1.0
+
             # Binary GT for concept k: 1 where token belongs to k, else 0.
             gt_k = (seg_labels == k).float()                          # [B, N]
 
@@ -167,7 +183,10 @@ class ConceptAlignmentLoss(nn.Module):
                 focal_weight = (1.0 - p_correct).pow(self.focal_gamma)    # [B, N]
                 bce          = focal_weight * bce
 
-            # Apply foreground mask and accumulate mean per foreground token.
-            loss = loss + (fg_mask * bce).sum() / fg_count
+            # Apply foreground mask, concept weight, and accumulate.
+            loss       = loss + w_k * (fg_mask * bce).sum() / fg_count
+            weight_sum = weight_sum + w_k
 
-        return loss / n_concepts
+        # Normalise by sum of concept weights so loss magnitude is comparable
+        # across runs regardless of weight configuration.
+        return loss / max(weight_sum, 1e-8)

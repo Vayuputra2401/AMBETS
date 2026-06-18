@@ -20,10 +20,17 @@ Updated after each training run.
 | 30 | alignment | 0.501 | 0.896 | 0.863 | 0.888 | 0.797 | 0.778 |
 | 35 | alignment | 0.530 | 0.897 | 0.871 | 0.895 | 0.798 | 0.786 |
 | 40 | alignment | **0.530** | 0.900 | 0.871 | 0.893 | 0.807 | 0.793 |
+| 60 | refinement | 0.589 | 0.902 | 0.877 | 0.904 | 0.814 | 0.801 |
+| 65 | refinement | 0.579 | 0.903 | 0.877 | 0.905 | 0.817 | 0.803 |
+| 70 | refinement | 0.579 | 0.900 | 0.876 | 0.905 | 0.810 | 0.797 |
+| 75 | refinement | 0.578 | 0.901 | 0.876 | 0.905 | 0.811 | 0.798 |
+| **80** | **refinement** | **0.580** | **0.900** | **0.877** | **0.905** | **0.816** | **0.802** |
 
 **Targets**: CAS_fg ≥ 0.85 all three, Dice WT>0.85 / TC>0.75 / ET>0.65
 
-**Status at ep40**: Edema ✓, ET ✓, NCR ✗ (plateaued). All Dice targets ✓.
+**Final status (ep80)**: Edema ✓, ET ✓, NCR ✗ (0.580 — structural limit). All Dice targets ✓.
+**NCR plateau**: 0.530 (ep35-40) → 0.589 (ep60, refinement helped) → 0.580 (ep80 final, Pearson noise).
+**Run 1 ceiling**: NCR CAS ~0.58. Fix in Run 2: concept weights 3×NCR + γ=1.0 + contrastive loss.
 
 ---
 

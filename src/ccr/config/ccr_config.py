@@ -25,7 +25,7 @@ Phase 1 improvements (2026-05-28):
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Tuple
+from typing import Optional, Tuple
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +192,8 @@ class LossConfig:
     boundary_boost_factor: float = 5.0
     align_foreground_only: bool = True
     align_focal_gamma: float = 2.0
+    align_concept_weights: Optional[Tuple[float, ...]] = None
+    contrastive_ncr_et_weight: float = 0.0
     tau_reg_weight: float = 0.01
     weights: LossWeights = field(default_factory=LossWeights)
 

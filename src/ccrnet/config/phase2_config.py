@@ -156,8 +156,9 @@ class Phase2Config:
 
         ccr_cfg = CCRConfig()
         if ccr_raw:
-            router_raw = ccr_raw.pop("router", {})
+            router_raw     = ccr_raw.pop("router", {})
             curriculum_raw = ccr_raw.pop("curriculum", {})
+            loss_raw       = ccr_raw.pop("loss", {})
             if router_raw:
                 from ccr.config.ccr_config import RouterConfig
                 for k, v in router_raw.items():
@@ -167,6 +168,13 @@ class Phase2Config:
                 for k, v in curriculum_raw.items():
                     if hasattr(ccr_cfg.curriculum, k):
                         setattr(ccr_cfg.curriculum, k, v)
+            if loss_raw:
+                for k, v in loss_raw.items():
+                    if hasattr(ccr_cfg.loss, k):
+                        cur = getattr(ccr_cfg.loss, k)
+                        if isinstance(cur, tuple) and isinstance(v, list):
+                            v = tuple(v)
+                        setattr(ccr_cfg.loss, k, v)
 
         def _apply(dcls, d):
             obj = dcls()

@@ -57,3 +57,7 @@ ccr:
     tau_warmup: 2.0
     tau_alignment: 1.0
     tau_refinement: 0.5
+  loss:
+    align_focal_gamma: 1.0                        # Run 2: was 2.0 — gentler for rare NCR tokens
+    align_concept_weights: [1.0, 3.0, 1.0, 1.0]  # Run 2: NCR 3×, BG ignored (foreground_only=True)
+    contrastive_ncr_et_weight: 0.3                # Run 2: pairwise NCR-ET disambiguation loss

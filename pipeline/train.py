@@ -35,7 +35,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from tqdm import tqdm
 
 # Make src/ importable when running from repo root
@@ -222,7 +222,7 @@ def main() -> None:
         T_max=config.ccr.curriculum.total_epochs,
         eta_min=1e-6,
     )
-    scaler = GradScaler(enabled=config.training.amp and device.type == "cuda")
+    scaler = GradScaler("cuda", enabled=config.training.amp and device.type == "cuda")
 
     # --- Resume ---
     start_epoch = 1
@@ -282,7 +282,7 @@ def main() -> None:
         loss_fn.set_epoch(epoch)
         model.train()
 
-        loss_sums = {k: 0.0 for k in ["total", "seg", "align", "diversity", "entropy", "boundary", "tau_reg"]}
+        loss_sums = {k: 0.0 for k in ["total", "seg", "align", "diversity", "entropy", "boundary", "contrastive", "tau_reg"]}
         n_train_batches = 0
         epoch_losses: dict = {}
         accum_steps = max(config.training.grad_accum_steps, 1)
@@ -299,7 +299,7 @@ def main() -> None:
             image = batch["image"].to(device, non_blocking=True)
             label = batch["label"].to(device, non_blocking=True)
 
-            with autocast(enabled=config.training.amp and device.type == "cuda"):
+            with autocast("cuda", enabled=config.training.amp and device.type == "cuda"):
                 out          = model(image)
                 token_labels = downsample_labels_to_tokens(label, model.get_grid_shape())
                 losses       = loss_fn(
