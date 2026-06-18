@@ -12,12 +12,13 @@ gcp:
   machine_type: "n1-standard-8"
   accelerator:  "nvidia-tesla-t4"
 
-# Paths — bucket mounted at /gcs/<bucket> via gcsfuse
-# checkpoint_dir is local disk (instance's attached service account is read-only on GCS);
-# gcs_checkpoint_dir is synced to after each save using `gcloud storage cp` under a
-# separately-authenticated user account (gcloud auth login), which is not scope-limited.
+# Paths — data_root is LOCAL disk (copied from GCS once via gsutil -m cp).
+# Reading training data from local SSD avoids gcsfuse API call charges (~5K INR/run).
+# To copy: gsutil -m cp -r gs://research-brats/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2 /home/g21cs2026/data/
+# pretrained_path still reads from gcsfuse (one-time load at startup, negligible).
+# checkpoint_dir is local; gcs_checkpoint_dir synced per checkpoint via gcloud storage cp.
 paths:
-  data_root:          "/gcs/research-brats/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
+  data_root:          "/home/g21cs2026/data/training_data1_v2"
   checkpoint_dir:      "/home/g21cs2026/checkpoints"
   pretrained_path:    "/gcs/research-brats/pretrained/model_swinvit.pt"
   gcs_checkpoint_dir: "gs://research-brats/checkpoints"
