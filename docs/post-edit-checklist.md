@@ -78,17 +78,19 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
 ---
 
-## Session state as of 2026-06-20
+## Session state as of 2026-06-20 (ep68 in progress)
 
 | Item | State |
 |------|-------|
 | Tests | 169/169 pass |
-| Run 2 | ep65/80. NCR=0.700 (ep65). Projection ep80: ~0.69-0.72. LR~9e-6. |
-| Run 3 | Config committed acc613a. Start from scratch after Run 2. |
+| Run 2 | ep68 in progress (batch 333/1014). Last val ep65: NCR=0.700. LR=7.3e-6 |
+| Run 2 projection | NCR ep80: ~0.69-0.72 (Pearson noise range). Structural ceiling confirmed. |
+| Run 2 next val | ep70 (~2h from ep68 batch 333) |
+| Run 3 | Config committed acc613a. Start from scratch after Run 2 finishes ep80. |
 | GCP instance | `ccr-research`, asia-east1-c, T4. Local data at `/home/g21cs2026/data/` |
 | Run 3 start cmd | `python3 pipeline/train.py --env gcp` |
-| Run 3 checkpoint | Incompatible with Run 1/2 (embed_dim 192→96) |
-| Next milestone | ep70, ep75, ep80 val for Run 2. Then Run 3. |
+| Run 3 checkpoint | Incompatible with Run 1/2 (embed_dim changed 192→96) |
+| After Run 2 ep80 | Start Run 3 immediately. Grab ep80 checkpoint for paper ablation table. |
 | After Run 3 | Phase 3 — CCR-Retrofit (frozen SwinUNETR + CCR, measure DD) |
 
 ---
