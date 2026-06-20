@@ -6,7 +6,7 @@
 
 **Master plan**: `CCR-Net_Research_Plan.md` — read this before touching any code or writing any text.
 
-## Current status (2026-05-31)
+## Current status (2026-06-20)
 
 **Phase 0 — COMPLETE**
 - BraTS data downloaded (official). EDA done (`data/load_brats_sample.py`).
@@ -58,7 +58,20 @@ python pipeline/train.py --env gcp
 - Data pipeline cross-checked against EDA: filenames, label remap, shape handling all confirmed correct.
 - Config generalised for GCP: `--env local/gcp` flag, `configs/env/local.yaml` + `configs/env/gcp.yaml`, `src/ccrnet/config/env_config.py`.
 
-**Next**: Phase 3 — CCR-Retrofit (insert CCR into pretrained frozen SwinUNETR, measure DD).
+**Run 2 training (20260618_181043) — IN PROGRESS on GCP, ep65/80 as of 2026-06-20:**
+- NCR CAS peak: 0.706 (ep40). Refinement: 0.675 (ep60) → 0.700 (ep65, partial recovery).
+- Edema ✓ 0.903, ET ✓ 0.895. Dice WT=0.906, TC=0.826, ET=0.815 at ep65.
+- Hard ceiling confirmed: 16³ = 10-60 NCR tokens/case. LR ~9.3e-6 at ep66. No path to 0.85.
+- Run 2 will finish at ep80; expect NCR ~0.69-0.72 final.
+
+**Run 3 — COMMITTED (acc613a, 2026-06-20), ready to start on GCP after Run 2 finishes:**
+- Stage-1 CCR (hs[1], 32³ tokens, embed_dim=96). Fixes structural NCR ceiling: 80-480 tokens/case.
+- lam_align=1.0 in refinement (was 0.5). alignment_end_epoch=60.
+- All Run 2 loss fixes kept (concept weights [1,3,1,1], γ=1.0, contrastive=0.3).
+- **INCOMPATIBLE with Run 1/2 checkpoints** — must train from scratch.
+- 169/169 tests pass. Start: `python3 pipeline/train.py --env gcp`
+
+**Next**: Finish Run 2 (ep80) → start Run 3 from scratch → Phase 3 (CCR-Retrofit) after Run 3 confirms NCR CAS ≥ 0.85.
 
 **Phase sequence**: 0 (lit review) → 1 (CCR module) → 2 (CCR-Net training) → **3 (CCR-Retrofit)** → 4 (experiments) → 5 (generalization+agent) → 6 (paper writing) → 7 (submission)
 
