@@ -125,11 +125,11 @@ Run CCR at stage-1, stage-2, stage-3, report CAS_fg and Dice for each.
 
 | Stage | Tokens | Voxels/token | NCR tokens/case | Notes |
 |-------|--------|-------------|-----------------|-------|
-| Stage-1 | 32³ = 32768 | 4³ | 80–480 | Higher res, shallower features, 8× compute |
-| Stage-2 | 16³ = 4096 | 8³ | 10–60 | **Current** |
+| Stage-1 | 32³ = 32768 | 4³ | 80–480 | **Current (Run 3+)** |
+| Stage-2 | 16³ = 4096 | 8³ | 10–60 | Run 1–2 baseline |
 | Stage-3 | 8³ = 512 | 16³ | 1–8 | Too coarse for NCR |
 
-**Config change for stage-1**: In `src/ccrnet/models/ccrnet.py`, set `_CCR_STAGE = 1`. Update `CCRConfig.router.embed_dim = 96` (= 2 × swin.embed_dim). This is the single most impactful ablation for NCR.
+**Config for stage-2 (baseline ablation)**: In `src/ccrnet/models/ccrnet.py`, set `_CCR_STAGE = 2`. Set `router.embed_dim = 192` (= 4 × swin.embed_dim) in YAML. This is the Run 1/2 configuration.
 
 ### Ablation B — L_align concept weighting
 
@@ -200,3 +200,86 @@ Then `sync_checkpoint_to_gcs()` in `src/ccrnet/utils/checkpoint.py` uses `gcloud
 | Full 80-epoch run | ~47 hours (~2 days) |
 
 Validation runs every epoch when using `--epochs N` flag. Validation is skipped for non-checkpoint epochs in the full run (`checkpoint_every: 5` in config).
+
+---
+
+## Run 2 — 20260618_181043
+
+**Config changes vs Run 1**: align_focal_gamma 2.0→1.0, align_concept_weights [1,3,1,1] (NCR 3×), contrastive_ncr_et_weight=0.3.
+
+### Run 2 results at key epochs
+
+| Epoch | Phase | NCR CAS | Edema CAS | ET CAS | Dice WT | Dice TC | Dice ET |
+|-------|-------|---------|-----------|--------|---------|---------|---------|
+| 10 | warmup | ~0.0 | ~0.0 | ~0.0 | 0.867 | 0.740 | 0.735 |
+| 15 | alignment | **0.512** | 0.866 | 0.853 | 0.871 | 0.755 | 0.745 |
+| 30 | alignment | **0.670** | 0.896 | 0.885 | 0.890 | 0.782 | 0.771 |
+| 40 | alignment | **0.706** (peak) | 0.903 | 0.896 | 0.898 | 0.801 | 0.789 |
+| 55 | refinement | 0.691 | 0.904 | 0.895 | 0.904 | 0.812 | 0.802 |
+| 60 | refinement | 0.675 (drifting) | 0.903 | 0.893 | 0.905 | 0.814 | 0.803 |
+
+**vs Run 1 at ep15**: NCR +28% (0.512 vs 0.398). NCR fixes working from first alignment epoch.
+**Refinement problem**: lam_align halved to 0.5 at ep51 → NCR drifted from peak 0.706 (ep40) to 0.675 (ep60). Run 1 got +0.059 boost in refinement; Run 2 got -0.031. Fix in Run 3: keep lam_align=1.0.
+**Hard ceiling remains**: 16³ resolution still limits NCR to 10-60 tokens/case. Fix in Run 3: stage-1 (32³).
+
+---
+
+## Run 3 — Config committed 2026-06-20
+
+**Primary goal**: Push NCR CAS from peak ~0.706 (Run 2) to ≥ 0.85 by fixing both root causes.
+
+### Two problems fixed in Run 3
+
+**Problem 1 — Stage resolution limit (primary)**
+
+Stage-2 (16³) gives 10–60 NCR tokens/case → Pearson CAS unreliable.
+Stage-1 (32³) gives 80–480 NCR tokens/case → Pearson CAS reliable.
+CCR moved from hs[2] (192-dim) to hs[1] (96-dim).
+
+**Problem 2 — Refinement phase NCR drift**
+
+Run 2: lam_align 1.0→0.5 at ep51 caused NCR CAS to drift 0.706→0.675.
+Fix: `LossWeights.refinement = (1.0, 0.1, 0.01, 1.0)` — lam_align stays 1.0 all run.
+Also: alignment phase extended to ep60 (was ep50).
+
+### Config changes vs Run 2
+
+| Param | Run 2 | Run 3 |
+|-------|-------|-------|
+| `_CCR_STAGE` | 2 | **1** |
+| `router.embed_dim` | 192 | **96** |
+| `alignment_end_epoch` | 50 | **60** |
+| `LossWeights.refinement[0]` (lam_align) | 0.5 | **1.0** |
+| `align_focal_gamma` | 1.0 | 1.0 (unchanged) |
+| `align_concept_weights` | [1,3,1,1] | [1,3,1,1] (unchanged) |
+| `contrastive_ncr_et_weight` | 0.3 | 0.3 (unchanged) |
+
+### Files changed for Run 3
+
+| File | Change |
+|------|--------|
+| `src/ccr/config/ccr_config.py` | `LossWeights.refinement`: `(0.5,...)→(1.0,...)`. `CCRConfig.__post_init__` auto-syncs `expert.embed_dim = router.embed_dim` instead of raising. |
+| `src/ccrnet/config/phase2_config.py` | `__post_init__` accepts `2×` or `4×` swin.embed_dim (stage-1 and stage-2). |
+| `src/ccrnet/models/ccrnet.py` | `_CCR_STAGE = 1`. Passes `ccr_stage` to decoder. |
+| `src/ccrnet/models/decoder.py` | Added `ccr_stage: int = 1` param. stage-1: ccr_feat→enc2, hs[2]→enc3. stage-2: old behavior. Channel dims unchanged. |
+| `configs/brats_phase2.yaml` | `router.embed_dim: 96`, `alignment_end_epoch: 60`. |
+| `tests/integration/test_pipeline.py` | Refinement weight assertion `0.5→1.0`. |
+| `tests/phase2/conftest.py` | `RouterConfig(embed_dim=96)`. |
+| `tests/phase2/test_ccrnet.py` | Token count formula uses `CCRNet._CCR_STAGE` (stage-aware). |
+| `tests/phase2/test_encoder.py` | `test_encoder_stage2_token_count` renamed to `test_encoder_ccr_stage_token_dim` (stage-aware). |
+
+**All 169 tests pass.**
+
+### Decoder channel invariant (why __init__ is unchanged)
+
+- Stage-1 CCR output: 96-dim (=2×f). enc2 has `in_channels=f*2=96` ✓
+- Stage-2 CCR output: 192-dim (=4×f). enc3 has `in_channels=f*4=192` ✓
+- Only forward() routing changes — no new layers needed.
+
+### IMPORTANT: Run 3 is incompatible with Run 1/2 checkpoints
+
+embed_dim changed 192→96. Cannot resume from Run 1 or Run 2 checkpoints.
+Always start Run 3 from scratch:
+```bash
+python3 pipeline/train.py --env gcp
+```

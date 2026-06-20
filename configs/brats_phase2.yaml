@@ -43,21 +43,34 @@ training:
   checkpoint_every: 5
   log_every: 10
 
-# CCR Phase 1 config — do not change unless ablating
+# CCR config — ablating stage placement for Run 3
+# Run 1–2: embed_dim=192, alignment_end_epoch=50, CCR at stage-2 (16³ tokens)
+# Run 3+:  embed_dim=96,  alignment_end_epoch=60, CCR at stage-1 (32³ tokens)
+#
+# Reason for stage-1 (Run 3 primary change):
+#   Stage-2 gives 10-60 NCR tokens/case at 16³ resolution → Pearson unreliable.
+#   Stage-1 gives 80-480 NCR tokens/case at 32³ resolution → Pearson reliable.
+#   This is the structural fix for the NCR CAS ceiling observed in Run 1-2.
+#
+# Reason for alignment_end_epoch=60 (Run 3 curriculum change):
+#   Run 2 showed lam_align halving at ep51 caused NCR CAS to drift from peak
+#   0.706 (ep40) to 0.675 (ep60). Extending alignment phase by 10 epochs keeps
+#   maximum alignment pressure until the router is fully converged.
+#   Combined with LossWeights.refinement=(1.0,...), lam_align stays at 1.0 all run.
 ccr:
   router:
-    embed_dim: 192       # must equal 4 * swin.embed_dim
+    embed_dim: 96        # Run 3: stage-1 CCR = 2 * swin.embed_dim = 2*48 = 96
     num_concepts: 4
     use_prototypes: true
     temperature_learnable: true
   curriculum:
     warmup_end_epoch: 10
-    alignment_end_epoch: 50
+    alignment_end_epoch: 60  # Run 3: was 50 — extend alignment 10 epochs
     total_epochs: 80
     tau_warmup: 2.0
     tau_alignment: 1.0
     tau_refinement: 0.5
   loss:
-    align_focal_gamma: 1.0                        # Run 2: was 2.0 — gentler for rare NCR tokens
-    align_concept_weights: [1.0, 3.0, 1.0, 1.0]  # Run 2: NCR 3×, BG ignored (foreground_only=True)
-    contrastive_ncr_et_weight: 0.3                # Run 2: pairwise NCR-ET disambiguation loss
+    align_focal_gamma: 1.0                        # Run 2+: was 2.0 — gentler for rare NCR tokens
+    align_concept_weights: [1.0, 3.0, 1.0, 1.0]  # Run 2+: NCR 3×, BG ignored (foreground_only=True)
+    contrastive_ncr_et_weight: 0.3                # Run 2+: pairwise NCR-ET disambiguation loss

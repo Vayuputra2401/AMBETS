@@ -81,17 +81,18 @@ def test_encoder_gradient_flows(phase2_config, dummy_image):
     assert not torch.isnan(patch_embed_grad).any(), "NaN in patch_embed gradient"
 
 
-def test_encoder_stage2_token_count(phase2_config, dummy_image):
-    """Stage-2 flatten must give exactly N tokens matching CCR router.embed_dim."""
+def test_encoder_ccr_stage_token_dim(phase2_config, dummy_image):
+    """Flatten of hs[_CCR_STAGE] must give token dim == ccr.router.embed_dim."""
     from ccrnet.models.encoder import SwinEncoder3D
+    from ccrnet.models.ccrnet import CCRNet
     enc = SwinEncoder3D(phase2_config.swin)
     enc.eval()
     with torch.no_grad():
         hs = enc(dummy_image)
-    stage2 = hs[2]                          # [B, 192, h, w, d]
-    B, C, h, w, d = stage2.shape
-    tokens = stage2.flatten(2).transpose(1, 2)  # [B, N, C]
+    stage_feat = hs[CCRNet._CCR_STAGE]          # [B, C, h, w, d]
+    B, C, h, w, d = stage_feat.shape
+    tokens = stage_feat.flatten(2).transpose(1, 2)   # [B, N, C]
     assert tokens.shape[2] == phase2_config.ccr.router.embed_dim, (
-        f"Token dim {tokens.shape[2]} != ccr.router.embed_dim "
-        f"{phase2_config.ccr.router.embed_dim}"
+        f"Token dim at stage-{CCRNet._CCR_STAGE} ({tokens.shape[2]}) "
+        f"!= ccr.router.embed_dim ({phase2_config.ccr.router.embed_dim})"
     )

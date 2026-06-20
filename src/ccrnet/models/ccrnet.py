@@ -1,31 +1,45 @@
 """
 ccrnet.py — CCRNet: full model connecting Swin encoder, CCR bottleneck, and MONAI decoder.
 
-Data flow
----------
+Data flow (Run 3 — CCR at stage-1)
+------------------------------------
   [B, 4, H, W, D]
     ↓ SwinEncoder3D
   5 hidden states at decreasing spatial resolution
-    ↓ extract hs[2] = [B, 192, 16, 16, 16]  (CCR_STAGE=2)
-    ↓ reshape → [B, 4096, 192]
+    ↓ extract hs[1] = [B, 96, 32, 32, 32]  (CCR_STAGE=1)
+    ↓ reshape → [B, 32768, 96]
     ↓ CCRBottleneckModule   (Phase 1 — untouched)
-  expert_outputs [B, 4096, 192]
-    ↓ reshape → [B, 192, 16, 16, 16]  (ccr_spatial)
-    ↓ SwinUNETRDecoder  (x_in, hs, ccr_spatial as enc3 skip)
+  expert_outputs [B, 32768, 96]
+    ↓ reshape → [B, 96, 32, 32, 32]  (ccr_spatial)
+    ↓ SwinUNETRDecoder  (x_in, hs, ccr_spatial as enc2 skip — stage-1 path)
     ↓ BoundaryRefinementHead
   seg_logits [B, K, H, W, D]
+
+Stage choice rationale
+----------------------
+Stage-1 (32³ tokens, 4³ voxels/token) gives 80–480 NCR tokens per BraTS case
+vs stage-2 (16³, 8³ voxels/token) which gives only 10–60 NCR tokens.  Pearson
+correlation for CAS_fg(NCR) requires at minimum ~50 tokens per case to be
+statistically reliable.  Stage-1 resolves the hard ceiling observed in Run 1–2
+(NCR CAS ≈ 0.58–0.71) where the structural limit is the number of tokens,
+not the quality of the routing loss.
+
+Run history
+-----------
+  Run 1/2: _CCR_STAGE = 2, embed_dim=192, 16³ tokens, NCR CAS ceiling ~0.58–0.71
+  Run 3+:  _CCR_STAGE = 1, embed_dim=96,  32³ tokens, target NCR CAS ≥ 0.85
 
 Output dict keys
 ----------------
   seg_logits    : [B, K, 128, 128, 128]   → CCRTotalLoss.pred_logits
-  routing_probs : [B, 4096, K]             → CCRTotalLoss.routing_probs
-  entropy       : [B, 4096]               → uncertainty maps
-  assignments   : [B, 4096]               → ExpertUtilizationTracker
+  routing_probs : [B, 32768, K]            → CCRTotalLoss.routing_probs  (stage-1)
+  entropy       : [B, 32768]              → uncertainty maps
+  assignments   : [B, 32768]              → ExpertUtilizationTracker
 """
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -38,26 +52,27 @@ from ccrnet.models.boundary_head import BoundaryRefinementHead
 
 class CCRNet(nn.Module):
     """
-    CCR-Net: Swin-B encoder + CCRBottleneckModule at stage-2 + MONAI UNetr decoder.
+    CCR-Net: Swin-B encoder + CCRBottleneckModule at stage-1 + MONAI UNetr decoder.
 
     Parameters
     ----------
     config : Phase2Config
-        Full configuration with ccr, swin, data, and training sub-configs.
-        The invariant `ccr.router.embed_dim == 4 * swin.embed_dim` is enforced
-        by Phase2Config.__post_init__.
+        Full configuration.  ccr.router.embed_dim must equal 2×swin.embed_dim (stage-1)
+        or 4×swin.embed_dim (stage-2) — enforced by Phase2Config.__post_init__.
 
     Usage
     -----
     model = CCRNet(config)
     out   = model(image)          # image: [B, 4, 128, 128, 128]
     # out['seg_logits']:    [B, 4, 128, 128, 128]
-    # out['routing_probs']: [B, 4096, 4]
-    # out['entropy']:       [B, 4096]
-    # out['assignments']:   [B, 4096]
+    # out['routing_probs']: [B, 32768, 4]   (stage-1: 32³=32768 tokens)
+    # out['entropy']:       [B, 32768]
+    # out['assignments']:   [B, 32768]
     """
 
-    _CCR_STAGE: int = 2
+    _CCR_STAGE: int = 1   # Swin hidden_states_out index for CCR insertion.
+                           # 1 → 32³ tokens, 96-dim  (Run 3+, preferred for NCR CAS)
+                           # 2 → 16³ tokens, 192-dim (Run 1–2 baseline)
 
     def __init__(self, config: Phase2Config) -> None:
         super().__init__()
@@ -70,6 +85,7 @@ class CCRNet(nn.Module):
             num_concepts=config.ccr.router.num_concepts,
             spatial_dims=3,
             in_channels=config.swin.in_channels,
+            ccr_stage=self._CCR_STAGE,
         )
         self.boundary_head = BoundaryRefinementHead(
             num_concepts=config.ccr.router.num_concepts,
@@ -88,16 +104,16 @@ class CCRNet(nn.Module):
         """
         hs = self.encoder(x)
 
-        stage2 = hs[self._CCR_STAGE]
-        B, C, h, w, d = stage2.shape
-        self._grid_shape = (h, w, d)
+        stage_feat = hs[self._CCR_STAGE]            # [B, C, h, w, d]
+        B, C, h, w, d = stage_feat.shape            # C=96 (stage-1) or 192 (stage-2)
+        self._grid_shape = (h, w, d)                # (32,32,32) or (16,16,16)
 
-        tokens = stage2.flatten(2).transpose(1, 2)      # [B, h*w*d, C]
+        tokens = stage_feat.flatten(2).transpose(1, 2)   # [B, h*w*d, C]
 
         ccr_out = self.ccr(tokens)
 
         ccr_spatial = (
-            ccr_out["expert_outputs"]                    # [B, h*w*d, C]
+            ccr_out["expert_outputs"]               # [B, h*w*d, C]
             .transpose(1, 2)
             .reshape(B, C, h, w, d)
         )
@@ -113,5 +129,6 @@ class CCRNet(nn.Module):
         }
 
     def get_grid_shape(self) -> Optional[Tuple[int, int, int]]:
-        """Returns spatial grid shape of CCR stage (e.g. (16,16,16)) after forward()."""
+        """Returns spatial grid shape of the CCR stage after forward().
+        (32,32,32) for stage-1; (16,16,16) for stage-2 on 128³ input."""
         return self._grid_shape

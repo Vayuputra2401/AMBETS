@@ -131,8 +131,11 @@ class LossWeights:
     alignment: Tuple[float, float, float, float] = (1.0, 0.5, 0.01, 0.3)
     """Epochs 11-50.  Full alignment loss; λ_entropy kept at 0.01 (small)."""
 
-    refinement: Tuple[float, float, float, float] = (0.5, 0.1, 0.01, 1.0)
-    """Epochs 51-80.  Boundary precision phase; L_boundary raised to 1.0."""
+    refinement: Tuple[float, float, float, float] = (1.0, 0.1, 0.01, 1.0)
+    """Epochs alignment_end+1 .. total.  L_boundary raised to 1.0; lam_align kept at 1.0.
+    Rationale (Run 2 finding): halving lam_align to 0.5 caused NCR CAS to drift from its
+    peak (0.706→0.675 over 30 epochs).  Keeping lam_align=1.0 maintains routing pressure
+    through the full run without hurting Dice (Edema/ET CAS already ≥0.90 by this phase)."""
 
 
 @dataclass
@@ -274,11 +277,10 @@ class CCRConfig:
     hard_routing_inference: bool = True
 
     def __post_init__(self) -> None:
-        if self.router.embed_dim != self.expert.embed_dim:
-            raise ValueError(
-                f"router.embed_dim ({self.router.embed_dim}) must equal "
-                f"expert.embed_dim ({self.expert.embed_dim})"
-            )
+        # expert.embed_dim must always match router.embed_dim (single source of truth).
+        # Auto-sync so callers only need to set router.embed_dim (e.g. from YAML or tests).
+        if self.expert.embed_dim != self.router.embed_dim:
+            self.expert.embed_dim = self.router.embed_dim
         if self.router.num_concepts != self.expert.num_concepts:
             raise ValueError(
                 f"router.num_concepts ({self.router.num_concepts}) must equal "

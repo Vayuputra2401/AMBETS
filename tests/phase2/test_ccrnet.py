@@ -2,12 +2,26 @@
 test_ccrnet.py — CCRNet full model tests.
 
 All run on CPU with 64³ synthetic volumes.
+
+Token count formula: for CCR at stage-k, spatial downsampling =
+  patch_size (2×) + k patch-merges (each 2×) = 2^(k+1)
+So for stage-1: img_size // 4 tokens per side; stage-2: img_size // 8.
+Tests derive this from CCRNet._CCR_STAGE so they remain correct after
+stage changes without manual edits.
 """
 
 from __future__ import annotations
 
 import torch
 import pytest
+
+
+def _expected_n_tokens(img_size: int) -> int:
+    """Tokens-per-side for the currently configured CCR stage."""
+    from ccrnet.models.ccrnet import CCRNet
+    downsample = 2 ** (CCRNet._CCR_STAGE + 1)   # stage-1: 4, stage-2: 8
+    h = img_size // downsample
+    return h ** 3
 
 
 @pytest.fixture
@@ -33,10 +47,9 @@ def test_seg_logits_shape(model, phase2_config, dummy_image):
 
 def test_routing_probs_shape(model, phase2_config, dummy_image):
     out = model(dummy_image)
-    B   = dummy_image.shape[0]
-    K   = phase2_config.ccr.router.num_concepts
-    h   = phase2_config.swin.img_size[0] // 8
-    N   = h ** 3
+    B = dummy_image.shape[0]
+    K = phase2_config.ccr.router.num_concepts
+    N = _expected_n_tokens(phase2_config.swin.img_size[0])
     assert out["routing_probs"].shape == (B, N, K), (
         f"routing_probs shape {out['routing_probs'].shape} != ({B},{N},{K})"
     )
@@ -54,16 +67,14 @@ def test_routing_probs_sum_to_one(model, dummy_image):
 def test_entropy_shape(model, phase2_config, dummy_image):
     out = model(dummy_image)
     B   = dummy_image.shape[0]
-    h   = phase2_config.swin.img_size[0] // 8
-    N   = h ** 3
+    N   = _expected_n_tokens(phase2_config.swin.img_size[0])
     assert out["entropy"].shape == (B, N), f"entropy shape {out['entropy'].shape} != ({B},{N})"
 
 
 def test_assignments_shape(model, phase2_config, dummy_image):
     out = model(dummy_image)
     B   = dummy_image.shape[0]
-    h   = phase2_config.swin.img_size[0] // 8
-    N   = h ** 3
+    N   = _expected_n_tokens(phase2_config.swin.img_size[0])
     assert out["assignments"].shape == (B, N), (
         f"assignments shape {out['assignments'].shape} != ({B},{N})"
     )
@@ -88,12 +99,14 @@ def test_eval_hard_dispatch(phase2_config, dummy_image):
     assert out["assignments"].max() < K, f"Assignment index >= K={K}"
 
 
-def test_get_grid_shape(model, dummy_image):
+def test_get_grid_shape(model, phase2_config, dummy_image):
     model(dummy_image)
     gs = model.get_grid_shape()
     assert gs is not None, "get_grid_shape() returned None after forward()"
     assert len(gs) == 3, f"Expected 3-tuple, got {gs}"
-    expected = dummy_image.shape[-1] // 8
+    from ccrnet.models.ccrnet import CCRNet
+    downsample = 2 ** (CCRNet._CCR_STAGE + 1)
+    expected   = dummy_image.shape[-1] // downsample
     assert all(s == expected for s in gs), (
         f"Expected grid_shape ({expected},{expected},{expected}), got {gs}"
     )
@@ -145,7 +158,7 @@ def test_no_nan_inf_in_outputs(model, dummy_image):
 
 
 def test_ccr_receives_correct_token_shape(phase2_config, dummy_image):
-    """CCRBottleneckModule must receive [B, N, 192] — not the raw spatial tensor."""
+    """CCRBottleneckModule must receive [B, N, D] — not the raw spatial tensor."""
     from ccrnet.models.ccrnet import CCRNet
     received_shapes = []
 
@@ -166,9 +179,8 @@ def test_ccr_receives_correct_token_shape(phase2_config, dummy_image):
     assert len(received_shapes) == 1
     shape = received_shapes[0]
     B = dummy_image.shape[0]
-    h = phase2_config.swin.img_size[0] // 8
-    N = h ** 3
-    D = phase2_config.ccr.router.embed_dim
+    N = _expected_n_tokens(phase2_config.swin.img_size[0])
+    D = phase2_config.ccr.router.embed_dim   # 96 (stage-1) or 192 (stage-2)
     assert shape == (B, N, D), f"CCR received {shape} != expected ({B},{N},{D})"
 
 

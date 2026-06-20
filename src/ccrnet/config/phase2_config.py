@@ -113,11 +113,13 @@ class Phase2Config:
     Aggregates CCRConfig (Phase 1, unchanged) with three new sub-configs.
 
     Critical invariant (checked in __post_init__):
-        ccr.router.embed_dim == 4 * swin.embed_dim
-        → 192 == 4 * 48
+        ccr.router.embed_dim ∈ {2 * swin.embed_dim, 4 * swin.embed_dim}
 
-    This ensures the CCRBottleneckModule receives exactly the same token
-    dimension it was designed for, at the spatial resolution 16^3 = 4096 tokens.
+    Stage-1 insertion (Run 3+): embed_dim=96  (32³ tokens, 4³ voxels/token)
+    Stage-2 insertion (Run 1-2): embed_dim=192 (16³ tokens, 8³ voxels/token)
+
+    Stage-1 is preferred for NCR CAS because it provides 8× more tokens over
+    the NCR region (80-480 vs 10-60 per case), making Pearson correlation reliable.
     """
 
     ccr: CCRConfig = field(default_factory=CCRConfig)
@@ -126,13 +128,16 @@ class Phase2Config:
     training: TrainingConfig = field(default_factory=TrainingConfig)
 
     def __post_init__(self) -> None:
-        expected_embed = 4 * self.swin.embed_dim
-        if self.ccr.router.embed_dim != expected_embed:
+        # CCR can be inserted at Swin stage-1 (2×embed_dim=96) or stage-2 (4×embed_dim=192).
+        # Stage-1 gives 32³ tokens (4³ voxels/token) — better NCR resolution.
+        # Stage-2 gives 16³ tokens (8³ voxels/token) — original baseline.
+        stage1_dim = 2 * self.swin.embed_dim
+        stage2_dim = 4 * self.swin.embed_dim
+        if self.ccr.router.embed_dim not in (stage1_dim, stage2_dim):
             raise ValueError(
-                f"ccr.router.embed_dim ({self.ccr.router.embed_dim}) must equal "
-                f"4 × swin.embed_dim ({expected_embed}). "
-                f"The CCR insertion point is Swin stage-2 which outputs "
-                f"4×{self.swin.embed_dim}={expected_embed}-dim features."
+                f"ccr.router.embed_dim ({self.ccr.router.embed_dim}) must be "
+                f"2× swin.embed_dim ({stage1_dim}, stage-1) or "
+                f"4× swin.embed_dim ({stage2_dim}, stage-2)."
             )
         if self.ccr.curriculum.total_epochs != 80:
             raise ValueError(

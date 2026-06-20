@@ -273,7 +273,7 @@ class TestCurriculumScheduler:
         sched = CurriculumWeightScheduler(cfg)
         for epoch in [51, 65, 80]:
             w = sched.get_weights(epoch)
-            assert w[0] == 0.5,  f"λ_align should be 0.5 in refinement, epoch={epoch}"
+            assert w[0] == 1.0,  f"λ_align should be 1.0 in refinement, epoch={epoch}"
             assert w[3] == 1.0,  f"λ_boundary should be 1.0 in refinement, epoch={epoch}"
             assert sched.get_phase_name(epoch) == "refinement"
 
