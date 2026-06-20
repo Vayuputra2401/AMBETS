@@ -58,11 +58,11 @@ python pipeline/train.py --env gcp
 - Data pipeline cross-checked against EDA: filenames, label remap, shape handling all confirmed correct.
 - Config generalised for GCP: `--env local/gcp` flag, `configs/env/local.yaml` + `configs/env/gcp.yaml`, `src/ccrnet/config/env_config.py`.
 
-**Run 2 training (20260618_181043) — IN PROGRESS on GCP, ep65/80 as of 2026-06-20:**
-- NCR CAS peak: 0.706 (ep40). Refinement: 0.675 (ep60) → 0.700 (ep65, partial recovery).
-- Edema ✓ 0.903, ET ✓ 0.895. Dice WT=0.906, TC=0.826, ET=0.815 at ep65.
-- Hard ceiling confirmed: 16³ = 10-60 NCR tokens/case. LR ~9.3e-6 at ep66. No path to 0.85.
-- Run 2 will finish at ep80; expect NCR ~0.69-0.72 final.
+**Run 2 training (20260618_181043) — COMPLETE (ep80, 2026-06-20):**
+- NCR CAS peak: 0.706 (ep40). Final ep80: NCR=0.698, Edema=0.901, ET=0.893.
+- Dice WT=0.907 (best), TC=0.823, ET=0.812 at ep80.
+- Hard ceiling confirmed: 16³ = 10-60 NCR tokens/case. Refinement oscillation: 0.675-0.706.
+- Checkpoint: `gs://research-brats/checkpoints/20260618_181043/epoch_0080.pth`
 
 **Run 3 — COMMITTED (acc613a, 2026-06-20), ready to start on GCP after Run 2 finishes:**
 - Stage-1 CCR (hs[1], 32³ tokens, embed_dim=96). Fixes structural NCR ceiling: 80-480 tokens/case.
@@ -71,7 +71,7 @@ python pipeline/train.py --env gcp
 - **INCOMPATIBLE with Run 1/2 checkpoints** — must train from scratch.
 - 169/169 tests pass. Start: `python3 pipeline/train.py --env gcp`
 
-**Next**: Finish Run 2 (ep80) → start Run 3 from scratch → Phase 3 (CCR-Retrofit) after Run 3 confirms NCR CAS ≥ 0.85.
+**Next**: Start Run 3 from scratch on GCP immediately → Phase 3 (CCR-Retrofit) after Run 3 confirms NCR CAS ≥ 0.85.
 
 **Phase sequence**: 0 (lit review) → 1 (CCR module) → 2 (CCR-Net training) → **3 (CCR-Retrofit)** → 4 (experiments) → 5 (generalization+agent) → 6 (paper writing) → 7 (submission)
 

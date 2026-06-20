@@ -63,6 +63,8 @@ ccr:
     num_concepts: 4
     use_prototypes: true
     temperature_learnable: true
+  expert:
+    embed_dim: 96        # must match router.embed_dim — explicit to avoid default=192 mismatch
   curriculum:
     warmup_end_epoch: 10
     alignment_end_epoch: 60  # Run 3: was 50 — extend alignment 10 epochs
