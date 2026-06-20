@@ -162,6 +162,7 @@ class Phase2Config:
         ccr_cfg = CCRConfig()
         if ccr_raw:
             router_raw     = ccr_raw.pop("router", {})
+            expert_raw     = ccr_raw.pop("expert", {})
             curriculum_raw = ccr_raw.pop("curriculum", {})
             loss_raw       = ccr_raw.pop("loss", {})
             if router_raw:
@@ -169,6 +170,12 @@ class Phase2Config:
                 for k, v in router_raw.items():
                     if hasattr(ccr_cfg.router, k):
                         setattr(ccr_cfg.router, k, v)
+                # auto-sync expert.embed_dim after router is applied from YAML
+                ccr_cfg.expert.embed_dim = ccr_cfg.router.embed_dim
+            if expert_raw:
+                for k, v in expert_raw.items():
+                    if hasattr(ccr_cfg.expert, k):
+                        setattr(ccr_cfg.expert, k, v)
             if curriculum_raw:
                 for k, v in curriculum_raw.items():
                     if hasattr(ccr_cfg.curriculum, k):
