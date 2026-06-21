@@ -43,28 +43,30 @@ training:
   checkpoint_every: 5
   log_every: 10
 
-# CCR config — ablating stage placement for Run 3
-# Run 1–2: embed_dim=192, alignment_end_epoch=50, CCR at stage-2 (16³ tokens)
-# Run 3+:  embed_dim=96,  alignment_end_epoch=60, CCR at stage-1 (32³ tokens)
+# CCR config — Run 4: stage-2 back, curriculum fixes from Run 3 kept
 #
-# Reason for stage-1 (Run 3 primary change):
-#   Stage-2 gives 10-60 NCR tokens/case at 16³ resolution → Pearson unreliable.
-#   Stage-1 gives 80-480 NCR tokens/case at 32³ resolution → Pearson reliable.
-#   This is the structural fix for the NCR CAS ceiling observed in Run 1-2.
+# Run history:
+#   Run 1:  embed_dim=192, stage-2, align_end=50, lam_refine=0.5. NCR final=0.580
+#   Run 2:  embed_dim=192, stage-2, align_end=50, lam_refine=0.5. NCR peak=0.706, final=0.698
+#   Run 3:  embed_dim=96,  stage-1, align_end=60, lam_refine=1.0. NCR plateau=0.534 (stage-1 worse)
+#   Run 4:  embed_dim=192, stage-2, align_end=60, lam_refine=1.0. Target: hold 0.706+ through refinement
 #
-# Reason for alignment_end_epoch=60 (Run 3 curriculum change):
-#   Run 2 showed lam_align halving at ep51 caused NCR CAS to drift from peak
-#   0.706 (ep40) to 0.675 (ep60). Extending alignment phase by 10 epochs keeps
-#   maximum alignment pressure until the router is fully converged.
-#   Combined with LossWeights.refinement=(1.0,...), lam_align stays at 1.0 all run.
+# Why back to stage-2:
+#   Stage-1 (96-dim, 32³) features caused over-routing to NCR expert (32% util vs true ~12%),
+#   because lower-level features are ambiguous between NCR and ET. Stage-2 (192-dim, 16³) is
+#   more semantically discriminative — NCR util was healthy at 17% in Run 2.
+#
+# What Run 4 fixes vs Run 2:
+#   lam_align=1.0 in refinement (LossWeights.refinement in ccr_config.py — already set from Run 3)
+#   alignment_end_epoch=60 (10 more epochs of alignment before refinement starts)
 ccr:
   router:
-    embed_dim: 96        # Run 3: stage-1 CCR = 2 * swin.embed_dim = 2*48 = 96
+    embed_dim: 192       # Run 4: stage-2 CCR = 4 * swin.embed_dim = 4*48 = 192
     num_concepts: 4
     use_prototypes: true
     temperature_learnable: true
   expert:
-    embed_dim: 96        # must match router.embed_dim — explicit to avoid default=192 mismatch
+    embed_dim: 192       # must match router.embed_dim — explicit to avoid default=192 mismatch
   curriculum:
     warmup_end_epoch: 10
     alignment_end_epoch: 60  # Run 3: was 50 — extend alignment 10 epochs

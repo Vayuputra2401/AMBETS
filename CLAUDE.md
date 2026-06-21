@@ -64,14 +64,19 @@ python pipeline/train.py --env gcp
 - Hard ceiling confirmed: 16³ = 10-60 NCR tokens/case. Refinement oscillation: 0.675-0.706.
 - Checkpoint: `gs://research-brats/checkpoints/20260618_181043/epoch_0080.pth`
 
-**Run 3 — COMMITTED (acc613a, 2026-06-20), ready to start on GCP after Run 2 finishes:**
-- Stage-1 CCR (hs[1], 32³ tokens, embed_dim=96). Fixes structural NCR ceiling: 80-480 tokens/case.
-- lam_align=1.0 in refinement (was 0.5). alignment_end_epoch=60.
-- All Run 2 loss fixes kept (concept weights [1,3,1,1], γ=1.0, contrastive=0.3).
-- **INCOMPATIBLE with Run 1/2 checkpoints** — must train from scratch.
-- 169/169 tests pass. Start: `python3 pipeline/train.py --env gcp`
+**Run 3 — STOPPED at ep40 (2026-06-21):**
+- Stage-1 CCR (embed_dim=96, 32³ tokens). NCR CAS plateaued at 0.534 (ep40) vs Run 2 peak 0.706.
+- Root cause: 96-dim stage-1 features less discriminative for NCR/ET; over-routing to NCR (32% util vs true ~12%).
+- Checkpoint saved: `gs://research-brats/checkpoints/20260620_131733/epoch_0040.pth`
 
-**Next**: Start Run 3 from scratch on GCP immediately → Phase 3 (CCR-Retrofit) after Run 3 confirms NCR CAS ≥ 0.85.
+**Run 4 — CONFIG READY (2026-06-21), start on GCP after stopping Run 3:**
+- Stage-2 CCR back (hs[2], 16³ tokens, embed_dim=192). Stage-2 features more semantically discriminative.
+- lam_align=1.0 in refinement (was 0.5 in Run 2 → caused 0.706→0.675 drift). alignment_end_epoch=60.
+- All Run 2 loss fixes kept ([1,3,1,1], γ=1.0, contrastive=0.3). INCOMPATIBLE with Run 3 checkpoints.
+- 169/169 tests pass. Start: `python3 pipeline/train.py --env gcp`
+- Target: NCR CAS hold 0.706+ through refinement → final ~0.72-0.78.
+
+**Next**: Stop Run 3 → start Run 4 from scratch → Phase 3 (CCR-Retrofit) after Run 4.
 
 **Phase sequence**: 0 (lit review) → 1 (CCR module) → 2 (CCR-Net training) → **3 (CCR-Retrofit)** → 4 (experiments) → 5 (generalization+agent) → 6 (paper writing) → 7 (submission)
 

@@ -35,7 +35,7 @@ from ccr.config.ccr_config import CCRConfig, RouterConfig, CurriculumConfig
 B         = 1        # batch size
 IN_CH     = 4        # MRI modalities
 IMG_SIZE  = 64       # 64³ instead of 128³ for speed
-EMBED_DIM = 48       # Swin base embed_dim; CCR embed_dim = 2*48 = 96 (stage-1, Run 3+)
+EMBED_DIM = 48       # Swin base embed_dim; CCR embed_dim = 4*48 = 192 (stage-2, Run 4+)
 K         = 4        # concepts
 
 
@@ -46,7 +46,7 @@ K         = 4        # concepts
 @pytest.fixture(scope="session")
 def phase2_config() -> Phase2Config:
     """Minimal Phase2Config using 64³ volumes for fast CPU tests."""
-    router_cfg = RouterConfig(embed_dim=96, num_concepts=K)   # stage-1: 2*EMBED_DIM=96
+    router_cfg = RouterConfig(embed_dim=192, num_concepts=K)  # stage-2: 4*EMBED_DIM=192
     curriculum  = CurriculumConfig(
         warmup_end_epoch=2, alignment_end_epoch=10, total_epochs=80
     )

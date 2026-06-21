@@ -1,33 +1,34 @@
 """
 ccrnet.py — CCRNet: full model connecting Swin encoder, CCR bottleneck, and MONAI decoder.
 
-Data flow (Run 3 — CCR at stage-1)
+Data flow (Run 4 — CCR at stage-2)
 ------------------------------------
   [B, 4, H, W, D]
     ↓ SwinEncoder3D
   5 hidden states at decreasing spatial resolution
-    ↓ extract hs[1] = [B, 96, 32, 32, 32]  (CCR_STAGE=1)
-    ↓ reshape → [B, 32768, 96]
+    ↓ extract hs[2] = [B, 192, 16, 16, 16]  (CCR_STAGE=2)
+    ↓ reshape → [B, 4096, 192]
     ↓ CCRBottleneckModule   (Phase 1 — untouched)
-  expert_outputs [B, 32768, 96]
-    ↓ reshape → [B, 96, 32, 32, 32]  (ccr_spatial)
-    ↓ SwinUNETRDecoder  (x_in, hs, ccr_spatial as enc2 skip — stage-1 path)
+  expert_outputs [B, 4096, 192]
+    ↓ reshape → [B, 192, 16, 16, 16]  (ccr_spatial)
+    ↓ SwinUNETRDecoder  (x_in, hs, ccr_spatial as enc3 skip — stage-2 path)
     ↓ BoundaryRefinementHead
   seg_logits [B, K, H, W, D]
 
 Stage choice rationale
 ----------------------
-Stage-1 (32³ tokens, 4³ voxels/token) gives 80–480 NCR tokens per BraTS case
-vs stage-2 (16³, 8³ voxels/token) which gives only 10–60 NCR tokens.  Pearson
-correlation for CAS_fg(NCR) requires at minimum ~50 tokens per case to be
-statistically reliable.  Stage-1 resolves the hard ceiling observed in Run 1–2
-(NCR CAS ≈ 0.58–0.71) where the structural limit is the number of tokens,
-not the quality of the routing loss.
+Stage-2 (16³ tokens, 8³ voxels/token, 192-dim) is preferred over stage-1 because
+the 192-dim features have more global semantic context after an extra patch merge,
+making NCR/ET discrimination more reliable despite fewer tokens.
+Run 3 (stage-1) showed that lower-level 96-dim features caused over-routing to NCR
+(util 32% vs true ~12%), dragging CAS down to 0.53 vs 0.71 at stage-2.
 
 Run history
 -----------
-  Run 1/2: _CCR_STAGE = 2, embed_dim=192, 16³ tokens, NCR CAS ceiling ~0.58–0.71
-  Run 3+:  _CCR_STAGE = 1, embed_dim=96,  32³ tokens, target NCR CAS ≥ 0.85
+  Run 1:   _CCR_STAGE=2, embed_dim=192, lam_align_refine=0.5, align_end=50. NCR final=0.580
+  Run 2:   _CCR_STAGE=2, embed_dim=192, lam_align_refine=0.5, align_end=50. NCR peak=0.706, final=0.698
+  Run 3:   _CCR_STAGE=1, embed_dim=96,  lam_align_refine=1.0, align_end=60. NCR plateau=0.534 (stage-1 worse)
+  Run 4+:  _CCR_STAGE=2, embed_dim=192, lam_align_refine=1.0, align_end=60. Target: hold 0.706+ through refinement
 
 Output dict keys
 ----------------
@@ -52,7 +53,7 @@ from ccrnet.models.boundary_head import BoundaryRefinementHead
 
 class CCRNet(nn.Module):
     """
-    CCR-Net: Swin-B encoder + CCRBottleneckModule at stage-1 + MONAI UNetr decoder.
+    CCR-Net: Swin-B encoder + CCRBottleneckModule at stage-2 + MONAI UNetr decoder.
 
     Parameters
     ----------
@@ -65,14 +66,14 @@ class CCRNet(nn.Module):
     model = CCRNet(config)
     out   = model(image)          # image: [B, 4, 128, 128, 128]
     # out['seg_logits']:    [B, 4, 128, 128, 128]
-    # out['routing_probs']: [B, 32768, 4]   (stage-1: 32³=32768 tokens)
-    # out['entropy']:       [B, 32768]
-    # out['assignments']:   [B, 32768]
+    # out['routing_probs']: [B, 4096, 4]   (stage-2: 16³=4096 tokens)
+    # out['entropy']:       [B, 4096]
+    # out['assignments']:   [B, 4096]
     """
 
-    _CCR_STAGE: int = 1   # Swin hidden_states_out index for CCR insertion.
-                           # 1 → 32³ tokens, 96-dim  (Run 3+, preferred for NCR CAS)
-                           # 2 → 16³ tokens, 192-dim (Run 1–2 baseline)
+    _CCR_STAGE: int = 2   # Swin hidden_states_out index for CCR insertion.
+                           # 2 → 16³ tokens, 192-dim (Run 1–2, Run 4+ — preferred)
+                           # 1 → 32³ tokens, 96-dim  (Run 3 — tried, worse due to feature ambiguity)
 
     def __init__(self, config: Phase2Config) -> None:
         super().__init__()
