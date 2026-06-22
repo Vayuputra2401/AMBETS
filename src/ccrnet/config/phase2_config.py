@@ -181,12 +181,19 @@ class Phase2Config:
                     if hasattr(ccr_cfg.curriculum, k):
                         setattr(ccr_cfg.curriculum, k, v)
             if loss_raw:
+                loss_weights_raw = loss_raw.pop("weights", {})
                 for k, v in loss_raw.items():
                     if hasattr(ccr_cfg.loss, k):
                         cur = getattr(ccr_cfg.loss, k)
                         if isinstance(cur, tuple) and isinstance(v, list):
                             v = tuple(v)
                         setattr(ccr_cfg.loss, k, v)
+                if loss_weights_raw:
+                    for k, v in loss_weights_raw.items():
+                        if hasattr(ccr_cfg.loss.weights, k):
+                            if isinstance(v, list):
+                                v = tuple(v)
+                            setattr(ccr_cfg.loss.weights, k, v)
 
         def _apply(dcls, d):
             obj = dcls()

@@ -1,0 +1,73 @@
+# A4 Ablation — No Warmup (L_align active from epoch 1)
+#
+# Purpose: prove that warmup (delaying L_align until epoch 11) is necessary to
+#          prevent expert collapse. Without warmup, all experts collapse to the
+#          background concept because the encoder has not yet learned discriminative
+#          features, and routing gradients are random.
+#
+# Hypothesis: without warmup, CAS_fg for all concepts drops (expert collapse:
+#             one expert captures 90%+ of tokens, others <1%), and Dice also degrades.
+#
+# Only change vs brats_phase2.yaml:
+#   ccr.curriculum.warmup_end_epoch: 10 → 0
+#   ccr.loss.weights.warmup[0]: 0.0 → 1.0 (L_align active from ep1)
+#
+# Usage:
+#   python pipeline/train.py --env gcp --config configs/ablations/no_warmup.yaml
+
+swin:
+  img_size: [128, 128, 128]
+  in_channels: 4
+  embed_dim: 48
+  window_size: [7, 7, 7]
+  patch_size: [2, 2, 2]
+  depths: [2, 2, 2, 2]
+  num_heads: [3, 6, 12, 24]
+  mlp_ratio: 4.0
+  drop_path_rate: 0.0
+  pretrained_path: "pretrained/model_swinvit.pt"
+  use_checkpoint: true
+
+data:
+  data_root: ""
+  brats_version: "2024"
+  spatial_size: [128, 128, 128]
+  val_fraction: 0.125
+  test_fraction: 0.125
+  num_workers: 6
+  seed: 42
+
+training:
+  batch_size: 1
+  grad_accum_steps: 4
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip: 1.0
+  amp: true
+  checkpoint_dir: "checkpoints/"
+  checkpoint_every: 5
+  log_every: 10
+
+ccr:
+  router:
+    embed_dim: 192
+    num_concepts: 4
+    use_prototypes: true
+    temperature_learnable: true
+  expert:
+    embed_dim: 192
+  curriculum:
+    warmup_end_epoch: 0    # no warmup — L_align active from epoch 1
+    alignment_end_epoch: 60
+    total_epochs: 80
+    tau_warmup: 2.0
+    tau_alignment: 1.0
+    tau_refinement: 0.5
+  loss:
+    align_focal_gamma: 1.0
+    align_concept_weights: [1.0, 3.0, 1.0, 1.0]
+    contrastive_ncr_et_weight: 0.3
+    weights:
+      warmup:     [1.0, 0.5, 0.00, 0.0]   # lam_align: 0.0 → 1.0 (L_align from ep1)
+      alignment:  [1.0, 0.5, 0.01, 0.3]   # unchanged
+      refinement: [1.0, 0.1, 0.01, 1.0]   # unchanged

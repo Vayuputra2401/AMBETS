@@ -78,19 +78,19 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
 ---
 
-## Session state as of 2026-06-21 (Run 3 stopped, Run 4 config ready)
+## Session state as of 2026-06-22 (Run 4 running, eval pipeline complete)
 
 | Item | State |
 |------|-------|
-| Tests | 169/169 pass |
+| Tests | 187/187 pass (169 Phase1+2 + 18 eval) |
 | Run 2 | COMPLETE ep80: NCR=0.698, Edema=0.901, ET=0.893, Dice WT=0.907/TC=0.823 |
 | Run 3 | STOPPED ep40. NCR plateaued 0.534 — stage-1 features less discriminative |
-| Run 3 checkpoint | `gs://research-brats/checkpoints/20260620_131733/epoch_0040.pth` |
-| Run 4 config | _CCR_STAGE=2, embed_dim=192, lam_align=1.0 refine, align_end=60 |
-| Run 4 vs Run 2 | Only change: lam_align=1.0 (was 0.5) + align_end=60 (was 50) |
-| Run 4 start cmd | `python3 pipeline/train.py --env gcp` (from scratch — incompatible with Run 3) |
-| Run 4 target | NCR hold 0.706+ through refinement → final ~0.72-0.78 |
-| After Run 4 | Phase 3 — CCR-Retrofit |
+| Run 4 | Running on GCP. ep35 NCR=0.702, ep40 dip=0.658. Target: hold 0.706+ → final ~0.72-0.78 |
+| Eval pipeline | src/ccrnet/utils/evaluation.py — AUROC, deletion AUC, insertion AUC, ECE |
+| Ablation A1 | configs/ablations/no_align.yaml — lam_align=0 throughout |
+| Ablation A4 | configs/ablations/no_warmup.yaml — warmup_end_epoch=0 |
+| Target venue | WACV 2027 (~Aug 2026 deadline). CCR-Net only (no CCR-Retrofit). |
+| After Run 4 | Run eval.py on checkpoint → run A1/A4 ablations → paper writing (Phase 6) |
 
 ---
 

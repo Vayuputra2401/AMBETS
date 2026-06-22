@@ -6,7 +6,7 @@
 
 **Master plan**: `CCR-Net_Research_Plan.md` — read this before touching any code or writing any text.
 
-## Current status (2026-06-20)
+## Current status (2026-06-22)
 
 **Phase 0 — COMPLETE**
 - BraTS data downloaded (official). EDA done (`data/load_brats_sample.py`).
@@ -76,9 +76,17 @@ python pipeline/train.py --env gcp
 - 169/169 tests pass. Start: `python3 pipeline/train.py --env gcp`
 - Target: NCR CAS hold 0.706+ through refinement → final ~0.72-0.78.
 
-**Next**: Stop Run 3 → start Run 4 from scratch → Phase 3 (CCR-Retrofit) after Run 4.
+**Evaluation pipeline — COMPLETE (2026-06-22):**
+- `src/ccrnet/utils/evaluation.py`: `compute_auroc_per_concept`, `compute_deletion_auc`, `compute_insertion_auc`, `compute_ece`, `mc_dropout_entropy`
+- `pipeline/evaluate.py` extended: AUROC per concept, global ECE, deletion/insertion AUC (--full flag), MC-Dropout ECE (--mc_passes), JSON summary output
+- Ablation configs: `configs/ablations/no_align.yaml` (A1), `configs/ablations/no_warmup.yaml` (A4)
+- `phase2_config.py` fixed: `loss.weights` nested YAML now parsed correctly
+- `scikit-learn` added to `requirements_phase2.txt`
+- **187/187 tests pass** (169 Phase1+2 + 18 new evaluation tests)
 
-**Phase sequence**: 0 (lit review) → 1 (CCR module) → 2 (CCR-Net training) → **3 (CCR-Retrofit)** → 4 (experiments) → 5 (generalization+agent) → 6 (paper writing) → 7 (submission)
+**Next**: Wait for Run 4 ep80 → run evaluate.py on Run 4 checkpoint → run A1 + A4 ablations on GCP → paper writing (Phase 6).
+
+**Phase sequence (WACV 2027)**: 0 (lit review) → 1 (CCR module) → 2 (CCR-Net training) → **4 (experiments: Run4 eval + A1/A4 ablations)** → 6 (paper writing) → 7 (WACV 2027 submission, ~Aug 2026 deadline). CCR-Retrofit deferred to NeurIPS expanded version.
 
 ## Directory layout
 
@@ -181,5 +189,5 @@ To use tau annealing in training loop: `loss_fn(..., tau_current=module.router.t
 
 ## Target venues
 
-1. MICCAI 2026 (8-page, ~Feb 2026 deadline) — submit first
-2. NeurIPS 2026 (full version, ~May 2026 deadline) — primary target
+1. **WACV 2027** (8-page, ~August 2026 deadline) — primary target (CCR-Net only, no CCR-Retrofit)
+2. NeurIPS 2027 (full version with CCR-Retrofit) — expanded version after WACV
