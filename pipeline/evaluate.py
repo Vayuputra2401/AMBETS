@@ -184,7 +184,7 @@ def evaluate(
 
         # Segmentation metrics
         pred   = out["seg_logits"].argmax(dim=1)  # [B, H, W, D]
-        p_np   = pred[0].cpu().numpy().astype(bool)
+        p_np   = pred[0].cpu().numpy()
         l_np   = label[0].cpu().numpy()
 
         row: Dict = {
