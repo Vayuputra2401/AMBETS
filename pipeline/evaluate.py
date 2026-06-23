@@ -235,7 +235,7 @@ def evaluate(
                 grid_shape, device, concept_names,
             )
             ins_auc = compute_insertion_auc(
-                model, image, out["routing_probs"],
+                model, image, label, out["routing_probs"],
                 grid_shape, device, concept_names,
             )
             for name, val in del_auc.items():

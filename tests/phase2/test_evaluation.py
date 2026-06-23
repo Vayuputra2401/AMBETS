@@ -229,10 +229,10 @@ def test_deletion_auc_returns_floats(mock_model, synthetic_image, synthetic_labe
 # 4. compute_insertion_auc
 # ---------------------------------------------------------------------------
 
-def test_insertion_auc_returns_correct_keys(mock_model, synthetic_image,
+def test_insertion_auc_returns_correct_keys(mock_model, synthetic_image, synthetic_label,
                                              synthetic_routing_probs):
     result = compute_insertion_auc(
-        mock_model, synthetic_image,
+        mock_model, synthetic_image, synthetic_label,
         synthetic_routing_probs, GRID, torch.device("cpu"),
         CONCEPT_NAMES,
         concept_indices=(1, 2, 3),
@@ -242,9 +242,10 @@ def test_insertion_auc_returns_correct_keys(mock_model, synthetic_image,
     assert set(result.keys()) == {"necrotic_core", "edema", "enhancing_tumor"}
 
 
-def test_insertion_auc_returns_floats(mock_model, synthetic_image, synthetic_routing_probs):
+def test_insertion_auc_returns_floats(mock_model, synthetic_image, synthetic_label,
+                                      synthetic_routing_probs):
     result = compute_insertion_auc(
-        mock_model, synthetic_image,
+        mock_model, synthetic_image, synthetic_label,
         synthetic_routing_probs, GRID, torch.device("cpu"),
         CONCEPT_NAMES,
         thresholds=(0.10, 0.30),

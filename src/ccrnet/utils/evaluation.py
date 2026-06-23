@@ -103,7 +103,17 @@ def compute_auroc_per_concept(
 # These two functions are the single source of truth so that CCR and the
 # post-hoc baselines are compared under exactly the same protocol.
 
-_DEFAULT_THRESHOLDS: Tuple[float, ...] = (0.05, 0.10, 0.20, 0.30, 0.40, 0.50)
+# Fraction grid spanning [0, 1] — denser early where a good explanation's curve
+# bends. trapz over [0,1] of a fraction-curve in [0,1] yields an AUC in [0,1],
+# so deletion/insertion are normalized and directly comparable across methods.
+_DEFAULT_THRESHOLDS: Tuple[float, ...] = (0.0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0)
+
+_EPS = 1e-6
+
+
+def _region_score(probs: torch.Tensor, k: int, region: torch.Tensor) -> float:
+    """Mean class-k softmax probability over the region mask [H,W,D]."""
+    return probs[0, k][region].mean().item()
 
 
 def deletion_auc_from_map(
@@ -117,86 +127,102 @@ def deletion_auc_from_map(
     baseline_probs: Optional[torch.Tensor] = None,  # [1, K, H, W, D] softmax of unmasked image
 ) -> float:
     """
-    Deletion AUC for a single concept k from an arbitrary explanation map.
+    Normalized deletion AUC for concept k from an arbitrary explanation map.
 
-    Mask the top-τ fraction of voxels (ranked by expl_k) and measure the drop in
-    concept-k confidence. Higher AUC = a more faithful explanation (important
-    voxels concentrated in the top rank → fast, large confidence drop when removed).
+    Progressively mask the top-τ fraction of voxels (ranked by expl_k), τ∈[0,1],
+    and measure how fast concept-k confidence falls in the GT==k region. The curve
+    is the FRACTION of baseline confidence removed: 1 − score(τ)/score(0). AUC over
+    τ∈[0,1] ∈ [0,1]. **Higher = more faithful** (important voxels ranked first →
+    confidence collapses quickly).
+
+    Returns NaN if concept k is absent (no GT==k voxels) or baseline confidence ≈ 0.
     """
     _, C, H, W, D = image.shape
     total_voxels = H * W * D
+    region = (label[0] == k)
+    if region.sum() == 0:
+        return float("nan")
 
     model.eval()
     with torch.no_grad():
         if baseline_probs is None:
             baseline_probs = torch.softmax(model(image)["seg_logits"], dim=1)
+        base = _region_score(baseline_probs, k, region)
+        if base < _EPS:
+            return float("nan")
 
         sorted_idx = expl_k.detach().reshape(-1).argsort(descending=True)
 
-        gt_mask_k = (label[0] == k)
-        if gt_mask_k.sum() > 0:
-            baseline_conf = baseline_probs[0, k][gt_mask_k].mean().item()
-        else:
-            baseline_conf = baseline_probs[0, k].mean().item()
-
-        drops: List[float] = []
+        fracs: List[float] = []
         for tau in thresholds:
-            n_mask = max(1, int(tau * total_voxels))
-            mask_idx = sorted_idx[:n_mask]
-
-            masked = image.clone()
-            for ch in range(C):
-                flat = masked[0, ch].flatten().clone()
-                flat[mask_idx] = baseline_fill
-                masked[0, ch] = flat.reshape(H, W, D)
-
-            probs = torch.softmax(model(masked)["seg_logits"], dim=1)
-            if gt_mask_k.sum() > 0:
-                conf = probs[0, k][gt_mask_k].mean().item()
+            n_mask = int(round(tau * total_voxels))
+            if n_mask <= 0:
+                score = base                     # τ=0: nothing deleted
             else:
-                conf = probs[0, k].mean().item()
-            drops.append(float(baseline_conf - conf))
+                masked = image.clone()
+                mask_idx = sorted_idx[:n_mask]
+                for ch in range(C):
+                    flat = masked[0, ch].flatten().clone()
+                    flat[mask_idx] = baseline_fill
+                    masked[0, ch] = flat.reshape(H, W, D)
+                probs = torch.softmax(model(masked)["seg_logits"], dim=1)
+                score = _region_score(probs, k, region)
+            fracs.append(1.0 - score / base)     # fraction of confidence removed
 
-    return float(np.trapezoid(drops, list(thresholds)))
+    return float(np.trapezoid(fracs, list(thresholds)))
 
 
 def insertion_auc_from_map(
     model,
     image: torch.Tensor,                # [1, C, H, W, D]
+    label: torch.Tensor,                # [1, H, W, D] int64
     expl_k: torch.Tensor,               # [H, W, D] explanation scores for concept k
     k: int,
     thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
+    baseline_probs: Optional[torch.Tensor] = None,  # [1, K, H, W, D] softmax of unmasked image
 ) -> float:
     """
-    Insertion AUC for a single concept k from an arbitrary explanation map.
+    Normalized insertion AUC for concept k from an arbitrary explanation map.
 
-    Reveal the top-τ voxels (ranked by expl_k) from a zero baseline and measure
-    the rise in concept-k confidence. Higher AUC = the explanation identifies the
-    minimal sufficient voxels.
+    Progressively reveal the top-τ voxels (ranked by expl_k) from a zero baseline,
+    τ∈[0,1], and measure how fast concept-k confidence recovers in the GT==k region.
+    The curve is score(τ)/score(full). AUC over τ∈[0,1] ∈ [0,1]. **Higher = more
+    faithful** (a small set of top-ranked voxels recovers the prediction).
+
+    Returns NaN if concept k is absent or full-image confidence ≈ 0.
     """
     _, C, H, W, D = image.shape
     total_voxels = H * W * D
+    region = (label[0] == k)
+    if region.sum() == 0:
+        return float("nan")
 
     model.eval()
     with torch.no_grad():
+        if baseline_probs is None:
+            baseline_probs = torch.softmax(model(image)["seg_logits"], dim=1)
+        base = _region_score(baseline_probs, k, region)
+        if base < _EPS:
+            return float("nan")
+
         sorted_idx = expl_k.detach().reshape(-1).argsort(descending=True)
 
-        confidences: List[float] = []
+        fracs: List[float] = []
         for tau in thresholds:
-            n_insert = max(1, int(tau * total_voxels))
-            insert_idx = sorted_idx[:n_insert]
-
+            n_insert = int(round(tau * total_voxels))
             partial = torch.zeros_like(image)
-            for ch in range(C):
-                partial_flat = partial[0, ch].flatten()
-                orig_flat = image[0, ch].flatten()
-                partial_flat[insert_idx] = orig_flat[insert_idx]
-                partial[0, ch] = partial_flat.reshape(H, W, D)
-
+            if n_insert > 0:
+                insert_idx = sorted_idx[:n_insert]
+                for ch in range(C):
+                    pf = partial[0, ch].flatten()
+                    of = image[0, ch].flatten()
+                    pf[insert_idx] = of[insert_idx]
+                    partial[0, ch] = pf.reshape(H, W, D)
             probs = torch.softmax(model(partial)["seg_logits"], dim=1)
-            confidences.append(probs[0, k].mean().item())
+            score = _region_score(probs, k, region)
+            fracs.append(score / base)           # fraction of confidence recovered
 
-    return float(np.trapezoid(confidences, list(thresholds)))
+    return float(np.trapezoid(fracs, list(thresholds)))
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +273,7 @@ def compute_deletion_auc(
 def compute_insertion_auc(
     model,
     image: torch.Tensor,                # [1, C, H, W, D]
+    label: torch.Tensor,                # [1, H, W, D] int64
     routing_probs: torch.Tensor,        # [1, N, K]
     grid_shape: Tuple[int, int, int],
     device: torch.device,
@@ -265,11 +292,15 @@ def compute_insertion_auc(
     routing_volume = upsample_routing_to_volume(routing_probs, grid_shape, target_shape)
 
     model.eval()
+    with torch.no_grad():
+        baseline_probs = torch.softmax(model(image)["seg_logits"], dim=1)
+
     results: Dict[str, float] = {}
     for k in concept_indices:
         name = concept_names[k] if k < len(concept_names) else f"concept_{k}"
         results[name] = insertion_auc_from_map(
-            model, image, routing_volume[0, k], k, thresholds=thresholds,
+            model, image, label, routing_volume[0, k], k,
+            thresholds=thresholds, baseline_probs=baseline_probs,
         )
     return results
 

@@ -242,7 +242,10 @@ def main() -> None:
                     model, image, label, maps[k], k,
                     baseline_probs=baseline_probs,
                 )
-                ins = insertion_auc_from_map(model, image, maps[k], k)
+                ins = insertion_auc_from_map(
+                    model, image, label, maps[k], k,
+                    baseline_probs=baseline_probs,
+                )
                 row[f"{method}_del_{name}"] = d
                 row[f"{method}_ins_{name}"] = ins
         per_patient.append(row)
