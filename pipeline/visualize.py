@@ -220,10 +220,9 @@ def _render_panels(
     t1c_norm: np.ndarray,                  # [H, W] float32, already in [0,1]
     label_2d: np.ndarray,                  # [H, W] int
     pred_2d: np.ndarray,                   # [H, W] int
-    routing_argmax_2d: np.ndarray,         # [H, W] int — hard expert assignment, brain-masked
-    routing_maps: Dict[str, np.ndarray],   # {internal_name: [H,W] float in [0,1]}, brain-masked
-    entropy_norm: np.ndarray,              # [H, W] float32 in [0,1]
-    brain_mask_2d: np.ndarray,             # [H, W] bool — True inside brain tissue
+    routing_argmax_2d: np.ndarray,         # [H, W] int — hard expert assignment, pred-masked
+    routing_maps: Dict[str, np.ndarray],   # {internal_name: [H,W] float, NaN outside region}
+    entropy_norm: np.ndarray,              # [H, W] float32 in [0,1], NaN outside brain
     concept_names_fg: List[str],           # e.g. ["necrotic_core","edema","enhancing_tumor"]
     patient_id: str,
     save_dir: str,
@@ -232,9 +231,11 @@ def _render_panels(
     """
     Render all 8 panels as individual PNGs and one combined figure.
 
-    Heatmap/entropy panels are masked to the brain so background leakage and the
-    crop-boundary frame do not appear. Panel 4 (Routing argmax) is the hard expert
-    assignment in the same palette as GT/Pred — the visual proof of routing=prediction.
+    Routing panels are masked to the predicted tumor (foreground-only L_align leaves
+    background routing unconstrained, so the faithful explanation is the in-tumor
+    routing); entropy is shown across the brain. Masked-out voxels are NaN → rendered
+    transparent. Panel 4 (Routing argmax) is the hard expert assignment in the same
+    palette as GT/Pred — the visual proof of routing=prediction within the tumor.
 
     Returns path to the combined PNG.
     """
@@ -277,7 +278,7 @@ def _render_panels(
         if ov is not None:
             ax_s.imshow(ov, origin="lower", aspect="equal")
         if hmap is not None:
-            hmap_disp = np.ma.masked_where(~brain_mask_2d, hmap)
+            hmap_disp = np.ma.masked_invalid(hmap)
             ax_s.imshow(hmap_disp, cmap=hcmap, alpha=0.65, origin="lower",
                         aspect="equal", vmin=0.0, vmax=1.0)
         ax_s.axis("off")
@@ -297,7 +298,7 @@ def _render_panels(
         if ov is not None:
             ax.imshow(ov, origin="lower", aspect="equal")
         if hmap is not None:
-            hmap_disp = np.ma.masked_where(~brain_mask_2d, hmap)
+            hmap_disp = np.ma.masked_invalid(hmap)
             ax.imshow(hmap_disp, cmap=hcmap, alpha=0.65, origin="lower",
                       aspect="equal", vmin=0.0, vmax=1.0)
         ax.set_title(title, fontsize=7, color="white", pad=2)
@@ -387,29 +388,33 @@ def visualize_case(
     entropy_2d = entropy_np[:, :, chosen_slice]
 
     # Brain mask: after NormalizeIntensityd(nonzero=True), background/pad is exactly 0.
-    # Masking to brain removes the crop-boundary frame and background routing leakage.
     brain_mask_2d = (t1c_2d != 0)
+    # Predicted tumor mask. Foreground-only L_align leaves background routing
+    # unconstrained (it floods normal brain), so the faithful explanation is the
+    # routing *within the predicted tumor* — that is what we display.
+    pred_fg_2d = (pred_2d > 0)
 
-    # Hard routing assignment (argmax over experts), restricted to brain tissue.
-    # Background class (0) is transparent in _LABEL_RGBA → only foreground routing shows.
+    # Hard routing assignment (argmax over experts), restricted to predicted tumor.
+    # Background class (0) is transparent in _LABEL_RGBA → only in-tumor routing shows.
     routing_argmax_2d = routing_np.argmax(axis=0)[:, :, chosen_slice].astype(int)
-    routing_argmax_2d[~brain_mask_2d] = 0
+    routing_argmax_2d[~pred_fg_2d] = 0
 
-    # Entropy normalised to [0, 1], masked to brain
-    entropy_norm = (np.clip(entropy_2d / math.log(4), 0.0, 1.0).astype(np.float32)
-                    * brain_mask_2d)
+    # Entropy normalised to [0, 1], shown across the brain (NaN outside → transparent)
+    entropy_norm = np.clip(entropy_2d / math.log(4), 0.0, 1.0).astype(np.float32)
+    entropy_norm[~brain_mask_2d] = np.nan
 
-    # Routing maps (foreground concepts only: k=1..K-1), masked to brain and
-    # renormalised within brain (99th pct) so contrast reflects in-tissue variation.
+    # Soft routing maps (k=1..K-1): within the predicted tumor, renormalised (99th pct)
+    # for contrast; NaN elsewhere so background is transparent in the overlay.
     concept_names  = config.ccr.concept_names    # ("Background","NCR","Edema","ET")
     fg_names       = list(concept_names[1:])     # ["NCR","Edema","ET"]
     routing_slices = {}
     for k in range(1, len(concept_names)):
-        m = routing_np[k, :, :, chosen_slice].astype(np.float32) * brain_mask_2d
-        in_brain = m[brain_mask_2d]
-        hi = float(np.percentile(in_brain, 99)) if in_brain.size else 1.0
+        m = routing_np[k, :, :, chosen_slice].astype(np.float32)
+        region = m[pred_fg_2d]
+        hi = float(np.percentile(region, 99)) if region.size else 1.0
         if hi > 1e-6:
             m = np.clip(m / hi, 0.0, 1.0)
+        m[~pred_fg_2d] = np.nan
         routing_slices[concept_names[k]] = m
 
     t1c_norm = _norm_for_display(t1c_2d)
@@ -419,7 +424,7 @@ def visualize_case(
     combined   = _render_panels(
         t1c_norm, label_2d, pred_2d,
         routing_argmax_2d, routing_slices, entropy_norm,
-        brain_mask_2d, fg_names, patient_id, save_dir, dpi,
+        fg_names, patient_id, save_dir, dpi,
     )
 
     # Quick per-case summary
