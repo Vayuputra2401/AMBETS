@@ -38,10 +38,35 @@ import argparse
 import csv
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
+
+
+# ---------------------------------------------------------------------------
+# Tee: write to both stdout and a log file simultaneously
+# ---------------------------------------------------------------------------
+
+class _Tee:
+    """Redirect sys.stdout so every print() goes to console AND a log file."""
+
+    def __init__(self, log_path: str) -> None:
+        self._terminal = sys.stdout
+        self._log      = open(log_path, "w", buffering=1)   # line-buffered
+
+    def write(self, msg: str) -> None:
+        self._terminal.write(msg)
+        self._log.write(msg)
+
+    def flush(self) -> None:
+        self._terminal.flush()
+        self._log.flush()
+
+    def close(self) -> None:
+        sys.stdout = self._terminal
+        self._log.close()
 
 import numpy as np
 import torch
@@ -296,8 +321,8 @@ def main() -> None:
                         help="Enable deletion/insertion AUC (~19 forward passes/patient)")
     parser.add_argument("--mc_passes",  type=int, default=0,
                         help="MC-Dropout passes for uncertainty ECE comparison (requires dropout in model)")
-    parser.add_argument("--sync_gcs",   action="store_true",
-                        help="Sync eval outputs to GCS after saving (uses gcs_checkpoint_dir from env config)")
+    parser.add_argument("--no_sync_gcs", action="store_true",
+                        help="Disable automatic GCS sync (default: sync whenever gcs_checkpoint_dir is set)")
     args = parser.parse_args()
 
     config = Phase2Config.from_yaml(args.config)
@@ -309,6 +334,12 @@ def main() -> None:
     save_dir = args.save_dir or str(
         Path(config.training.checkpoint_dir) / "evals" / args.split
     )
+
+    # Start logging everything printed to console into a log file
+    os.makedirs(save_dir, exist_ok=True)
+    log_path = os.path.join(save_dir, f"{args.split}_log.txt")
+    tee = _Tee(log_path)
+    sys.stdout = tee
 
     model = CCRNet(config).to(device)
     start_epoch, _ = load_checkpoint(args.checkpoint, model)
@@ -430,26 +461,28 @@ def main() -> None:
     with open(json_path, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"Summary JSON:    {json_path}")
+    print(f"Log file:        {log_path}")
     print(f"Routing NIfTIs (first {args.n_save} cases): {save_dir}/")
 
-    # --- GCS sync ---
-    if args.sync_gcs:
-        gcs_ckpt_dir = env_cfg.get("paths", {}).get("gcs_checkpoint_dir", "")
-        if not gcs_ckpt_dir:
-            print("[warn] --sync_gcs set but gcs_checkpoint_dir not in env config — skipping sync")
-        else:
-            run_id  = Path(args.checkpoint).parent.name   # e.g. "20260621_120750"
-            gcs_dst = f"{gcs_ckpt_dir.rstrip('/')}/{run_id}/evals/{args.split}/"
-            print(f"\nSyncing eval outputs to GCS: {gcs_dst}")
-            try:
-                import subprocess as _sp
-                _sp.run(
-                    ["gsutil", "-m", "cp", "-r", save_dir + "/", gcs_dst],
-                    check=True,
-                )
-                print(f"  Synced: {save_dir}/ → {gcs_dst}")
-            except Exception as e:
-                print(f"  [warn] GCS sync failed: {e}")
+    # --- GCS sync (automatic unless --no_sync_gcs) ---
+    gcs_ckpt_dir = env_cfg.get("paths", {}).get("gcs_checkpoint_dir", "")
+    if gcs_ckpt_dir and not args.no_sync_gcs:
+        run_id  = Path(args.checkpoint).parent.name   # e.g. "20260621_120750"
+        gcs_dst = f"{gcs_ckpt_dir.rstrip('/')}/{run_id}/evals/{args.split}/"
+        print(f"\nSyncing to GCS: {save_dir}/ → {gcs_dst}")
+        tee.flush()
+        try:
+            subprocess.run(
+                ["gsutil", "-m", "cp", "-r", save_dir + "/", gcs_dst],
+                check=True,
+            )
+            print(f"  GCS sync complete.")
+        except Exception as e:
+            print(f"  [warn] GCS sync failed: {e}")
+    elif not gcs_ckpt_dir:
+        print("\n[info] gcs_checkpoint_dir not set — outputs saved locally only.")
+
+    tee.close()
 
 
 if __name__ == "__main__":
