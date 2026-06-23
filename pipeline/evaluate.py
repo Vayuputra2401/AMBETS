@@ -472,8 +472,10 @@ def main() -> None:
         print(f"\nSyncing to GCS: {save_dir}/ → {gcs_dst}")
         tee.flush()
         try:
+            # rsync mirrors save_dir CONTENTS into gcs_dst (no double-nesting,
+            # unlike `cp -r save_dir/` which copies the dir itself into dest).
             subprocess.run(
-                ["gsutil", "-m", "cp", "-r", save_dir + "/", gcs_dst],
+                ["gsutil", "-m", "rsync", "-r", save_dir, gcs_dst.rstrip("/")],
                 check=True,
             )
             print(f"  GCS sync complete.")
