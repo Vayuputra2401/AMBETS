@@ -50,6 +50,8 @@ def apply_env(config, env: str, config_dir: Optional[Path] = None) -> dict:
     paths = env_cfg.get("paths", {})
     if paths.get("data_root"):
         config.data.data_root = paths["data_root"]
+    if paths.get("brats_official_val_root"):
+        config.data.brats_official_val_root = paths["brats_official_val_root"]
     if paths.get("checkpoint_dir"):
         config.training.checkpoint_dir = paths["checkpoint_dir"]
     if paths.get("pretrained_path"):

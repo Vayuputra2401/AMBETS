@@ -105,17 +105,19 @@ def load_patient_for_vis(
     patient_dir: Path,
     spatial_size: Tuple[int, int, int],
     brats_version: str,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
     """
     Load and preprocess one BraTS case for visualization.
 
-    Uses CenterSpatialCropd (deterministic) instead of RandCropByPosNegLabeld
-    so the crop is reproducible and centered on the tumor region.
+    Uses CenterSpatialCropd (deterministic) instead of RandCropByPosNegLabeld.
+
+    Works with BOTH training cases (have GT seg file) and official BraTS validation
+    cases (no GT seg file — BraTS competition val data has no ground truth).
 
     Returns
     -------
     image : [4, H, W, D] float32   (channels: t1c, t1n, t2w, t2f)
-    label : [H, W, D] int64
+    label : [H, W, D] int64  OR  None if no seg file exists (official BraTS val)
     """
     from monai.transforms import (
         CenterSpatialCropd,
@@ -129,31 +131,42 @@ def load_patient_for_vis(
     )
 
     image_keys = ["t1c", "t1n", "t2w", "t2f"]
-    all_keys   = image_keys + ["label"]
+    files = _modality_filenames(patient_dir.name, brats_version)
+
+    # Check whether GT label exists (training split) or not (official BraTS val)
+    seg_path = patient_dir / files["label"]
+    has_label = seg_path.exists()
+
+    if has_label:
+        all_keys = image_keys + ["label"]
+        crop_source = "label"
+    else:
+        all_keys = image_keys
+        crop_source = "t1c"   # crop by T1c foreground when no label
 
     transforms_list = [
         LoadImaged(keys=all_keys),
         EnsureChannelFirstd(keys=all_keys),
     ]
-    if brats_version == "2024":
+    if has_label and brats_version == "2024":
         transforms_list.append(RemapBraTS2024Labels(keys=["label"]))
     transforms_list += [
         NormalizeIntensityd(keys=image_keys, nonzero=True, channel_wise=True),
-        CropForegroundd(keys=all_keys, source_key="label", margin=10),
+        CropForegroundd(keys=all_keys, source_key=crop_source, margin=10),
         SpatialPadd(keys=all_keys, spatial_size=list(spatial_size)),
         CenterSpatialCropd(keys=all_keys, roi_size=list(spatial_size)),
         EnsureTyped(keys=image_keys, dtype=torch.float32),
-        EnsureTyped(keys=["label"],  dtype=torch.long),
     ]
+    if has_label:
+        transforms_list.append(EnsureTyped(keys=["label"], dtype=torch.long))
     transforms = Compose(transforms_list)
 
-    files = _modality_filenames(patient_dir.name, brats_version)
-    data_dict = {k: str(patient_dir / v) for k, v in files.items()}
+    data_dict = {k: str(patient_dir / v) for k, v in files.items() if k != "label" or has_label}
     data_dict["patient_id"] = patient_dir.name
     result = transforms(data_dict)
 
     image = torch.cat([result[k] for k in image_keys], dim=0)   # [4, H, W, D]
-    label = result["label"].squeeze(0).long()                    # [H, W, D]
+    label = result["label"].squeeze(0).long() if has_label else None
     return image, label
 
 
@@ -226,10 +239,11 @@ def _render_panels(
     os.makedirs(save_dir, exist_ok=True)
 
     # Panel spec: (title, base_img, overlay_rgba_or_None, heatmap_or_None, heatmap_cmap)
+    gt_overlay = _label_to_rgba(label_2d) if label_2d is not None else None
     panels = [
-        ("T1c",          t1c_norm, None,                          None,         None),
-        ("GT",           t1c_norm, _label_to_rgba(label_2d),      None,         None),
-        ("CCR-Net Pred", t1c_norm, _label_to_rgba(pred_2d),       None,         None),
+        ("T1c",          t1c_norm, None,                    None,  None),
+        ("GT",           t1c_norm, gt_overlay,              None,  None),
+        ("CCR-Net Pred", t1c_norm, _label_to_rgba(pred_2d), None,  None),
     ]
     for name in concept_names_fg:
         display = _DISPLAY_NAMES.get(name, name)
@@ -348,13 +362,17 @@ def visualize_case(
 
     # Auto-select axial slice
     if slice_idx is None:
-        chosen_slice = _best_axial_slice(label_np)
+        if label_np is not None:
+            chosen_slice = _best_axial_slice(label_np)
+        else:
+            # No GT: pick center slice (official BraTS val cases)
+            chosen_slice = entropy_np.shape[2] // 2
     else:
         chosen_slice = slice_idx
 
     # 2D slices along last axis
     t1c_2d     = t1c_vol[:, :, chosen_slice]
-    label_2d   = label_np[:, :, chosen_slice]
+    label_2d   = label_np[:, :, chosen_slice] if label_np is not None else None
     pred_2d    = pred_np[:, :, chosen_slice]
     entropy_2d = entropy_np[:, :, chosen_slice]
 
@@ -380,15 +398,23 @@ def visualize_case(
     )
 
     # Quick per-case summary
-    fg_mask = label_np > 0
-    ncr_mask = label_np == 1
+    if label_np is not None:
+        fg_mask  = label_np > 0
+        ncr_mask = label_np == 1
+        ncr_voxels   = int(ncr_mask.sum())
+        entropy_fg   = float(entropy_np[fg_mask].mean()) if fg_mask.any() else 0.0
+    else:
+        ncr_voxels = -1    # no GT — unknown
+        entropy_fg = float(entropy_np.mean())
+
     summary = {
-        "patient_id":    patient_id,
-        "slice_idx":     chosen_slice,
-        "ncr_tokens":    int(ncr_mask.sum()),
+        "patient_id":      patient_id,
+        "slice_idx":       chosen_slice,
+        "has_gt":          label_np is not None,
+        "ncr_tokens":      ncr_voxels,
         "routing_ncr_max": float(routing_np[1].max()),
-        "mean_entropy_fg": float(entropy_np[fg_mask].mean()) if fg_mask.any() else 0.0,
-        "combined_png":  combined,
+        "mean_entropy_fg": entropy_fg,
+        "combined_png":    combined,
     }
 
     _print_case_summary(summary)
@@ -418,8 +444,11 @@ def main() -> None:
     parser.add_argument("--patient_dir", type=str, default="",
                         help="Path to one BraTS patient directory. "
                              "Omit to auto-select from val split.")
+    parser.add_argument("--official_val", action="store_true",
+                        help="Visualise from official BraTS val data (no GT labels). "
+                             "Uses brats_official_val_root from env config.")
     parser.add_argument("--n_cases",     type=int, default=3,
-                        help="Val cases to visualise when --patient_dir not given.")
+                        help="Cases to visualise when --patient_dir not given.")
     parser.add_argument("--slice_idx",   type=int, default=None,
                         help="Axial slice index. Default: auto (richest label slice).")
     parser.add_argument("--output_dir",  type=str, default="visualizations/figure2")
@@ -444,6 +473,16 @@ def main() -> None:
     # Determine which patients to visualise
     if args.patient_dir:
         patient_dirs = [Path(args.patient_dir)]
+    elif args.official_val:
+        official_root = getattr(config.data, "brats_official_val_root", "")
+        if not official_root:
+            raise ValueError(
+                "brats_official_val_root not set in env config. "
+                "Add it to configs/env/local.yaml or configs/env/gcp.yaml."
+            )
+        patient_dirs = get_patient_dirs(official_root)[: args.n_cases]
+        print(f"Using official BraTS val data (no GT): {official_root}")
+        print(f"Selected {len(patient_dirs)} cases")
     else:
         all_dirs = get_patient_dirs(config.data.data_root)
         splits   = split_patients(
@@ -453,7 +492,7 @@ def main() -> None:
             config.data.seed,
         )
         patient_dirs = splits["val"][: args.n_cases]
-        print(f"Auto-selected {len(patient_dirs)} val cases")
+        print(f"Auto-selected {len(patient_dirs)} internal val cases (have GT)")
 
     os.makedirs(args.output_dir, exist_ok=True)
     summaries = []

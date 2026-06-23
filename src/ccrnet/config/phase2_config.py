@@ -75,6 +75,7 @@ class DataConfig:
     """
 
     data_root: str = ""
+    brats_official_val_root: str = ""  # official BraTS val (no GT) — for leaderboard submission
     brats_version: str = "2024"
     spatial_size: Tuple[int, int, int] = (128, 128, 128)
     val_fraction: float = 0.125

@@ -3,7 +3,11 @@
 
 env: local
 
+# data_root: training data WITH GT labels — used for all paper metrics (train/val/test splits)
+# brats_official_val_root: official BraTS val WITHOUT GT labels — for leaderboard submission only
+#   evaluate.py will fail on this (no GT). Use visualize.py for inference-only figures.
 paths:
-  data_root:       "E:/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
-  checkpoint_dir:  "checkpoints/"
-  pretrained_path: "pretrained/model_swinvit.pt"
+  data_root:               "E:/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
+  brats_official_val_root: "E:/BraTS2024-BraTS-GLI-ValidationData/validation_data"
+  checkpoint_dir:          "checkpoints/"
+  pretrained_path:         "pretrained/model_swinvit.pt"
