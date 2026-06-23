@@ -220,15 +220,21 @@ def _render_panels(
     t1c_norm: np.ndarray,                  # [H, W] float32, already in [0,1]
     label_2d: np.ndarray,                  # [H, W] int
     pred_2d: np.ndarray,                   # [H, W] int
-    routing_maps: Dict[str, np.ndarray],   # {internal_name: [H,W] float in [0,1]}
+    routing_argmax_2d: np.ndarray,         # [H, W] int — hard expert assignment, brain-masked
+    routing_maps: Dict[str, np.ndarray],   # {internal_name: [H,W] float in [0,1]}, brain-masked
     entropy_norm: np.ndarray,              # [H, W] float32 in [0,1]
+    brain_mask_2d: np.ndarray,             # [H, W] bool — True inside brain tissue
     concept_names_fg: List[str],           # e.g. ["necrotic_core","edema","enhancing_tumor"]
     patient_id: str,
     save_dir: str,
     dpi: int = 300,
 ) -> str:
     """
-    Render all 7 panels as individual PNGs and one combined figure.
+    Render all 8 panels as individual PNGs and one combined figure.
+
+    Heatmap/entropy panels are masked to the brain so background leakage and the
+    crop-boundary frame do not appear. Panel 4 (Routing argmax) is the hard expert
+    assignment in the same palette as GT/Pred — the visual proof of routing=prediction.
 
     Returns path to the combined PNG.
     """
@@ -241,9 +247,10 @@ def _render_panels(
     # Panel spec: (title, base_img, overlay_rgba_or_None, heatmap_or_None, heatmap_cmap)
     gt_overlay = _label_to_rgba(label_2d) if label_2d is not None else None
     panels = [
-        ("T1c",          t1c_norm, None,                    None,  None),
-        ("GT",           t1c_norm, gt_overlay,              None,  None),
-        ("CCR-Net Pred", t1c_norm, _label_to_rgba(pred_2d), None,  None),
+        ("T1c",             t1c_norm, None,                            None,  None),
+        ("GT",              t1c_norm, gt_overlay,                      None,  None),
+        ("CCR-Net Pred",    t1c_norm, _label_to_rgba(pred_2d),         None,  None),
+        ("Routing (argmax)",t1c_norm, _label_to_rgba(routing_argmax_2d), None, None),
     ]
     for name in concept_names_fg:
         display = _DISPLAY_NAMES.get(name, name)
@@ -253,10 +260,11 @@ def _render_panels(
 
     # --- Individual panels ---
     safe_titles = {
-        "T1c":          "panel_t1c.png",
-        "GT":           "panel_gt.png",
-        "CCR-Net Pred": "panel_pred.png",
-        "Entropy":      "panel_entropy.png",
+        "T1c":              "panel_t1c.png",
+        "GT":               "panel_gt.png",
+        "CCR-Net Pred":     "panel_pred.png",
+        "Routing (argmax)": "panel_routing_argmax.png",
+        "Entropy":          "panel_entropy.png",
     }
     for name in concept_names_fg:
         display = _DISPLAY_NAMES.get(name, name)
@@ -269,7 +277,8 @@ def _render_panels(
         if ov is not None:
             ax_s.imshow(ov, origin="lower", aspect="equal")
         if hmap is not None:
-            ax_s.imshow(hmap, cmap=hcmap, alpha=0.65, origin="lower",
+            hmap_disp = np.ma.masked_where(~brain_mask_2d, hmap)
+            ax_s.imshow(hmap_disp, cmap=hcmap, alpha=0.65, origin="lower",
                         aspect="equal", vmin=0.0, vmax=1.0)
         ax_s.axis("off")
         fig_s.tight_layout(pad=0)
@@ -288,7 +297,8 @@ def _render_panels(
         if ov is not None:
             ax.imshow(ov, origin="lower", aspect="equal")
         if hmap is not None:
-            ax.imshow(hmap, cmap=hcmap, alpha=0.65, origin="lower",
+            hmap_disp = np.ma.masked_where(~brain_mask_2d, hmap)
+            ax.imshow(hmap_disp, cmap=hcmap, alpha=0.65, origin="lower",
                       aspect="equal", vmin=0.0, vmax=1.0)
         ax.set_title(title, fontsize=7, color="white", pad=2)
         ax.axis("off")
@@ -376,16 +386,31 @@ def visualize_case(
     pred_2d    = pred_np[:, :, chosen_slice]
     entropy_2d = entropy_np[:, :, chosen_slice]
 
-    # Entropy normalised to [0, 1]
-    entropy_norm = np.clip(entropy_2d / math.log(4), 0.0, 1.0).astype(np.float32)
+    # Brain mask: after NormalizeIntensityd(nonzero=True), background/pad is exactly 0.
+    # Masking to brain removes the crop-boundary frame and background routing leakage.
+    brain_mask_2d = (t1c_2d != 0)
 
-    # Routing maps (foreground concepts only: k=1..K-1)
+    # Hard routing assignment (argmax over experts), restricted to brain tissue.
+    # Background class (0) is transparent in _LABEL_RGBA → only foreground routing shows.
+    routing_argmax_2d = routing_np.argmax(axis=0)[:, :, chosen_slice].astype(int)
+    routing_argmax_2d[~brain_mask_2d] = 0
+
+    # Entropy normalised to [0, 1], masked to brain
+    entropy_norm = (np.clip(entropy_2d / math.log(4), 0.0, 1.0).astype(np.float32)
+                    * brain_mask_2d)
+
+    # Routing maps (foreground concepts only: k=1..K-1), masked to brain and
+    # renormalised within brain (99th pct) so contrast reflects in-tissue variation.
     concept_names  = config.ccr.concept_names    # ("Background","NCR","Edema","ET")
     fg_names       = list(concept_names[1:])     # ["NCR","Edema","ET"]
-    routing_slices = {
-        concept_names[k]: routing_np[k, :, :, chosen_slice].astype(np.float32)
-        for k in range(1, len(concept_names))
-    }
+    routing_slices = {}
+    for k in range(1, len(concept_names)):
+        m = routing_np[k, :, :, chosen_slice].astype(np.float32) * brain_mask_2d
+        in_brain = m[brain_mask_2d]
+        hi = float(np.percentile(in_brain, 99)) if in_brain.size else 1.0
+        if hi > 1e-6:
+            m = np.clip(m / hi, 0.0, 1.0)
+        routing_slices[concept_names[k]] = m
 
     t1c_norm = _norm_for_display(t1c_2d)
 
@@ -393,8 +418,8 @@ def visualize_case(
     save_dir   = os.path.join(output_dir, patient_id)
     combined   = _render_panels(
         t1c_norm, label_2d, pred_2d,
-        routing_slices, entropy_norm,
-        fg_names, patient_id, save_dir, dpi,
+        routing_argmax_2d, routing_slices, entropy_norm,
+        brain_mask_2d, fg_names, patient_id, save_dir, dpi,
     )
 
     # Quick per-case summary
