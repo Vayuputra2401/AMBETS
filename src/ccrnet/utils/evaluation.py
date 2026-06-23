@@ -94,7 +94,113 @@ def compute_auroc_per_concept(
 
 
 # ---------------------------------------------------------------------------
-# Deletion AUC
+# Deletion / Insertion AUC — explanation-map agnostic core
+# ---------------------------------------------------------------------------
+#
+# The deletion/insertion methodology is identical regardless of WHERE the
+# explanation comes from (CCR routing, GradCAM, gradient saliency, ...). The
+# only method-specific input is the per-concept explanation volume `expl_k`.
+# These two functions are the single source of truth so that CCR and the
+# post-hoc baselines are compared under exactly the same protocol.
+
+_DEFAULT_THRESHOLDS: Tuple[float, ...] = (0.05, 0.10, 0.20, 0.30, 0.40, 0.50)
+
+
+def deletion_auc_from_map(
+    model,
+    image: torch.Tensor,                # [1, C, H, W, D]
+    label: torch.Tensor,                # [1, H, W, D] int64
+    expl_k: torch.Tensor,               # [H, W, D] explanation scores for concept k
+    k: int,
+    thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
+    baseline_fill: float = 0.0,
+    baseline_probs: Optional[torch.Tensor] = None,  # [1, K, H, W, D] softmax of unmasked image
+) -> float:
+    """
+    Deletion AUC for a single concept k from an arbitrary explanation map.
+
+    Mask the top-τ fraction of voxels (ranked by expl_k) and measure the drop in
+    concept-k confidence. Higher AUC = a more faithful explanation (important
+    voxels concentrated in the top rank → fast, large confidence drop when removed).
+    """
+    _, C, H, W, D = image.shape
+    total_voxels = H * W * D
+
+    model.eval()
+    with torch.no_grad():
+        if baseline_probs is None:
+            baseline_probs = torch.softmax(model(image)["seg_logits"], dim=1)
+
+        sorted_idx = expl_k.detach().reshape(-1).argsort(descending=True)
+
+        gt_mask_k = (label[0] == k)
+        if gt_mask_k.sum() > 0:
+            baseline_conf = baseline_probs[0, k][gt_mask_k].mean().item()
+        else:
+            baseline_conf = baseline_probs[0, k].mean().item()
+
+        drops: List[float] = []
+        for tau in thresholds:
+            n_mask = max(1, int(tau * total_voxels))
+            mask_idx = sorted_idx[:n_mask]
+
+            masked = image.clone()
+            for ch in range(C):
+                flat = masked[0, ch].flatten().clone()
+                flat[mask_idx] = baseline_fill
+                masked[0, ch] = flat.reshape(H, W, D)
+
+            probs = torch.softmax(model(masked)["seg_logits"], dim=1)
+            if gt_mask_k.sum() > 0:
+                conf = probs[0, k][gt_mask_k].mean().item()
+            else:
+                conf = probs[0, k].mean().item()
+            drops.append(float(baseline_conf - conf))
+
+    return float(np.trapezoid(drops, list(thresholds)))
+
+
+def insertion_auc_from_map(
+    model,
+    image: torch.Tensor,                # [1, C, H, W, D]
+    expl_k: torch.Tensor,               # [H, W, D] explanation scores for concept k
+    k: int,
+    thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
+) -> float:
+    """
+    Insertion AUC for a single concept k from an arbitrary explanation map.
+
+    Reveal the top-τ voxels (ranked by expl_k) from a zero baseline and measure
+    the rise in concept-k confidence. Higher AUC = the explanation identifies the
+    minimal sufficient voxels.
+    """
+    _, C, H, W, D = image.shape
+    total_voxels = H * W * D
+
+    model.eval()
+    with torch.no_grad():
+        sorted_idx = expl_k.detach().reshape(-1).argsort(descending=True)
+
+        confidences: List[float] = []
+        for tau in thresholds:
+            n_insert = max(1, int(tau * total_voxels))
+            insert_idx = sorted_idx[:n_insert]
+
+            partial = torch.zeros_like(image)
+            for ch in range(C):
+                partial_flat = partial[0, ch].flatten()
+                orig_flat = image[0, ch].flatten()
+                partial_flat[insert_idx] = orig_flat[insert_idx]
+                partial[0, ch] = partial_flat.reshape(H, W, D)
+
+            probs = torch.softmax(model(partial)["seg_logits"], dim=1)
+            confidences.append(probs[0, k].mean().item())
+
+    return float(np.trapezoid(confidences, list(thresholds)))
+
+
+# ---------------------------------------------------------------------------
+# Deletion AUC (CCR routing)
 # ---------------------------------------------------------------------------
 
 def compute_deletion_auc(
@@ -106,70 +212,31 @@ def compute_deletion_auc(
     device: torch.device,
     concept_names: Tuple[str, ...],
     concept_indices: Tuple[int, ...] = (1, 2, 3),
-    thresholds: Tuple[float, ...] = (0.05, 0.10, 0.20, 0.30, 0.40, 0.50),
+    thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
     baseline_fill: float = 0.0,
 ) -> Dict[str, float]:
     """
-    Deletion AUC: mask the top-τ fraction of voxels (by routing prob) and
-    measure confidence drop for concept k.
-
-    AUC of the drop curve vs τ — higher is better. A faithful explanation
-    concentrates important voxels in the top-ranked region, so deleting them
-    causes a large, rapid confidence drop.
+    Deletion AUC for CCR routing: builds the per-concept explanation volume from
+    routing_probs (upsampled to image resolution) and calls the shared core.
 
     Returns {concept_name: deletion_auc_float} for each index in concept_indices.
     """
     _, C, H, W, D = image.shape
     target_shape = (H, W, D)
-    total_voxels = H * W * D
-
     routing_volume = upsample_routing_to_volume(routing_probs, grid_shape, target_shape)
 
     model.eval()
-    results: Dict[str, float] = {}
-
     with torch.no_grad():
-        # Baseline forward pass (unmasked image)
-        baseline_out = model(image)
-        baseline_probs = torch.softmax(baseline_out["seg_logits"], dim=1)  # [1, K, H, W, D]
+        baseline_probs = torch.softmax(model(image)["seg_logits"], dim=1)
 
-        for k in concept_indices:
-            name = concept_names[k] if k < len(concept_names) else f"concept_{k}"
-
-            # Explanation map for concept k: sort voxels descending by routing prob
-            expl_flat = routing_volume[0, k].detach().flatten()   # [H*W*D]
-            sorted_idx = expl_flat.argsort(descending=True)
-
-            # Baseline confidence: mean softmax over GT=k voxels (or all voxels if absent)
-            gt_mask_k = (label[0] == k)
-            if gt_mask_k.sum() > 0:
-                baseline_conf = baseline_probs[0, k][gt_mask_k].mean().item()
-            else:
-                baseline_conf = baseline_probs[0, k].mean().item()
-
-            drops: List[float] = []
-            for tau in thresholds:
-                n_mask = max(1, int(tau * total_voxels))
-                mask_idx = sorted_idx[:n_mask]
-
-                masked = image.clone()
-                for ch in range(C):
-                    flat = masked[0, ch].flatten().clone()
-                    flat[mask_idx] = baseline_fill
-                    masked[0, ch] = flat.reshape(H, W, D)
-
-                out = model(masked)
-                probs = torch.softmax(out["seg_logits"], dim=1)
-
-                if gt_mask_k.sum() > 0:
-                    conf = probs[0, k][gt_mask_k].mean().item()
-                else:
-                    conf = probs[0, k].mean().item()
-
-                drops.append(float(baseline_conf - conf))
-
-            results[name] = float(np.trapezoid(drops, list(thresholds)))
-
+    results: Dict[str, float] = {}
+    for k in concept_indices:
+        name = concept_names[k] if k < len(concept_names) else f"concept_{k}"
+        results[name] = deletion_auc_from_map(
+            model, image, label, routing_volume[0, k], k,
+            thresholds=thresholds, baseline_fill=baseline_fill,
+            baseline_probs=baseline_probs,
+        )
     return results
 
 
@@ -185,52 +252,25 @@ def compute_insertion_auc(
     device: torch.device,
     concept_names: Tuple[str, ...],
     concept_indices: Tuple[int, ...] = (1, 2, 3),
-    thresholds: Tuple[float, ...] = (0.05, 0.10, 0.20, 0.30, 0.40, 0.50),
+    thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
 ) -> Dict[str, float]:
     """
-    Insertion AUC: reveal the top-τ fraction of voxels (by routing prob) from a
-    zero baseline and measure confidence rise for concept k.
-
-    AUC of the confidence curve vs τ — higher is better. A faithful explanation
-    identifies the minimal sufficient voxels, so inserting them quickly recovers
-    full concept-k confidence.
+    Insertion AUC for CCR routing: builds the per-concept explanation volume from
+    routing_probs (upsampled to image resolution) and calls the shared core.
 
     Returns {concept_name: insertion_auc_float} for each index in concept_indices.
     """
     _, C, H, W, D = image.shape
     target_shape = (H, W, D)
-    total_voxels = H * W * D
-
     routing_volume = upsample_routing_to_volume(routing_probs, grid_shape, target_shape)
 
     model.eval()
     results: Dict[str, float] = {}
-
-    with torch.no_grad():
-        for k in concept_indices:
-            name = concept_names[k] if k < len(concept_names) else f"concept_{k}"
-
-            expl_flat = routing_volume[0, k].detach().flatten()
-            sorted_idx = expl_flat.argsort(descending=True)
-
-            confidences: List[float] = []
-            for tau in thresholds:
-                n_insert = max(1, int(tau * total_voxels))
-                insert_idx = sorted_idx[:n_insert]
-
-                partial = torch.zeros_like(image)
-                for ch in range(C):
-                    partial_flat = partial[0, ch].flatten()
-                    orig_flat = image[0, ch].flatten()
-                    partial_flat[insert_idx] = orig_flat[insert_idx]
-                    partial[0, ch] = partial_flat.reshape(H, W, D)
-
-                out = model(partial)
-                probs = torch.softmax(out["seg_logits"], dim=1)
-                confidences.append(probs[0, k].mean().item())
-
-            results[name] = float(np.trapezoid(confidences, list(thresholds)))
-
+    for k in concept_indices:
+        name = concept_names[k] if k < len(concept_names) else f"concept_{k}"
+        results[name] = insertion_auc_from_map(
+            model, image, routing_volume[0, k], k, thresholds=thresholds,
+        )
     return results
 
 
