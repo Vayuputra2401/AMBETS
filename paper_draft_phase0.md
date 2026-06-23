@@ -88,7 +88,7 @@
 | Conformal Prediction (MICCAI 2024) | Calibration set | 1× + setup | Guaranteed coverage | One-time calibration |
 | Evidential DL | Prior networks | 1× | Variable | Architectural change |
 | Anatomically-aware Conformal (arXiv:2601.18997, 2026) | Structured conformal | 1× + setup | Structured coverage | One-time calibration |
-| **CCR routing entropy (ours)** | **Routing distribution entropy** | **0 overhead** | **Validated vs. MC-Dropout T=10** | **Zero** |
+| **CCR routing entropy (ours)** | **Routing distribution entropy** | **0 overhead** | **Qualitative map (not claimed)** | **Zero** |
 
 ---
 
@@ -106,19 +106,19 @@ We propose a different principle.
 
 CCR admits two architectural instantiations with distinct faithfulness properties. **CCR-Net** is designed from first principles: routing probabilities are the segmentation logits. No separate decoder competes with them. Routing equals prediction equals explanation. **CCR-Retrofit** inserts a CCR module at the bottleneck of any existing encoder-decoder backbone. The backbone's decoder continues to operate, conditioned on which clinical expert handled each token. Routing is causally upstream of the prediction; its influence on the prediction is bounded and measurable.
 
-We establish three formal propositions. **Proposition 1a**: in CCR-Net, faithfulness equals the Concept Alignment Score (CAS) exactly, by construction. **Proposition 1b**: in CCR-Retrofit, faithfulness is bounded below by CAS × (1 − DD), where DD is Decoder Divergence — the measurable degree to which the decoder departs from the routing signal. **Proposition 2**: routing entropy is a better-calibrated uncertainty estimate than MC-Dropout at T=10, at zero additional inference cost.
+We establish two formal propositions. **Proposition 1a**: in CCR-Net, faithfulness equals the Concept Alignment Score (CAS) exactly, by construction. **Proposition 1b**: in CCR-Retrofit, faithfulness is bounded below by CAS × (1 − DD), where DD is Decoder Divergence — the measurable degree to which the decoder departs from the routing signal.
 
 Empirically, we demonstrate:
 1. CAS ≥ 0.85 for all four BraTS subregion experts, across nnU-Net, Swin-UNETR, and TransBTS backbones.
 2. Deletion AUC of 0.84–0.89 for CCR variants, versus 0.55–0.65 for all post-hoc baselines including the best corrected method (DEA).
 3. CCR-Retrofit achieves this with less than 1% Dice degradation on any backbone.
-4. Routing entropy Expected Calibration Error is competitive with MC-Dropout at T=10 with zero overhead.
+4. Routing entropy yields a per-voxel uncertainty map from the same forward pass, at zero additional inference cost, concentrating on tumor boundaries and small necrotic-core regions where multi-concept ambiguity is expected.
 5. Providing CCR routing evidence to a clinical language model (Gemini 1.5 Pro) reduces explanation hallucination rate by approximately 40%.
 6. The principle generalizes to LiTS liver tumor segmentation with K=3 experts, with CAS ≥ 0.80.
 
 CCR is not a model — it is a principle. The principle holds across backbone families (convolutional nnU-Net, Swin Vision Transformer, pure Vision Transformer), training regimes (frozen, joint finetuning, pretrain+finetune), and datasets (BraTS, LiTS). This breadth distinguishes a principle from a system.
 
-The paper is organized as follows. Section 2 defines the CCR principle formally. Section 3 states and proves Propositions 1a, 1b, and 2. Section 4 describes the two architectural instantiations. Section 5 describes the training strategy, including the three-phase curriculum and the L_align loss. Section 6 reports experiments. Section 7 discusses limitations and future directions.
+The paper is organized as follows. Section 2 defines the CCR principle formally. Section 3 states and proves Propositions 1a and 1b. Section 4 describes the two architectural instantiations. Section 5 describes the training strategy, including the three-phase curriculum and the L_align loss. Section 6 reports experiments. Section 7 discusses limitations and future directions.
 
 ---
 
@@ -152,7 +152,13 @@ The relationship to "Guiding the Experts" [arXiv:2505.18586] warrants specific c
 
 MC-Dropout [Gal and Ghahramani, ICML 2016] approximates Bayesian uncertainty by running T stochastic forward passes. Deep Ensembles [Lakshminarayanan et al., NeurIPS 2017] aggregate N separately trained models. Both incur T× or N× inference cost. Conformal prediction for medical segmentation [MICCAI 2024; arXiv:2601.18997, 2026] provides coverage guarantees but requires a separate calibration set and one-time calibration step. Evidential deep learning [Sensoy et al., NeurIPS 2018] places prior networks over the output but calibration quality varies.
 
-CCR routing entropy arises from the same forward pass that produces the segmentation prediction. It is not an approximation to uncertainty — it is the model's direct expression of multi-concept ambiguity for a given token. We demonstrate empirically (Proposition 2) that routing entropy ECE is competitive with MC-Dropout at T=10 with zero additional inference cost.
+CCR routing entropy arises from the same forward pass that produces the segmentation prediction. It is not an approximation to uncertainty — it is the model's direct expression of multi-concept ambiguity for a given token, available as a per-voxel uncertainty map at zero additional inference cost. We make no quantitative calibration claim relative to MC-Dropout; we report routing calibration honestly (Section 7, Limitations) and use the entropy map qualitatively, to expose ambiguous boundary regions.
+
+---
+
+## Section 7 (stub): Limitations — Routing Calibration
+
+Routing entropy is reported as a qualitative per-voxel uncertainty signal, not a calibrated probability. On the internal test split (Run 4, epoch 80), routing-confidence Expected Calibration Error is high (ECE ≈ 0.73). Two factors drive this: (i) peaked routing distributions at the refinement-phase temperature (τ = 0.5) make the router confident even where token-level routing accuracy is low; and (ii) token-level accuracy at the 16³ bottleneck is harsh — each token spans an 8³-voxel region assigned a single nearest-neighbor label, so partial-volume tokens are scored as wholly correct or wholly wrong. We therefore make no quantitative calibration claim and defer a controlled MC-Dropout comparison — which requires a dropout-trained variant — to future work. The entropy map nonetheless remains useful qualitatively: it concentrates on tumor boundaries and small necrotic-core regions, precisely where multi-concept ambiguity is expected, and is obtained at zero additional inference cost.
 
 ---
 

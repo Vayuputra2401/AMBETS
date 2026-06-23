@@ -70,6 +70,7 @@ class _Tee:
 
 import numpy as np
 import torch
+import torch.nn as nn
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -345,6 +346,23 @@ def main() -> None:
     start_epoch, _ = load_checkpoint(args.checkpoint, model)
     print(f"Loaded checkpoint (epoch {start_epoch - 1})")
 
+    # Guard: MC-Dropout is meaningless without an active stochastic Dropout (p>0).
+    # Without one, all T passes are identical → MC ECE == routing ECE (a fake number).
+    if args.mc_passes > 0:
+        has_active_dropout = any(
+            isinstance(m, (nn.Dropout, nn.Dropout1d, nn.Dropout2d, nn.Dropout3d))
+            and getattr(m, "p", 0.0) > 0.0
+            for m in model.modules()
+        )
+        if not has_active_dropout:
+            print(
+                "[warn] --mc_passes requested but model has no Dropout layer with p>0. "
+                "MC-Dropout would be deterministic (MC ECE would equal routing ECE — a "
+                "meaningless number). Skipping MC-Dropout. To enable, train a variant with "
+                "drop_rate>0 (see evaluation.py:mc_dropout_entropy docstring)."
+            )
+            args.mc_passes = 0
+
     loader = get_dataloader(
         data_root    = config.data.data_root,
         split        = args.split,
@@ -419,8 +437,17 @@ def main() -> None:
     summary["routing_ece"] = float(global_ece)
 
     if eval_out["mc_ece"] is not None:
-        print(f"  MC-Dropout ECE (T={args.mc_passes}): {eval_out['mc_ece']:.4f}")
-        summary[f"mc_dropout_ece_T{args.mc_passes}"] = float(eval_out["mc_ece"])
+        # Degeneracy guard: identical-to-routing ECE means the MC passes carried no
+        # stochasticity (dropout collapsed) — refuse to emit it as a real result.
+        if abs(eval_out["mc_ece"] - global_ece) < 1e-6:
+            print(
+                f"  [warn] MC-Dropout ECE ({eval_out['mc_ece']:.4f}) is identical to routing "
+                f"ECE ({global_ece:.4f}) — MC passes were deterministic. NOT recording it; "
+                f"the MC-Dropout baseline is degenerate for this checkpoint."
+            )
+        else:
+            print(f"  MC-Dropout ECE (T={args.mc_passes}): {eval_out['mc_ece']:.4f}")
+            summary[f"mc_dropout_ece_T{args.mc_passes}"] = float(eval_out["mc_ece"])
 
     # --- Deletion / Insertion AUC ---
     if args.full:
