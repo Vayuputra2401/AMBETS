@@ -97,7 +97,11 @@ class GradCAM3D:
 
     def _forward_hook(self, module, inputs, output) -> None:
         self._act = output
-        output.register_hook(self._save_grad)
+        # The hook fires on EVERY forward, including the no_grad baseline/deletion/
+        # insertion passes where `output` doesn't require grad. Only attach the
+        # gradient hook when grad is enabled (i.e. during cam()'s own forward).
+        if output.requires_grad:
+            output.register_hook(self._save_grad)
 
     def _save_grad(self, grad: torch.Tensor) -> None:
         self._grad = grad
