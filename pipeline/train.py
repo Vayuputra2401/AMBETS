@@ -402,6 +402,13 @@ def main() -> None:
         with open(metrics_path, "w") as f:
             json.dump(all_epoch_metrics, f, indent=2, default=str)
 
+        # Mirror metrics.json to GCS every epoch (tiny file). Keeps the training
+        # curve current without a manual pull and survives instance loss. Syncs
+        # whether or not this was a checkpoint epoch, since metrics are written
+        # every epoch. Failures are logged, never fatal.
+        if gcs_run_dir:
+            sync_checkpoint_to_gcs(metrics_path, gcs_run_dir)
+
         postfix = {"train_loss": f"{train_avg['total']:.4f}"}
         if val_metrics is not None:
             postfix["val_dice_wt"] = f"{val_metrics['dice'].get('WT', 0):.3f}"
