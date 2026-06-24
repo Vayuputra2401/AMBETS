@@ -265,13 +265,18 @@ def main() -> None:
         print(f"  [{method}]")
         for k in concept_indices:
             name = concept_names[k]
-            dvals = [r[f"{method}_del_{name}"] for r in per_patient]
-            ivals = [r[f"{method}_ins_{name}"] for r in per_patient]
-            dmean, istd = float(np.mean(dvals)), float(np.std(dvals))
-            imean = float(np.mean(ivals))
-            print(f"     {name:16s} deletion={dmean:.4f}±{istd:.4f}  insertion={imean:.4f}")
-            summary[f"{method}_del_{name}"] = {"mean": dmean, "std": istd}
-            summary[f"{method}_ins_{name}"] = {"mean": imean, "std": float(np.std(ivals))}
+            # NaN-filter: a case lacking GT==k (or ~0 baseline conf) returns NaN by
+            # design; plain np.mean would poison the whole concept (esp. NCR, often
+            # absent). nanmean averages only the cases where the concept is defined.
+            dvals = np.array([r[f"{method}_del_{name}"] for r in per_patient], float)
+            ivals = np.array([r[f"{method}_ins_{name}"] for r in per_patient], float)
+            n_used = int(np.isfinite(dvals).sum())
+            dmean, dstd = float(np.nanmean(dvals)), float(np.nanstd(dvals))
+            imean, istd = float(np.nanmean(ivals)), float(np.nanstd(ivals))
+            print(f"     {name:16s} deletion={dmean:.4f}±{dstd:.4f}  "
+                  f"insertion={imean:.4f}  (n={n_used}/{len(per_patient)})")
+            summary[f"{method}_del_{name}"] = {"mean": dmean, "std": dstd, "n": n_used}
+            summary[f"{method}_ins_{name}"] = {"mean": imean, "std": istd, "n": n_used}
 
     # --- Save CSV + JSON ---
     csv_path = os.path.join(save_dir, f"{args.split}_baselines.csv")
