@@ -166,9 +166,11 @@ def main() -> None:
     args = parser.parse_args()
 
     # --- Config: base YAML merged with env-specific paths ---
+    # env configs always live in the repo's configs/env/, regardless of where the
+    # --config file sits (e.g. ablation configs under configs/ablations/).
     config  = Phase2Config.from_yaml(args.config)
     env_cfg = apply_env(config, env=args.env,
-                        config_dir=Path(args.config).parent)
+                        config_dir=Path(__file__).parent.parent / "configs")
 
     _log(f"Environment : {args.env}")
     if args.env == "gcp" and "gcp" in env_cfg:

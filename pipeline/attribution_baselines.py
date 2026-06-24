@@ -182,7 +182,8 @@ def main() -> None:
     methods = [m.strip() for m in args.methods.split(",") if m.strip()]
 
     config = Phase2Config.from_yaml(args.config)
-    env_cfg = apply_env(config, env=args.env, config_dir=Path(args.config).parent)
+    env_cfg = apply_env(config, env=args.env,
+                        config_dir=Path(__file__).parent.parent / "configs")
 
     device = torch.device(
         args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu")

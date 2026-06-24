@@ -327,7 +327,10 @@ def main() -> None:
     args = parser.parse_args()
 
     config = Phase2Config.from_yaml(args.config)
-    env_cfg = apply_env(config, env=args.env, config_dir=Path(args.config).parent)
+    # env configs always live in the repo's configs/env/, independent of where the
+    # --config file sits (e.g. ablation configs under configs/ablations/).
+    env_cfg = apply_env(config, env=args.env,
+                        config_dir=Path(__file__).parent.parent / "configs")
 
     device = torch.device(
         args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu")
