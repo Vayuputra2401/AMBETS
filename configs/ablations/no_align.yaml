@@ -42,7 +42,7 @@ training:
   grad_clip: 1.0
   amp: true
   checkpoint_dir: "checkpoints/"
-  checkpoint_every: 5
+  checkpoint_every: 2     # ablation: validate CAS/Dice/util every 2 ep to catch the early trend (stop ~ep25-30)
   log_every: 10
 
 ccr:
