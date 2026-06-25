@@ -133,7 +133,7 @@ class CCRTotalLoss(nn.Module):
             boost_factor   = lc.boundary_boost_factor,
         )
         self.contrastive_loss  = ContrastiveConceptLoss(ncr_idx=1, et_idx=num_concepts - 1)
-        self.scheduler         = CurriculumWeightScheduler(config.curriculum)
+        self.scheduler         = CurriculumWeightScheduler(config.curriculum, lc.weights)
         self._tau_reg_weight   = lc.tau_reg_weight
         self._contrastive_w    = lc.contrastive_ncr_et_weight
         self._current_epoch: int = 1

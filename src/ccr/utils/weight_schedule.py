@@ -58,13 +58,18 @@ class CurriculumWeightScheduler:
         tau_refinement      — temperature target for refinement phase
     """
 
-    def __init__(self, config: CurriculumConfig) -> None:
+    def __init__(self, config: CurriculumConfig, weights=None) -> None:
         self._warmup_end     = config.warmup_end_epoch
         self._align_end      = config.alignment_end_epoch
         self._total          = config.total_epochs
         self._tau_warmup     = config.tau_warmup
         self._tau_alignment  = config.tau_alignment
         self._tau_refinement = config.tau_refinement
+        # Per-phase loss-weight tuples MUST come from the (possibly overridden)
+        # config — otherwise ablations that zero a weight are silently ignored.
+        # Falls back to defaults when not provided (identical to prior behaviour).
+        from ccr.config.ccr_config import LossWeights
+        self._weights = weights if weights is not None else LossWeights()
 
     def get_weights(self, epoch: int) -> Tuple[float, float, float, float]:
         """
@@ -90,14 +95,11 @@ class CurriculumWeightScheduler:
             )
 
         if epoch <= self._warmup_end:
-            from ccr.config.ccr_config import LossWeights
-            return LossWeights().warmup
+            return self._weights.warmup
         elif epoch <= self._align_end:
-            from ccr.config.ccr_config import LossWeights
-            return LossWeights().alignment
+            return self._weights.alignment
         else:
-            from ccr.config.ccr_config import LossWeights
-            return LossWeights().refinement
+            return self._weights.refinement
 
     def get_phase_name(self, epoch: int) -> str:
         """
