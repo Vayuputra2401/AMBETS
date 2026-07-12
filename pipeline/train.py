@@ -61,6 +61,33 @@ def _log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
 
+def seed_everything(seed: int, deterministic: bool = False) -> None:
+    """
+    Seed model init, train shuffling, and MONAI augmentation from a single value (W5).
+
+    Kept separate from data.seed (the patient-split seed): fixing data.seed while
+    varying this yields same-split, different-init replicates for seed-variance
+    reporting. `deterministic=False` keeps cuDNN autotuning for speed (bit-exactness
+    is not needed to estimate variance across distinct seeds).
+    """
+    import random as _random
+    import numpy as _np
+
+    _random.seed(seed)
+    _np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    try:
+        from monai.utils import set_determinism
+        set_determinism(seed=seed)   # also seeds MONAI Rand*d transform RNGs
+    except Exception:
+        pass
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
 @torch.no_grad()
 def validate(
     model: CCRNet,
@@ -79,7 +106,8 @@ def validate(
 
         out = model(image)
         token_labels = downsample_labels_to_tokens(label, model.get_grid_shape())
-        cas.update(out["routing_probs"], token_labels)
+        if out["routing_probs"] is not None:
+            cas.update(out["routing_probs"], token_labels)
 
         # Hard-argmax segmentation for Dice
         pred = out["seg_logits"].argmax(dim=1)   # [B, H, W, D]
@@ -163,6 +191,9 @@ def main() -> None:
                              "0 = run the full curriculum (config total_epochs).")
     parser.add_argument("--device", type=str, default="",
                         help="Force device: cuda or cpu (default: auto-detect)")
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Override training.seed (model init / shuffle / aug). "
+                             "Vary this (data.seed fixed) for multi-seed variance runs.")
     args = parser.parse_args()
 
     # --- Config: base YAML merged with env-specific paths ---
@@ -206,6 +237,12 @@ def main() -> None:
     else:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _log(f"Device: {device}")
+
+    # --- Seed (W5): model init + shuffle + augmentation. data.seed (split) stays fixed. ---
+    if args.seed is not None:
+        config.training.seed = args.seed
+    seed_everything(config.training.seed)
+    _log(f"Run seed  : {config.training.seed}  (data split seed: {config.data.seed})")
 
     # --- Model ---
     model = CCRNet(config).to(device)
@@ -304,12 +341,14 @@ def main() -> None:
             with autocast("cuda", enabled=config.training.amp and device.type == "cuda"):
                 out          = model(image)
                 token_labels = downsample_labels_to_tokens(label, model.get_grid_shape())
+                # No-CCR control: no router → no temperature and no routing losses.
+                tau_current  = model.ccr.router.temperature if model.ccr_enabled else None
                 losses       = loss_fn(
                     pred_logits   = out["seg_logits"],
                     labels        = label,
                     routing_probs = out["routing_probs"],
                     token_labels  = token_labels,
-                    tau_current   = model.ccr.router.temperature,
+                    tau_current   = tau_current,
                 )
 
             scaler.scale(losses["total"] / accum_steps).backward()
@@ -324,7 +363,8 @@ def main() -> None:
                 optimizer.zero_grad()
                 accum_count = 0
 
-            tracker.update(out["assignments"])
+            if out["assignments"] is not None:
+                tracker.update(out["assignments"])
             epoch_losses = losses
             n_train_batches += 1
             for k in loss_sums:
@@ -350,11 +390,12 @@ def main() -> None:
         train_time = time.time() - epoch_start
         _log_train_metrics(epoch, epoch_losses["phase"], epoch_losses["tau_target"], train_avg, train_time)
 
-        # --- Collapse check ---
-        collapsed = tracker.check_collapse(epoch)
-        if collapsed:
-            _log(f"  Expert collapse detected: {collapsed} — reinitializing fc2")
-            reinitialize_experts(model.ccr, collapsed)
+        # --- Collapse check (routing only; no-op for the no-CCR control) ---
+        if model.ccr_enabled:
+            collapsed = tracker.check_collapse(epoch)
+            if collapsed:
+                _log(f"  Expert collapse detected: {collapsed} — reinitializing fc2")
+                reinitialize_experts(model.ccr, collapsed)
 
         # Snapshot utilization BEFORE reset so logging/metrics can report it
         epoch_utilization = tracker.compute()

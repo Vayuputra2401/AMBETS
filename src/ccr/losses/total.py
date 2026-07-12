@@ -166,19 +166,26 @@ class CCRTotalLoss(nn.Module):
         seg_out = self.seg_loss(pred_logits, labels)
         l_seg   = seg_out["total"]
 
+        # routing_probs is None for the no-CCR plain-backbone control (W4): only the
+        # segmentation + boundary losses are defined; all routing losses are zero.
+        has_routing = routing_probs is not None
+
         # --- L_align (skip during warmup for speed and collapse prevention) ---
-        if lam_align > 0.0:
+        if lam_align > 0.0 and has_routing:
             l_align        = self.align_loss(routing_probs, token_labels)
             l_contrastive  = self.contrastive_loss(routing_probs, token_labels)
         else:
             l_align        = pred_logits.new_zeros(())
             l_contrastive  = pred_logits.new_zeros(())
 
-        # --- L_diversity (always computed; prevents collapse from epoch 1) ---
-        l_diversity = self.diversity_loss(routing_probs)
+        # --- L_diversity (always computed when routing exists; prevents collapse) ---
+        if has_routing:
+            l_diversity = self.diversity_loss(routing_probs)
+        else:
+            l_diversity = pred_logits.new_zeros(())
 
         # --- L_entropy_reg ---
-        if lam_entropy > 0.0:
+        if lam_entropy > 0.0 and has_routing:
             l_entropy = self.entropy_loss(routing_probs)
         else:
             l_entropy = pred_logits.new_zeros(())

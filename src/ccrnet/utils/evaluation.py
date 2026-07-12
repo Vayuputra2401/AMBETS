@@ -116,6 +116,31 @@ def _region_score(probs: torch.Tensor, k: int, region: torch.Tensor) -> float:
     return probs[0, k][region].mean().item()
 
 
+def _region_mask(
+    label: torch.Tensor,           # [1, H, W, D] int64
+    baseline_probs: torch.Tensor,  # [1, K, H, W, D] softmax of unmasked image
+    k: int,
+    region_mode: str,
+) -> torch.Tensor:                  # bool [H, W, D]
+    """
+    Return the measurement-window mask for concept k.
+
+    region_mode="gt"   → GT==k voxels (label[0]==k). The default; measures whether
+                         the explanation identifies the voxels the ground truth calls
+                         concept k.
+    region_mode="pred" → predicted==k voxels (argmax of the unmasked prediction). This
+                         removes the GT-supervision confound: for CCR the routing is
+                         *trained* to align with GT, so measuring over the model's own
+                         predicted region tests faithfulness w.r.t. what the model does,
+                         not what it was supervised toward. Reported alongside "gt".
+    """
+    if region_mode == "gt":
+        return (label[0] == k)
+    elif region_mode == "pred":
+        return (baseline_probs[0].argmax(dim=0) == k)
+    raise ValueError(f"region_mode must be 'gt' or 'pred', got {region_mode!r}")
+
+
 def deletion_auc_from_map(
     model,
     image: torch.Tensor,                # [1, C, H, W, D]
@@ -125,28 +150,32 @@ def deletion_auc_from_map(
     thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
     baseline_fill: float = 0.0,
     baseline_probs: Optional[torch.Tensor] = None,  # [1, K, H, W, D] softmax of unmasked image
+    region_mode: str = "gt",
 ) -> float:
     """
     Normalized deletion AUC for concept k from an arbitrary explanation map.
 
     Progressively mask the top-τ fraction of voxels (ranked by expl_k), τ∈[0,1],
-    and measure how fast concept-k confidence falls in the GT==k region. The curve
-    is the FRACTION of baseline confidence removed: 1 − score(τ)/score(0). AUC over
-    τ∈[0,1] ∈ [0,1]. **Higher = more faithful** (important voxels ranked first →
-    confidence collapses quickly).
+    and measure how fast concept-k confidence falls in the measurement region
+    (see `region_mode`). The curve is the FRACTION of baseline confidence removed:
+    1 − score(τ)/score(0). AUC over τ∈[0,1] ∈ [0,1]. **Higher = more faithful**
+    (important voxels ranked first → confidence collapses quickly).
 
-    Returns NaN if concept k is absent (no GT==k voxels) or baseline confidence ≈ 0.
+    region_mode="gt" (default) measures over GT==k; region_mode="pred" measures over
+    the model's predicted-k region (removes the GT-supervision confound).
+
+    Returns NaN if the region is empty or baseline confidence ≈ 0.
     """
     _, C, H, W, D = image.shape
     total_voxels = H * W * D
-    region = (label[0] == k)
-    if region.sum() == 0:
-        return float("nan")
 
     model.eval()
     with torch.no_grad():
         if baseline_probs is None:
             baseline_probs = torch.softmax(model(image)["seg_logits"], dim=1)
+        region = _region_mask(label, baseline_probs, k, region_mode)
+        if region.sum() == 0:
+            return float("nan")
         base = _region_score(baseline_probs, k, region)
         if base < _EPS:
             return float("nan")
@@ -180,27 +209,32 @@ def insertion_auc_from_map(
     k: int,
     thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
     baseline_probs: Optional[torch.Tensor] = None,  # [1, K, H, W, D] softmax of unmasked image
+    region_mode: str = "gt",
 ) -> float:
     """
     Normalized insertion AUC for concept k from an arbitrary explanation map.
 
     Progressively reveal the top-τ voxels (ranked by expl_k) from a zero baseline,
-    τ∈[0,1], and measure how fast concept-k confidence recovers in the GT==k region.
-    The curve is score(τ)/score(full). AUC over τ∈[0,1] ∈ [0,1]. **Higher = more
-    faithful** (a small set of top-ranked voxels recovers the prediction).
+    τ∈[0,1], and measure how fast concept-k confidence recovers in the measurement
+    region (see `region_mode`). The curve is score(τ)/score(full). AUC over τ∈[0,1]
+    ∈ [0,1]. **Higher = more faithful** (a small set of top-ranked voxels recovers
+    the prediction).
 
-    Returns NaN if concept k is absent or full-image confidence ≈ 0.
+    region_mode="gt" (default) measures over GT==k; region_mode="pred" measures over
+    the model's predicted-k region (removes the GT-supervision confound).
+
+    Returns NaN if the region is empty or full-image confidence ≈ 0.
     """
     _, C, H, W, D = image.shape
     total_voxels = H * W * D
-    region = (label[0] == k)
-    if region.sum() == 0:
-        return float("nan")
 
     model.eval()
     with torch.no_grad():
         if baseline_probs is None:
             baseline_probs = torch.softmax(model(image)["seg_logits"], dim=1)
+        region = _region_mask(label, baseline_probs, k, region_mode)
+        if region.sum() == 0:
+            return float("nan")
         base = _region_score(baseline_probs, k, region)
         if base < _EPS:
             return float("nan")
@@ -240,10 +274,13 @@ def compute_deletion_auc(
     concept_indices: Tuple[int, ...] = (1, 2, 3),
     thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
     baseline_fill: float = 0.0,
+    region_mode: str = "gt",
 ) -> Dict[str, float]:
     """
     Deletion AUC for CCR routing: builds the per-concept explanation volume from
     routing_probs (upsampled to image resolution) and calls the shared core.
+
+    region_mode ∈ {"gt", "pred"} selects the measurement window (see _region_mask).
 
     Returns {concept_name: deletion_auc_float} for each index in concept_indices.
     """
@@ -261,7 +298,7 @@ def compute_deletion_auc(
         results[name] = deletion_auc_from_map(
             model, image, label, routing_volume[0, k], k,
             thresholds=thresholds, baseline_fill=baseline_fill,
-            baseline_probs=baseline_probs,
+            baseline_probs=baseline_probs, region_mode=region_mode,
         )
     return results
 
@@ -280,10 +317,13 @@ def compute_insertion_auc(
     concept_names: Tuple[str, ...],
     concept_indices: Tuple[int, ...] = (1, 2, 3),
     thresholds: Tuple[float, ...] = _DEFAULT_THRESHOLDS,
+    region_mode: str = "gt",
 ) -> Dict[str, float]:
     """
     Insertion AUC for CCR routing: builds the per-concept explanation volume from
     routing_probs (upsampled to image resolution) and calls the shared core.
+
+    region_mode ∈ {"gt", "pred"} selects the measurement window (see _region_mask).
 
     Returns {concept_name: insertion_auc_float} for each index in concept_indices.
     """
@@ -301,7 +341,69 @@ def compute_insertion_auc(
         results[name] = insertion_auc_from_map(
             model, image, label, routing_volume[0, k], k,
             thresholds=thresholds, baseline_probs=baseline_probs,
+            region_mode=region_mode,
         )
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Decoder Divergence (Def 2) — quantifies the residual gap in Proposition 1
+# ---------------------------------------------------------------------------
+
+def compute_decoder_divergence(
+    routing_probs: torch.Tensor,        # [1, N, K]
+    seg_probs: torch.Tensor,            # [1, K, H, W, D] decoder posterior (softmax)
+    grid_shape: Tuple[int, int, int],
+    token_labels: torch.Tensor,         # [1, N] int64
+    concept_names: Tuple[str, ...],
+    concept_indices: Tuple[int, ...] = (1, 2, 3),
+    foreground_only: bool = True,
+) -> Dict[str, float]:
+    """
+    Decoder Divergence  DD(k) = 1 − Pearson(P^dec_k ↓grid, p_k)   (paper Def 2).
+
+    Measures how far the decoder's per-voxel concept posterior departs from the
+    routing signal it is conditioned on. The decoder receives, besides the routed
+    bottleneck features, the remaining multi-scale encoder skips — so it *can* draw
+    on non-routing information. DD quantifies exactly that departure:
+
+        DD ≈ 0  → decoder faithfully follows routing (CCR-Net structural case; the
+                  gap left open by Proposition 1 is small in practice).
+        DD → 1  → decoder posterior uncorrelated with routing (retrofit-style).
+
+    The decoder posterior is average-pooled to the token grid (same flatten order as
+    the router tokens) and correlated per concept over foreground tokens (label≠0),
+    matching the foreground convention of CAS_fg (Def 1).
+
+    Returns {concept_name: DD_float} for each index in concept_indices.
+    DD ∈ [0, 2] (Pearson ∈ [−1, 1]); NaN when a token vector is (near-)constant.
+    """
+    h, w, d = grid_shape
+    _, N, K = routing_probs.shape
+    if N != h * w * d:
+        raise ValueError(f"N={N} does not match grid_shape product {h*w*d}")
+
+    # Downsample decoder posterior to the token grid, matching the router's token
+    # flatten order (flatten(2) over (h,w,d) then transpose — see CCRNet.forward).
+    dec_grid = F.adaptive_avg_pool3d(seg_probs.float(), (h, w, d))     # [1, K, h, w, d]
+    dec_tokens = dec_grid.flatten(2).transpose(1, 2)                   # [1, N, K]
+
+    route = routing_probs[0].detach().cpu().float().numpy()           # [N, K]
+    dec = dec_tokens[0].detach().cpu().float().numpy()                # [N, K]
+    labels = token_labels[0].detach().cpu().long().numpy()            # [N]
+
+    fg = (labels != 0) if foreground_only else np.ones_like(labels, dtype=bool)
+
+    results: Dict[str, float] = {}
+    for k in concept_indices:
+        name = concept_names[k] if k < len(concept_names) else f"concept_{k}"
+        a = route[fg, k]
+        b = dec[fg, k]
+        if a.size < 2 or a.std() < _EPS or b.std() < _EPS:
+            results[name] = float("nan")
+            continue
+        r = float(np.corrcoef(a, b)[0, 1])
+        results[name] = 1.0 - r
     return results
 
 

@@ -205,3 +205,58 @@ def test_full_loss_forward(phase2_config, dummy_image, dummy_label):
     )
     losses["total"].backward()
     assert losses["total"].item() > 0, "Total loss should be positive"
+
+
+# ---------------------------------------------------------------------------
+# W4 — No-CCR plain-backbone control (ccr.enabled=False)
+# ---------------------------------------------------------------------------
+
+def _no_ccr_config(phase2_config):
+    """Copy of phase2_config with the CCR module disabled."""
+    import copy
+    cfg = copy.deepcopy(phase2_config)
+    cfg.ccr.enabled = False
+    return cfg
+
+
+def test_no_ccr_forward_returns_none_routing(phase2_config, dummy_image):
+    """With CCR disabled, forward yields correct seg_logits but no routing outputs."""
+    from ccrnet.models.ccrnet import CCRNet
+    m = CCRNet(_no_ccr_config(phase2_config))
+    assert m.ccr_enabled is False
+    assert m.ccr is None, "CCR module should not be constructed when disabled"
+    m.eval()
+    with torch.no_grad():
+        out = m(dummy_image)
+    B, _, H, W, D = dummy_image.shape
+    K = phase2_config.ccr.router.num_concepts
+    assert out["seg_logits"].shape == (B, K, H, W, D)
+    assert out["routing_probs"] is None
+    assert out["entropy"] is None
+    assert out["assignments"] is None
+
+
+def test_no_ccr_loss_seg_only_backward(phase2_config, dummy_image, dummy_label):
+    """CCRTotalLoss must handle routing_probs=None: seg(+boundary) only, routing losses 0."""
+    from ccrnet.models.ccrnet import CCRNet
+    from ccr.losses.total import CCRTotalLoss
+    from ccrnet.utils.token_labels import downsample_labels_to_tokens
+
+    m = CCRNet(_no_ccr_config(phase2_config))
+    m.train()
+    loss_fn = CCRTotalLoss(phase2_config.ccr)
+    loss_fn.set_epoch(15)   # alignment phase — would normally activate L_align
+
+    out          = m(dummy_image)
+    token_labels = downsample_labels_to_tokens(dummy_label, m.get_grid_shape())
+    losses = loss_fn(
+        pred_logits   = out["seg_logits"],
+        labels        = dummy_label,
+        routing_probs = out["routing_probs"],   # None
+        token_labels  = token_labels,
+        tau_current   = None,
+    )
+    losses["total"].backward()
+    assert losses["total"].item() > 0
+    for k in ("align", "diversity", "entropy", "contrastive"):
+        assert float(losses[k]) == 0.0, f"{k} loss must be 0 with no routing, got {losses[k]}"

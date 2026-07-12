@@ -1,0 +1,80 @@
+# A-NoCCR Ablation — Plain Swin+UNETR backbone (CCR module removed)
+#
+# Purpose (W4): the accuracy-neutrality control. Proves that inserting the CCR
+#   bottleneck does not cost segmentation performance — i.e. CCR-Net's Dice should
+#   match this plain-backbone baseline. Without this row a reviewer cannot tell
+#   whether the (below-SOTA) Dice is a cost of interpretability.
+#
+# What changes vs brats_phase2.yaml:
+#   ccr.enabled: true -> false
+#     CCRNet then runs as encoder -> raw hs[2] -> decoder enc3 skip -> boundary head,
+#     with NO router, NO experts, and NO routing losses (align/diversity/entropy/
+#     contrastive all inactive). Only L_seg (+ the same boundary curriculum) trains.
+#
+# This model produces routing_probs=None, so it has NO CAS/AUROC/ECE/DD/faithfulness
+# metrics — evaluate.py reports Dice/HD95 only for it. Compare its Dice to CCR-Net.
+#
+# NOTE: embed_dim stays 192 only to satisfy the Phase2Config stage invariant; the CCR
+#   module is not constructed when enabled=false. INCOMPATIBLE with CCR checkpoints.
+#
+# Usage:
+#   python pipeline/train.py --env gcp --config configs/ablations/no_ccr.yaml
+#   python pipeline/evaluate.py --checkpoint .../epoch_0080.pth --env gcp --split test
+
+swin:
+  img_size: [128, 128, 128]
+  in_channels: 4
+  embed_dim: 48
+  window_size: [7, 7, 7]
+  patch_size: [2, 2, 2]
+  depths: [2, 2, 2, 2]
+  num_heads: [3, 6, 12, 24]
+  mlp_ratio: 4.0
+  drop_path_rate: 0.0
+  pretrained_path: "pretrained/model_swinvit.pt"
+  use_checkpoint: true
+
+data:
+  data_root: ""
+  brats_version: "2024"
+  spatial_size: [128, 128, 128]
+  val_fraction: 0.125
+  test_fraction: 0.125
+  num_workers: 6
+  seed: 42
+
+training:
+  batch_size: 1
+  grad_accum_steps: 4
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip: 1.0
+  amp: true
+  checkpoint_dir: "checkpoints/"
+  checkpoint_every: 5
+  log_every: 10
+
+ccr:
+  enabled: false          # <-- plain Swin+UNETR backbone, no CCR bottleneck
+  router:
+    embed_dim: 192        # kept only to satisfy the stage-2 config invariant (module unused)
+    num_concepts: 4
+    use_prototypes: true
+    temperature_learnable: true
+  expert:
+    embed_dim: 192
+  curriculum:
+    warmup_end_epoch: 10
+    alignment_end_epoch: 60
+    total_epochs: 80
+    tau_warmup: 2.0
+    tau_alignment: 1.0
+    tau_refinement: 0.5
+  loss:
+    align_focal_gamma: 1.0
+    align_concept_weights: [1.0, 3.0, 1.0, 1.0]
+    contrastive_ncr_et_weight: 0.0   # inactive anyway (no routing)
+    weights:
+      warmup:     [0.0, 0.5, 0.00, 0.0]   # routing weights moot; boundary schedule kept
+      alignment:  [1.0, 0.5, 0.01, 0.3]   # (align/div/entropy auto-zeroed with no routing)
+      refinement: [1.0, 0.1, 0.01, 1.0]   # boundary 1.0 in refinement, same as CCR-Net

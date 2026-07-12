@@ -77,10 +77,18 @@ class CCRNet(nn.Module):
 
     def __init__(self, config: Phase2Config) -> None:
         super().__init__()
-        from ccr.modules.dispatcher import CCRBottleneckModule
+
+        # No-CCR control (W4): when disabled, the model is a plain Swin+UNETR
+        # backbone — raw stage-2 features feed the decoder enc3 skip, with no router,
+        # no experts, and no routing losses. Used to show CCR is accuracy-neutral.
+        self.ccr_enabled = getattr(config.ccr, "enabled", True)
 
         self.encoder = SwinEncoder3D(config.swin)
-        self.ccr = CCRBottleneckModule(config.ccr)
+        if self.ccr_enabled:
+            from ccr.modules.dispatcher import CCRBottleneckModule
+            self.ccr = CCRBottleneckModule(config.ccr)
+        else:
+            self.ccr = None
         self.decoder = SwinUNETRDecoder(
             embed_dim=config.swin.embed_dim,
             num_concepts=config.ccr.router.num_concepts,
@@ -109,24 +117,32 @@ class CCRNet(nn.Module):
         B, C, h, w, d = stage_feat.shape            # C=96 (stage-1) or 192 (stage-2)
         self._grid_shape = (h, w, d)                # (32,32,32) or (16,16,16)
 
-        tokens = stage_feat.flatten(2).transpose(1, 2)   # [B, h*w*d, C]
-
-        ccr_out = self.ccr(tokens)
-
-        ccr_spatial = (
-            ccr_out["expert_outputs"]               # [B, h*w*d, C]
-            .transpose(1, 2)
-            .reshape(B, C, h, w, d)
-        )
+        if self.ccr_enabled:
+            tokens = stage_feat.flatten(2).transpose(1, 2)   # [B, h*w*d, C]
+            ccr_out = self.ccr(tokens)
+            ccr_spatial = (
+                ccr_out["expert_outputs"]               # [B, h*w*d, C]
+                .transpose(1, 2)
+                .reshape(B, C, h, w, d)
+            )
+            routing_probs = ccr_out["routing_probs"]
+            entropy       = ccr_out["entropy"]
+            assignments   = ccr_out["assignments"]
+        else:
+            # No-CCR control: raw stage-2 features are the enc3 skip; no routing.
+            ccr_spatial   = stage_feat
+            routing_probs = None
+            entropy       = None
+            assignments   = None
 
         seg_logits = self.decoder(x, hs, ccr_spatial)
         seg_logits = self.boundary_head(seg_logits)
 
         return {
             "seg_logits":    seg_logits,
-            "routing_probs": ccr_out["routing_probs"],
-            "entropy":       ccr_out["entropy"],
-            "assignments":   ccr_out["assignments"],
+            "routing_probs": routing_probs,
+            "entropy":       entropy,
+            "assignments":   assignments,
         }
 
     def get_grid_shape(self) -> Optional[Tuple[int, int, int]]:

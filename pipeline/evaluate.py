@@ -85,10 +85,15 @@ from ccrnet.utils.evaluation import (
     compute_auroc_per_concept,
     compute_deletion_auc,
     compute_insertion_auc,
+    compute_decoder_divergence,
     compute_ece,
     mc_dropout_entropy,
 )
 from brats_dataset import get_dataloader
+
+# Measurement windows scored under --full (W2): "gt" primary, "pred" removes the
+# GT-supervision confound. Kept identical to attribution_baselines.REGION_MODES.
+REGION_MODES = ("gt", "pred")
 
 from ccr.utils.metrics import ConceptAlignmentScore
 
@@ -200,13 +205,15 @@ def evaluate(
         grid_shape   = model.get_grid_shape()
         token_labels = downsample_labels_to_tokens(label, grid_shape)
 
-        cas.update(out["routing_probs"], token_labels)
+        # routing_probs is None for a no-CCR checkpoint (W4): report Dice/HD95 only.
+        has_routing = out["routing_probs"] is not None
 
-        # Accumulate for global metrics
-        all_routing_probs.append(out["routing_probs"].cpu())  # [1, N, K]
-        all_token_labels.append(token_labels.cpu())           # [1, N]
-        all_entropy.append(out["entropy"].cpu())              # [1, N]
-        all_ece_labels.append(token_labels.cpu())
+        if has_routing:
+            cas.update(out["routing_probs"], token_labels)
+            all_routing_probs.append(out["routing_probs"].cpu())  # [1, N, K]
+            all_token_labels.append(token_labels.cpu())           # [1, N]
+            all_entropy.append(out["entropy"].cpu())              # [1, N]
+            all_ece_labels.append(token_labels.cpu())
 
         # Segmentation metrics
         pred   = out["seg_logits"].argmax(dim=1)  # [B, H, W, D]
@@ -223,40 +230,64 @@ def evaluate(
             "hd95_et":    _hd95(p_np == 3, l_np == 3),
         }
 
-        # Per-patient ECE
-        row["ece"] = compute_ece(
-            out["routing_probs"], token_labels, out["entropy"]
-        )
-
-        # Expensive faithfulness metrics (only if --full)
-        if full_eval:
-            del_auc = compute_deletion_auc(
-                model, image, label, out["routing_probs"],
-                grid_shape, device, concept_names,
+        if has_routing:
+            # Per-patient ECE
+            row["ece"] = compute_ece(
+                out["routing_probs"], token_labels, out["entropy"]
             )
-            ins_auc = compute_insertion_auc(
-                model, image, label, out["routing_probs"],
-                grid_shape, device, concept_names,
-            )
-            for name, val in del_auc.items():
-                row[f"del_auc_{name}"] = val
-            for name, val in ins_auc.items():
-                row[f"ins_auc_{name}"] = val
 
-        # MC-Dropout uncertainty comparison
-        if mc_passes > 0:
-            mc_ent = mc_dropout_entropy(model, image, n_passes=mc_passes)  # [N]
-            all_mc_entropy.append(mc_ent.cpu())
-            all_mc_labels.append(token_labels[0].cpu())
+            # Decoder Divergence (W7, paper Def 2) — cheap (pool + Pearson), computed
+            # for every patient. Quantifies how far the decoder posterior departs from
+            # routing, i.e. the residual gap left open by Proposition 1.
+            seg_probs = torch.softmax(out["seg_logits"], dim=1)
+            dd = compute_decoder_divergence(
+                out["routing_probs"], seg_probs, grid_shape, token_labels, concept_names,
+            )
+            for name, val in dd.items():
+                row[f"dd_{name}"] = val
+
+            # Expensive faithfulness metrics (only if --full) — both windows.
+            if full_eval:
+                for rmode in REGION_MODES:
+                    del_auc = compute_deletion_auc(
+                        model, image, label, out["routing_probs"],
+                        grid_shape, device, concept_names, region_mode=rmode,
+                    )
+                    ins_auc = compute_insertion_auc(
+                        model, image, label, out["routing_probs"],
+                        grid_shape, device, concept_names, region_mode=rmode,
+                    )
+                    for name, val in del_auc.items():
+                        row[f"del_auc_{rmode}_{name}"] = val
+                    for name, val in ins_auc.items():
+                        row[f"ins_auc_{rmode}_{name}"] = val
+
+            # MC-Dropout uncertainty comparison
+            if mc_passes > 0:
+                mc_ent = mc_dropout_entropy(model, image, n_passes=mc_passes)  # [N]
+                all_mc_entropy.append(mc_ent.cpu())
+                all_mc_labels.append(token_labels[0].cpu())
 
         per_patient.append(row)
 
-        if saved < n_save:
+        if has_routing and saved < n_save:
             _save_routing_nifti(
                 out["routing_probs"], grid_shape,
                 pid, save_dir, concept_names,
             )
             saved += 1
+
+    has_routing = len(all_routing_probs) > 0
+    if not has_routing:
+        # No-CCR checkpoint: segmentation metrics only.
+        return {
+            "per_patient":       per_patient,
+            "routing_probs_all": None,
+            "token_labels_all":  None,
+            "global_ece":        None,
+            "mc_ece":            None,
+            "has_routing":       False,
+        }
 
     # Global AUROC (all patients combined)
     routing_probs_all = torch.cat(all_routing_probs, dim=0)   # [total_B, N, K]
@@ -300,6 +331,7 @@ def evaluate(
         "token_labels_all":  token_labels_all,
         "global_ece":        global_ece,
         "mc_ece":            mc_ece,
+        "has_routing":       True,
     }
 
 
@@ -382,7 +414,9 @@ def main() -> None:
     cas = ConceptAlignmentScore(config.ccr.router.num_concepts, concept_names)
 
     if args.full:
-        print(f"Full eval enabled (deletion + insertion AUC). Expected ~{19 * len(loader.dataset)} forward passes.")
+        # deletion+insertion over 2 region windows (gt+pred) → ~2x the single-window cost.
+        print(f"Full eval enabled (deletion + insertion AUC, gt+pred windows). "
+              f"Expected ~{38 * len(loader.dataset)} forward passes.")
 
     print(f"Evaluating {len(loader.dataset)} patients on {args.split} split ...")
     t0 = time.time()
@@ -415,62 +449,72 @@ def main() -> None:
         print(f"Mean Dice {label_short}: {mean_v:.3f} ± {std_v:.3f}")
         summary[metric] = {"mean": float(mean_v), "std": float(std_v)}
 
-    # --- CAS ---
-    print("\n=== CAS_fg ===")
-    cas_fg = cas.compute_fg()
-    for k, v in cas_fg.items():
-        print(f"  {k}: {v:.4f}")
-        summary[f"cas_fg_{k}"] = float(v)
+    # --- Routing metrics (CAS / AUROC / ECE) — skipped for a no-CCR checkpoint (W4) ---
+    if not eval_out.get("has_routing", True):
+        print("\n[info] No-CCR checkpoint — routing metrics (CAS/AUROC/ECE/DD/"
+              "faithfulness) are undefined and skipped; segmentation only.")
+    else:
+        # --- CAS ---
+        print("\n=== CAS_fg ===")
+        cas_fg = cas.compute_fg()
+        for k, v in cas_fg.items():
+            print(f"  {k}: {v:.4f}")
+            summary[f"cas_fg_{k}"] = float(v)
 
-    # --- AUROC per concept (global) ---
-    print("\n=== AUROC per concept ===")
-    auroc = compute_auroc_per_concept(
-        eval_out["routing_probs_all"],
-        eval_out["token_labels_all"],
-        concept_names,
-    )
-    for name, val in auroc.items():
-        print(f"  {name}: {val:.4f}")
-        summary[f"auroc_{name}"] = float(val)
+        # --- AUROC per concept (global) ---
+        print("\n=== AUROC per concept ===")
+        auroc = compute_auroc_per_concept(
+            eval_out["routing_probs_all"],
+            eval_out["token_labels_all"],
+            concept_names,
+        )
+        for name, val in auroc.items():
+            print(f"  {name}: {val:.4f}")
+            summary[f"auroc_{name}"] = float(val)
 
-    # --- ECE ---
-    print("\n=== Calibration ===")
-    global_ece = eval_out["global_ece"]
-    print(f"  Routing ECE: {global_ece:.4f}")
-    summary["routing_ece"] = float(global_ece)
+        # --- ECE ---
+        print("\n=== Calibration ===")
+        global_ece = eval_out["global_ece"]
+        print(f"  Routing ECE: {global_ece:.4f}")
+        summary["routing_ece"] = float(global_ece)
 
-    if eval_out["mc_ece"] is not None:
-        # Degeneracy guard: identical-to-routing ECE means the MC passes carried no
-        # stochasticity (dropout collapsed) — refuse to emit it as a real result.
-        if abs(eval_out["mc_ece"] - global_ece) < 1e-6:
-            print(
-                f"  [warn] MC-Dropout ECE ({eval_out['mc_ece']:.4f}) is identical to routing "
-                f"ECE ({global_ece:.4f}) — MC passes were deterministic. NOT recording it; "
-                f"the MC-Dropout baseline is degenerate for this checkpoint."
-            )
-        else:
-            print(f"  MC-Dropout ECE (T={args.mc_passes}): {eval_out['mc_ece']:.4f}")
-            summary[f"mc_dropout_ece_T{args.mc_passes}"] = float(eval_out["mc_ece"])
+        if eval_out["mc_ece"] is not None:
+            # Degeneracy guard: identical-to-routing ECE means the MC passes carried no
+            # stochasticity (dropout collapsed) — refuse to emit it as a real result.
+            if abs(eval_out["mc_ece"] - global_ece) < 1e-6:
+                print(
+                    f"  [warn] MC-Dropout ECE ({eval_out['mc_ece']:.4f}) is identical to routing "
+                    f"ECE ({global_ece:.4f}) — MC passes were deterministic. NOT recording it; "
+                    f"the MC-Dropout baseline is degenerate for this checkpoint."
+                )
+            else:
+                print(f"  MC-Dropout ECE (T={args.mc_passes}): {eval_out['mc_ece']:.4f}")
+                summary[f"mc_dropout_ece_T{args.mc_passes}"] = float(eval_out["mc_ece"])
 
-    # --- Deletion / Insertion AUC ---
+    # --- Decoder Divergence (W7, Def 2) — residual gap in Proposition 1 ---
+    print("\n=== Decoder Divergence (DD = 1 - Pearson(decoder, routing); lower = closer) ===")
+    dd_keys = [k for k in results[0] if k.startswith("dd_")]
+    for ddk in dd_keys:
+        concept = ddk.replace("dd_", "")
+        vals = np.array([r[ddk] for r in results], float)
+        n_used = int(np.isfinite(vals).sum())
+        mean_v, std_v = float(np.nanmean(vals)), float(np.nanstd(vals))
+        print(f"  {concept}: {mean_v:.4f} ± {std_v:.4f}  (n={n_used}/{len(results)})")
+        summary[ddk] = {"mean": mean_v, "std": std_v, "n": n_used}
+
+    # --- Deletion / Insertion AUC (both region modes, per-concept n) ---
     if args.full:
-        print("\n=== Faithfulness (Deletion AUC) ===")
-        del_keys = [k for k in results[0] if k.startswith("del_auc_")]
-        for dk in del_keys:
-            concept = dk.replace("del_auc_", "")
-            vals = [r[dk] for r in results if not np.isnan(r[dk])]
-            mean_v = np.mean(vals)
-            print(f"  {concept}: {mean_v:.4f}")
-            summary[dk] = {"mean": float(mean_v), "std": float(np.std(vals))}
-
-        print("\n=== Faithfulness (Insertion AUC) ===")
-        ins_keys = [k for k in results[0] if k.startswith("ins_auc_")]
-        for ik in ins_keys:
-            concept = ik.replace("ins_auc_", "")
-            vals = [r[ik] for r in results if not np.isnan(r[ik])]
-            mean_v = np.mean(vals)
-            print(f"  {concept}: {mean_v:.4f}")
-            summary[ik] = {"mean": float(mean_v), "std": float(np.std(vals))}
+        for prefix, title in [("del_auc_", "Deletion AUC"), ("ins_auc_", "Insertion AUC")]:
+            print(f"\n=== Faithfulness ({title}) ===")
+            keys = [k for k in results[0] if k.startswith(prefix)]
+            for kk in keys:
+                # key form: {prefix}{gt|pred}_{concept}
+                label_tail = kk[len(prefix):]
+                vals = np.array([r[kk] for r in results], float)
+                n_used = int(np.isfinite(vals).sum())
+                mean_v, std_v = float(np.nanmean(vals)), float(np.nanstd(vals))
+                print(f"  {label_tail}: {mean_v:.4f} ± {std_v:.4f}  (n={n_used}/{len(results)})")
+                summary[kk] = {"mean": mean_v, "std": std_v, "n": n_used}
 
     # --- Save CSV ---
     os.makedirs(save_dir, exist_ok=True)

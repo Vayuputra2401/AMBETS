@@ -26,8 +26,10 @@ from ccrnet.utils.evaluation import (
     compute_auroc_per_concept,
     compute_deletion_auc,
     compute_insertion_auc,
+    compute_decoder_divergence,
     compute_ece,
     mc_dropout_entropy,
+    _region_mask,
 )
 
 
@@ -326,6 +328,91 @@ def test_mc_dropout_entropy_bounded(mock_model, synthetic_image):
 
 
 # ---------------------------------------------------------------------------
+# 6b. region_mode (W2) — GT vs predicted measurement window
+# ---------------------------------------------------------------------------
+
+def test_region_mask_gt_matches_label():
+    label = torch.zeros(1, 4, 4, 4, dtype=torch.long)
+    label[0, 0, 0, 0] = 2
+    label[0, 1, 1, 1] = 2
+    baseline_probs = torch.zeros(1, K, 4, 4, 4)
+    mask = _region_mask(label, baseline_probs, 2, "gt")
+    assert mask.dtype == torch.bool
+    assert mask.sum().item() == 2
+    assert mask[0, 0, 0].item() and mask[1, 1, 1].item()
+
+
+def test_region_mask_pred_uses_argmax():
+    label = torch.zeros(1, 4, 4, 4, dtype=torch.long)          # GT is all background
+    baseline_probs = torch.zeros(1, K, 4, 4, 4)
+    baseline_probs[0, 3, 2, 2, 2] = 1.0                        # predict ET at one voxel
+    mask = _region_mask(label, baseline_probs, 3, "pred")
+    assert mask.sum().item() == 1
+    assert mask[2, 2, 2].item()
+    # GT window for the same concept would be empty — the whole point of "pred".
+    assert _region_mask(label, baseline_probs, 3, "gt").sum().item() == 0
+
+
+def test_region_mask_invalid_raises():
+    label = torch.zeros(1, 4, 4, 4, dtype=torch.long)
+    baseline_probs = torch.zeros(1, K, 4, 4, 4)
+    with pytest.raises(ValueError):
+        _region_mask(label, baseline_probs, 1, "bogus")
+
+
+def test_deletion_auc_pred_region_runs(mock_model, synthetic_image, synthetic_label,
+                                       synthetic_routing_probs):
+    """region_mode='pred' must run and return one float per concept (nan allowed)."""
+    result = compute_deletion_auc(
+        mock_model, synthetic_image, synthetic_label,
+        synthetic_routing_probs, GRID, torch.device("cpu"),
+        CONCEPT_NAMES, thresholds=(0.10, 0.30), region_mode="pred",
+    )
+    assert set(result.keys()) == {"necrotic_core", "edema", "enhancing_tumor"}
+    for v in result.values():
+        assert isinstance(v, float)
+
+
+def test_insertion_auc_pred_region_runs(mock_model, synthetic_image, synthetic_label,
+                                        synthetic_routing_probs):
+    result = compute_insertion_auc(
+        mock_model, synthetic_image, synthetic_label,
+        synthetic_routing_probs, GRID, torch.device("cpu"),
+        CONCEPT_NAMES, thresholds=(0.10, 0.30), region_mode="pred",
+    )
+    assert set(result.keys()) == {"necrotic_core", "edema", "enhancing_tumor"}
+    for v in result.values():
+        assert isinstance(v, float)
+
+
+# ---------------------------------------------------------------------------
+# 6c. compute_decoder_divergence (W7, Def 2)
+# ---------------------------------------------------------------------------
+
+def test_dd_returns_keys_and_bounds(synthetic_routing_probs, synthetic_token_labels):
+    seg_probs = torch.softmax(torch.randn(1, K, H, H, H), dim=1)
+    dd = compute_decoder_divergence(
+        synthetic_routing_probs, seg_probs, GRID, synthetic_token_labels, CONCEPT_NAMES,
+    )
+    assert set(dd.keys()) == {"necrotic_core", "edema", "enhancing_tumor"}
+    for v in dd.values():
+        assert math.isnan(v) or (-1e-6 <= v <= 2.0 + 1e-6)
+
+
+def test_dd_near_zero_when_decoder_matches_routing(synthetic_token_labels):
+    """If the decoder posterior equals the (upsampled) routing, DD ~ 0."""
+    torch.manual_seed(1)
+    routing = torch.softmax(torch.randn(1, N, K), dim=-1)
+    seg_probs = upsample_routing_to_volume(routing, GRID, VOL)   # decoder := routing
+    dd = compute_decoder_divergence(
+        routing, seg_probs, GRID, synthetic_token_labels, CONCEPT_NAMES,
+    )
+    for name, v in dd.items():
+        if not math.isnan(v):
+            assert v < 0.2, f"DD for {name} should be ~0 when decoder==routing, got {v}"
+
+
+# ---------------------------------------------------------------------------
 # 7. Ablation config parsing
 # ---------------------------------------------------------------------------
 
@@ -347,3 +434,14 @@ def test_no_warmup_yaml_parses_correctly():
     cfg = Phase2Config.from_yaml(cfg_path)
     assert cfg.ccr.curriculum.warmup_end_epoch == 0
     assert cfg.ccr.loss.weights.warmup[0] == 1.0, "Warmup lam_align should be 1.0 in no_warmup ablation"
+
+
+def test_no_ccr_yaml_parses_disabled():
+    """W4 control: no_ccr.yaml must set ccr.enabled=False (default stays True)."""
+    from ccrnet.config.phase2_config import Phase2Config
+    cfg_path = str(ROOT / "configs" / "ablations" / "no_ccr.yaml")
+    cfg = Phase2Config.from_yaml(cfg_path)
+    assert cfg.ccr.enabled is False
+    # sanity: the base config leaves CCR enabled
+    base = Phase2Config.from_yaml(str(ROOT / "configs" / "brats_phase2.yaml"))
+    assert base.ccr.enabled is True

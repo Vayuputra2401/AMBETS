@@ -275,6 +275,10 @@ class CCRConfig:
         "enhancing_tumor",
     )
     hard_routing_inference: bool = True
+    enabled: bool = True
+    """If False, CCRNet runs as a plain Swin+UNETR backbone (no router/experts, no
+    routing losses) — the no-CCR segmentation control (W4) that shows CCR is
+    accuracy-neutral. Set via configs/ablations/no_ccr.yaml."""
 
     def __post_init__(self) -> None:
         # expert.embed_dim must always match router.embed_dim (single source of truth).

@@ -104,6 +104,11 @@ class TrainingConfig:
     checkpoint_dir: str = "checkpoints/"
     checkpoint_every: int = 5
     log_every: int = 10
+    seed: int = 42
+    """Run seed for model init / train shuffling / augmentation (W5 multi-seed).
+    Distinct from data.seed, which fixes the patient split — keeping data.seed constant
+    while varying training.seed yields same-split, different-init replicates for
+    reporting seed variance. Overridable with --seed on the CLI."""
 
 
 @dataclass
@@ -195,6 +200,13 @@ class Phase2Config:
                             if isinstance(v, list):
                                 v = tuple(v)
                             setattr(ccr_cfg.loss.weights, k, v)
+            # Remaining top-level ccr scalars (e.g. `enabled`, `hard_routing_inference`)
+            # after the sub-config blocks have been popped above.
+            for k, v in ccr_raw.items():
+                if hasattr(ccr_cfg, k):
+                    if isinstance(v, list):
+                        v = tuple(v)
+                    setattr(ccr_cfg, k, v)
 
         def _apply(dcls, d):
             obj = dcls()
