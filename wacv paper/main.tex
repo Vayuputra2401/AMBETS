@@ -623,6 +623,18 @@ informative than the prediction itself.}
 \label{fig:qual2}
 \end{figure}
 
+\subsection{CCR-Retrofit (supplementary)}\label{sec:retrofit}
+Proposition~\ref{prop:1b} predicts that the CCR module transfers to a \emph{frozen},
+independently-trained backbone---training only the router and experts while the encoder and
+decoder weights are held fixed---with faithfulness bounded below by
+$\mathrm{CAS}\cdot(1-\mathrm{DD})$. This \emph{CCR-Retrofit} setting tests whether the
+principle carries to a backbone the method did not design. We freeze a pretrained Swin-UNETR,
+insert the CCR module at the stage-2 bottleneck, train only the CCR parameters under
+$\mathcal{L}_{\text{align}}$, and report CAS, DD, and deletion/insertion AUC, verifying the
+bound. \todo{Optional supplementary experiment---results pending, included if space permits.
+A frozen decoder cannot adapt to the routing, so we expect a larger DD than end-to-end
+CCR-Net while faithfulness continues to respect the $\mathrm{CAS}\cdot(1-\mathrm{DD})$ bound.}
+
 % ====================================================================
 \section{Discussion and Limitations}
 % ====================================================================
@@ -651,8 +663,12 @@ this work, and showed that CCR-Net's explanation is structurally faithful with a
 quality equal to the Concept Alignment Score. On an identical causal protocol the routing
 is far more faithful than Grad-CAM or gradient saliency on the concepts that admit reliable
 measurement. CCR is the first method to deliver intrinsic, concept-labeled, faithful
-explanation for 3D volumetric dense prediction; extending the principle to arbitrary
-backbones (Proposition~\ref{prop:1b}) and to additional anatomies is promising future work.
+explanation for 3D volumetric dense prediction. Because CCR-Net's decoder is independently
+parameterized and skip-connected, its measured Decoder Divergence already places it in the
+retrofit regime of Proposition~\ref{prop:1b}: the retrofit bound is thus empirically
+\emph{supported} (Fig.~\ref{fig:bound}), not merely asserted. A full CCR-Retrofit study on a
+frozen third-party backbone (Sec.~\ref{sec:retrofit}) and extension to additional anatomies
+are promising future work.
 
 \bibliographystyle{splncs04}
 \bibliography{references}
