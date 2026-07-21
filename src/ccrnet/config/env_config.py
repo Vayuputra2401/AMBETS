@@ -12,10 +12,21 @@ Usage in train.py / evaluate.py:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Optional
 
 import yaml
+
+
+def _expand(path: str) -> str:
+    """Expand ``~`` and ``$VAR``/``${VAR}`` so env paths need no hardcoded username.
+
+    Lets configs use portable paths like ``~/data/training_data1_v2`` that resolve to
+    the current user's home on any instance (the VM username is not stable across
+    machines — e.g. g21cs2026 vs pathikreetofficial).
+    """
+    return os.path.expanduser(os.path.expandvars(path))
 
 
 def apply_env(config, env: str, config_dir: Optional[Path] = None) -> dict:
@@ -49,12 +60,12 @@ def apply_env(config, env: str, config_dir: Optional[Path] = None) -> dict:
 
     paths = env_cfg.get("paths", {})
     if paths.get("data_root"):
-        config.data.data_root = paths["data_root"]
+        config.data.data_root = _expand(paths["data_root"])
     if paths.get("brats_official_val_root"):
-        config.data.brats_official_val_root = paths["brats_official_val_root"]
+        config.data.brats_official_val_root = _expand(paths["brats_official_val_root"])
     if paths.get("checkpoint_dir"):
-        config.training.checkpoint_dir = paths["checkpoint_dir"]
+        config.training.checkpoint_dir = _expand(paths["checkpoint_dir"])
     if paths.get("pretrained_path"):
-        config.swin.pretrained_path = paths["pretrained_path"]
+        config.swin.pretrained_path = _expand(paths["pretrained_path"])
 
     return env_cfg
