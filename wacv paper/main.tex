@@ -45,9 +45,9 @@ with a routing bottleneck and a UNETR decoder), detail its router, expert bank, 
 mechanism, five-term objective, and three-phase curriculum, and prove that its
 explanation is structurally faithful with alignment quality measured by the Concept
 Alignment Score (CAS). On the BraTS 2024 glioma benchmark, CCR-Net attains $\casfg$ up to
-$0.94$ and, on an identical deletion/insertion protocol, a deletion AUC of $0.82$--$0.86$
-for edema and enhancing tumor, versus $\le 0.66$ for gradient saliency and $\le 0.40$ for
-Grad-CAM. Ablations confirm that concept alignment is \emph{learned} (it collapses without
+$0.94$ and, on an identical deletion/insertion protocol, a deletion AUC of $0.82$--$0.87$
+for edema and enhancing tumor---measured identically over ground-truth and predicted
+regions---versus $\le 0.66$ for gradient saliency and $\le 0.40$ for Grad-CAM. Ablations confirm that concept alignment is \emph{learned} (it collapses without
 the alignment loss) and that a warm-up phase is necessary to prevent expert collapse. CCR
 is the first method to make the routing decision itself the faithful, clinically-labeled
 explanation for 3D volumetric dense prediction.
@@ -403,9 +403,10 @@ Although stated for the general setting, the bound applies to CCR-Net directly: 
 decoder is independently parameterized and skip-connected, and the measured $\mathrm{DD}$ above
 places CCR-Net in this regime rather than the idealized $\mathrm{DD}{=}0$ limit. Combining that
 DD with $\casfg$ (Table~\ref{tab:main}), the bound predicts a causal faithfulness of at least
-$\mathrm{CAS}\cdot(1-\mathrm{DD})=0.19,\,0.44,\,0.56$ for NCR, edema, and ET; the deletion AUC
-we measure (Table~\ref{tab:faith}) exceeds each, so the bound is satisfied empirically. A full
-retrofit study on a frozen third-party backbone is left to future work.
+$\mathrm{CAS}\cdot(1-\mathrm{DD})=0.18,\,0.44,\,0.56$ for NCR, edema, and ET; the deletion AUC
+we measure ($0.68,\,0.87,\,0.82$; Fig.~\ref{fig:bound}) exceeds each, so the bound is
+satisfied empirically. A full retrofit study on a frozen third-party backbone is left to
+future work.
 
 % ====================================================================
 \section{Experiments}\label{sec:experiments}
@@ -448,21 +449,53 @@ consistent across Dice, AUROC, and CAS.
 
 \begin{table}[t]
 \centering
-\caption{Segmentation, alignment, and per-concept AUROC on the BraTS test split
-($n{=}168$). $\casfg$ is the foreground concept-alignment score.}
+\caption{Segmentation, alignment, AUROC, and Decoder Divergence (DD) on the BraTS test
+split ($n{=}168$). $\casfg$ is the foreground concept-alignment score; lower DD means the
+decoder tracks the routing more closely.}
 \label{tab:main}
 \begin{tabular}{lccc}
 \toprule
 & WT / NCR & TC / Edema & ET \\
 \midrule
-Dice                       & $0.915$ & $0.845$ & $0.836$ \\
-$\casfg$ (NCR/Edema/ET)    & $0.682$ & $0.935$ & $0.931$ \\
-AUROC (NCR/Edema/ET)       & $0.709$ & $0.833$ & $0.774$ \\
+Dice                       & $0.915$ & $0.845$ & $0.837$ \\
+$\casfg$ (NCR/Edema/ET)    & $0.688$ & $0.935$ & $0.930$ \\
+AUROC (NCR/Edema/ET)       & $0.711$ & $0.832$ & $0.774$ \\
+DD (NCR/Edema/ET)          & $0.733$ & $0.531$ & $0.395$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Faithfulness vs.\ post-hoc attribution}\label{sec:faith}
+\paragraph{Faithfulness is not an artifact of the scoring window.}
+Because the alignment loss trains the routing to sit on the ground-truth region, scoring
+deletion over that same region could in principle reward supervised localization rather than
+faithfulness. We rule this out by scoring in \emph{both} windows: over the ground-truth region
+$M_k$ and over the model's own \emph{predicted} region ($\argmax_k$), which carries no
+ground-truth supervision. Figure~\ref{fig:window} shows the two are near-identical---deletion
+differs by at most $0.008$ and insertion by at most $0.026$---so the measured faithfulness is a
+property of the routing, not of the scoring window. Necrotic core, moreover, is now measured on
+$67$--$91$ cases rather than a handful, removing the small-sample caveat of earlier drafts.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig5_window_invariance.png}
+\caption{\textbf{CCR faithfulness is window-invariant.} Deletion (left) and insertion (right)
+AUC scored over the ground-truth region (GT) vs.\ the model's own predicted region are
+near-identical---deletion differs by $\le0.008$---ruling out a supervised-localization
+confound; dotted line marks the $0.5$ reference. Per-cell $n$ (GT/pred): edema $168/168$,
+ET $163/168$, NCR $67/91$.}
+\label{fig:window}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.72\textwidth]{figures/fig6_prop1b_bound.png}
+\caption{The measured deletion AUC (green) exceeds the $\mathrm{CAS}\cdot(1-\mathrm{DD})$ lower
+bound (gray) of Proposition~\ref{prop:1b} for every concept, confirming the bound empirically;
+dotted line marks the $0.5$ reference.}
+\label{fig:bound}
+\end{figure}
+
 We compare CCR routing against two post-hoc baselines computed on the same trained
 CCR-Net: Grad-CAM at the post-CCR bottleneck block (the same location the routing lives,
 for a fair contrast) and vanilla gradient saliency. All three are scored with the identical
@@ -494,7 +527,8 @@ and ET; the dotted line marks the $0.5$ reference. NCR is measured on $n{=}16$ c
 \centering
 \caption{Deletion / Insertion AUC (higher = more faithful), matched cases, identical
 protocol. Best per row in \textbf{bold}. $\dagger$NCR is measured on $n{=}16$ (high
-variance).}
+variance). \todo{Provisional 40-case comparison---to be refreshed to the full 168-case run
+with Integrated Gradients and Occlusion baselines, and bootstrap CIs.}}
 \label{tab:faith}
 \begin{tabular}{llccc}
 \toprule
