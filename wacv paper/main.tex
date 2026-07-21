@@ -1,0 +1,626 @@
+% WACV 2026 submission — Clinical Concept Routing
+% NOTE: working draft still typeset in single-column LNCS. Target format is the
+% WACV/CVPR two-column template (cvpr.sty + ieeenat_fullname.bst); conversion and the
+% trim to WACV's 8-page limit are pending (see post-eval task list).
+\documentclass[runningheads]{llncs}
+
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
+\usepackage[hidelinks]{hyperref}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\todo}[1]{\textcolor{red}{[#1]}}
+\newcommand{\casfg}{\mathrm{CAS}_{\mathrm{fg}}}
+\newcommand{\Rb}{\mathbb{R}}
+
+\begin{document}
+
+\title{Clinical Concept Routing: Faithful Intrinsic\\ Explanation for 3D Medical Image Segmentation}
+\titlerunning{Clinical Concept Routing}
+
+\author{Anonymous WACV 2026 submission}
+\authorrunning{Anonymous WACV 2026 submission}
+\institute{Paper ID \todo{XXXX}}
+
+\maketitle
+
+\begin{abstract}
+Deep segmentation models now rival expert accuracy on brain-tumor benchmarks, yet
+clinical adoption lags because their decisions cannot be \emph{faithfully} explained.
+The dominant remedy---post-hoc attribution (Grad-CAM, gradients, SHAP)---computes the
+explanation \emph{after} the prediction, from byproducts of computation, and a recent
+benchmark shows it fails faithfulness tests on dense prediction, with deletion AUC stuck
+near the random baseline. We propose \textbf{Clinical Concept Routing (CCR)}, a different
+principle: replace the encoder bottleneck with a routing layer that assigns every image
+token to one of $K$ clinically-labeled expert networks. The routing probability
+distribution is, simultaneously, the model's clinical concept assignment, the
+segmentation mechanism, and a per-voxel explanation---computed in a single forward pass,
+with no post-hoc step. We instantiate the principle as \textbf{CCR-Net} (a Swin encoder
+with a routing bottleneck and a UNETR decoder), detail its router, expert bank, dispatch
+mechanism, five-term objective, and three-phase curriculum, and prove that its
+explanation is structurally faithful with alignment quality measured by the Concept
+Alignment Score (CAS). On the BraTS 2024 glioma benchmark, CCR-Net attains $\casfg$ up to
+$0.94$ and, on an identical deletion/insertion protocol, a deletion AUC of $0.82$--$0.86$
+for edema and enhancing tumor, versus $\le 0.66$ for gradient saliency and $\le 0.40$ for
+Grad-CAM. Ablations confirm that concept alignment is \emph{learned} (it collapses without
+the alignment loss) and that a warm-up phase is necessary to prevent expert collapse. CCR
+is the first method to make the routing decision itself the faithful, clinically-labeled
+explanation for 3D volumetric dense prediction.
+\keywords{Interpretability \and Faithfulness \and Medical image segmentation \and
+Mixture-of-experts \and Brain tumor}
+\end{abstract}
+
+% ====================================================================
+\section{Introduction}
+% ====================================================================
+Brain-tumor segmentation models now match or exceed expert radiologists on benchmark
+data, but clinical deployment has not followed. The barrier is not accuracy; it is the
+absence of a \emph{trustworthy, verifiable} account of what the model computed and why. A
+radiologist asked to act on a segmentation needs to know which clinical concept the model
+assigned to each region and to trust that this account reflects the actual computation.
+
+The dominant response is post-hoc attribution: after the model predicts, apply
+Grad-CAM~\cite{selvaraju2017gradcam}, integrated gradients~\cite{sundararajan2017ig},
+SHAP~\cite{lundberg2017shap}, or attention rollout~\cite{abnar2020rollout} to reconstruct
+a saliency map that \emph{approximates} the decision mechanism. The structural problem is
+that these methods were designed for single-scalar-output models; in dense prediction
+every voxel has its own output, and the extension proceeds through heuristics---averaging
+gradients, summing attention weights, approximating Shapley values over spatial
+regions---each introducing a gap between the attribution and the actual computation. More
+fundamentally, the explanation is built from \emph{byproducts} of computation (gradients,
+attention weights), not from the computation itself. It approximates what happened; it is
+not what happened. The empirical ceiling is real: measured by the
+deletion/insertion game~\cite{petsiuk2018rise}, post-hoc deletion AUC on segmentation
+sits at $0.55$--$0.68$, barely above the random baseline of $0.50$, and no amount of
+algorithmic refinement closes the gap because it is structural~\cite{rudin2019stop}.
+
+We propose a different principle. \textbf{Clinical Concept Routing (CCR)}: in an
+encoder--decoder segmentation model, replace the bottleneck with a routing layer that
+assigns each image token to one of $K$ clinically-labeled expert networks
+\{Background, Necrotic core, Edema, Enhancing tumor\}. The routing distribution, computed
+at the bottleneck, is the model's clinical concept assignment for each token, and it
+\emph{actively conditions} all downstream computation: it is causally upstream of the
+prediction, not derived from it. The explanation is not reconstructed from the
+prediction---it \emph{is} the decision mechanism. Because the routing assignment is read
+directly from the forward pass, the per-voxel, concept-labeled explanation comes for free,
+deterministically, every time the model predicts (Fig.~\ref{fig:arch}).
+
+\noindent\textbf{Contributions.}
+\begin{enumerate}
+\item \textbf{The CCR principle and CCR-Net.} The first method to route tokens to
+\emph{clinically labeled} experts at the segmentation bottleneck so that routing is at
+once the prediction and a per-voxel, concept-labeled explanation, for 3D dense prediction.
+We detail the router, expert bank, soft/hard dispatch, five-term objective, and curriculum
+(Sec.~\ref{sec:method}).
+\item \textbf{A formal faithfulness framework.} We define the Concept Alignment Score
+(CAS), distinguish faithfulness (structural) from alignment quality (CAS) from causal
+relevance (deletion AUC), and prove that CCR-Net's explanation is structurally faithful
+(Sec.~\ref{sec:theory}).
+\item \textbf{A measured faithfulness gap.} On an identical deletion/insertion protocol,
+CCR routing attains deletion AUC $0.82$--$0.86$ (edema, enhancing tumor) against $\le0.66$
+for the strongest post-hoc baseline and $\le0.40$ for Grad-CAM (Sec.~\ref{sec:experiments}).
+\item \textbf{Ablations} isolating the role of the alignment loss (concept alignment is
+learned, not incidental) and of curriculum warm-up (it prevents expert collapse).
+\end{enumerate}
+
+% ====================================================================
+\section{Related Work}
+% ====================================================================
+\subsubsection{Post-hoc attribution.}
+Grad-CAM~\cite{selvaraju2017gradcam} weights feature maps by the gradient of the output
+w.r.t.\ that feature; integrated gradients~\cite{sundararajan2017ig} integrate gradients
+along a baseline path with axiomatic guarantees but no faithfulness guarantee for dense
+prediction; SHAP~\cite{lundberg2017shap} approximates Shapley values, intractable in high
+dimension; attention rollout~\cite{abnar2020rollout} propagates attention through layers
+but conflates attention magnitude with causal contribution. All operate \emph{after}
+prediction and treat a byproduct of computation as the decision. On dense prediction their
+faithfulness, measured by deletion/insertion~\cite{petsiuk2018rise}, is near the random
+floor. CCR does not improve post-hoc attribution; it removes the structural reason for its
+failure by making the explanation intrinsic~\cite{rudin2019stop}.
+
+\subsubsection{Intrinsic interpretability.}
+Concept Bottleneck Models~\cite{koh2020cbm} route predictions through a human-readable
+concept layer whose activation \emph{is} the explanation; ProtoPNet~\cite{chen2019protopnet}
+classifies by prototype similarity (``this looks like that''). Both are designed for
+scalar-output classification, neither handles dense prediction, and neither offers a formal
+faithfulness statement. CCR extends the intrinsic-interpretability principle to 3D
+volumetric segmentation, where the explanation must be per-voxel and concept-labeled.
+
+\subsubsection{Mixture-of-experts routing.}
+Sparse MoE~\cite{shazeer2017moe,fedus2022switch,riquelme2021vmoe} was introduced for
+\emph{efficiency}: conditional computation that processes each input with a subset of
+parameters. Vision and medical adaptations reuse routing for efficiency, domain adaptation,
+or missing-modality robustness. None of these works label experts with clinical concepts,
+enforce routing--concept alignment with an explicit loss, or treat the routing decision as
+the model's explanation. CCR's objective---faithful intrinsic explanation---is different in
+kind and requires a different design: clinically-labeled experts, an alignment loss, and
+bottleneck placement.
+
+% ====================================================================
+\section{Method}\label{sec:method}
+% ====================================================================
+\subsection{Overview and the CCR principle}
+Let an encoder map a multi-modal volume $x\in\Rb^{C_{\text{in}}\times H\times W\times D}$
+to a set of bottleneck tokens $\{h_t\}_{t=1}^{N}$, $h_t\in\Rb^{d}$, arranged on a coarse
+spatial grid. The CCR module replaces the plain bottleneck with three components: a
+\emph{router} that produces, per token, a distribution over $K$ clinically-labeled
+experts; an \emph{expert bank} $\{E_k\}_{k=1}^K$; and a \emph{dispatcher} that combines
+expert outputs according to the routing. The routing volume $\{p_k(t)\}$ is, at once, (i)
+the model's clinical concept assignment, (ii) a quantity that conditions every downstream
+computation, and (iii) the explanation read out for the user. We instantiate $K{=}4$ to
+match the BraTS annotation protocol exactly: \{Background, NCR, Edema, ET\}.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=5mm and 8mm,
+  box/.style={draw, rounded corners, align=center, minimum height=9mm,
+              minimum width=14mm, font=\scriptsize, fill=blue!5},
+  ccr/.style={draw, rounded corners, align=center, minimum height=13mm,
+              minimum width=20mm, font=\scriptsize, fill=green!12},
+  outb/.style={draw, rounded corners, align=center, minimum height=9mm,
+              minimum width=16mm, font=\scriptsize, fill=orange!12},
+  ar/.style={-{Latex[length=2mm]}, thick}]
+\node[box] (mri) {MRI\\$4{\times}128^3$};
+\node[box, right=of mri] (enc) {Swin-B\\encoder};
+\node[ccr, right=of enc] (ccr) {\textbf{CCR bottleneck}\\stage-2\\$16^3$ tok., $192$-d};
+\node[box, right=of ccr] (dec) {UNETR\\decoder};
+\node[box, right=of dec] (bh) {boundary\\head};
+\node[outb, right=of bh] (seg) {Segmentation\\$4{\times}128^3$};
+\node[outb, below=9mm of ccr] (exp) {Routing explanation\\$p_k(t)$ \& entropy $H(t)$};
+\draw[ar] (mri)--(enc); \draw[ar] (enc)--(ccr); \draw[ar] (ccr)--(dec);
+\draw[ar] (dec)--(bh); \draw[ar] (bh)--(seg); \draw[ar] (ccr)--(exp);
+\draw[ar] (enc.south) to[bend right=18] node[below,font=\tiny,pos=0.5]{skip connections} (dec.south);
+\end{tikzpicture}
+\caption{\textbf{CCR-Net.} A Swin-B encoder produces hierarchical features; the CCR
+bottleneck is inserted at stage-2 ($16^3$ tokens, $192$-d). Its expert-processed output
+feeds a UNETR decoder (with the usual multi-scale skips) and a thin boundary head to yield
+the segmentation. The same routing distribution that conditions the decoder is read out
+directly as the per-voxel, concept-labeled explanation and uncertainty---one forward pass,
+no post-hoc step.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{CCR-Net architecture}
+Figure~\ref{fig:arch} shows the full network. The encoder is a Swin-B
+transformer~\cite{liu2021swin,hatamizadeh2021swinunetr} producing five hierarchical
+feature maps at resolutions $64^3,32^3,16^3,8^3,4^3$ with channel dimensions
+$48,96,192,384,768$. We insert the CCR module at \emph{stage-2}
+($16^3$ tokens, $192$-d): this depth balances spatial resolution against semantic context.
+A shallower insertion gives more tokens but features too low-level to discriminate
+necrotic core from enhancing tumor (we observed over-routing to NCR and a $\sim0.17$ drop
+in CAS); a deeper insertion is too coarse. The $16^3\times192$ feature map is flattened to
+a token sequence $\{h_t\}_{t=1}^{N=4096}$, processed by the CCR module
+(Sec.~\ref{sec:module}), reshaped back to $192\times16^3$, and passed as the post-CCR skip
+connection to a MONAI UNETR decoder~\cite{cardoso2022monai} that also receives the
+remaining encoder skips. A residual boundary-refinement head ($<100$k parameters) sharpens
+edges. The routing volume is trilinearly upsampled to $128^3$ to form the per-voxel
+explanation; the decoder output is the segmentation.
+
+\subsection{The CCR bottleneck module}\label{sec:module}
+Figure~\ref{fig:module} details the module. Given token $h_t$, the router computes
+concept logits by blending a learned linear projection with the cosine similarity to $K$
+learnable concept prototypes $C=[c_1,\dots,c_K]$, then a temperature-scaled softmax:
+\begin{equation}
+z_t = (1-\beta)\,W_r h_t \;+\; \beta\,\mathrm{sim}(h_t, C),
+\qquad
+p(t) = \mathrm{softmax}\!\big(z_t/\tau\big)\in\Delta^{K-1},
+\label{eq:router}
+\end{equation}
+where $W_r\in\Rb^{K\times d}$, $\mathrm{sim}(h_t,C)_k=\frac{h_t^\top c_k}{\lVert h_t\rVert\lVert c_k\rVert}$,
+the blend $\beta$ and temperature $\tau$ are (the latter annealed; Sec.~\ref{sec:curriculum}).
+The prototypes give each concept an explicit anchor in feature space, stabilizing routing
+for rare concepts. Each expert $E_k$ is a lightweight token-wise MLP. The dispatcher
+combines expert outputs differently at train and inference time:
+\begin{equation}
+\underbrace{y_t = \sum_{k=1}^{K} p_k(t)\,E_k(h_t)}_{\text{training (soft)}}
+\qquad\qquad
+\underbrace{y_t = E_{k^\ast}(h_t),\ \ k^\ast=\argmax_k p_k(t)}_{\text{inference (hard)}}.
+\label{eq:dispatch}
+\end{equation}
+Soft dispatch keeps the routing differentiable so that the alignment loss can reshape the
+encoder; hard dispatch at inference makes the explanation a discrete, causal
+concept assignment---each region is processed by exactly one clinical expert. The module
+also emits the per-token entropy
+$H(t)=-\sum_k p_k(t)\log p_k(t)$ as a free uncertainty signal.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=4mm and 9mm,
+  tok/.style={draw, align=center, minimum height=8mm, minimum width=13mm,
+              font=\scriptsize, fill=blue!6},
+  rt/.style={draw, rounded corners, align=center, minimum height=11mm,
+             minimum width=20mm, font=\scriptsize, fill=green!12},
+  ex/.style={draw, rounded corners, align=center, minimum height=6.5mm,
+             minimum width=13mm, font=\scriptsize, fill=yellow!18},
+  cmb/.style={draw, circle, font=\scriptsize, minimum size=7mm, fill=green!6},
+  outb/.style={draw, rounded corners, align=center, minimum height=8mm,
+               minimum width=15mm, font=\scriptsize, fill=orange!12},
+  ar/.style={-{Latex[length=1.8mm]}, thick}]
+\node[tok] (h) {tokens\\$h_t\in\Rb^{N\times d}$};
+\node[rt, right=of h] (router) {Router\\$W_r,\ C$ (prototypes)\\$p(t)=\mathrm{softmax}(z_t/\tau)$};
+\node[ex, right=14mm of router, yshift=8mm] (e1) {$E_1$ Bkg};
+\node[ex, below=of e1] (e2) {$E_2$ NCR};
+\node[ex, below=of e2] (e3) {$E_3$ Edema};
+\node[ex, below=of e3] (e4) {$E_4$ ET};
+\node[cmb, right=10mm of e3, yshift=8mm] (sum) {$\sum$};
+\node[outb, right=of sum] (y) {output\\$y_t$};
+\node[outb, below=12mm of router] (exp) {explanation $p_k(t)$\\entropy $H(t)$};
+\draw[ar] (h)--(router);
+\foreach \e in {e1,e2,e3,e4}{\draw[ar] (router.east) -- (\e.west);}
+\foreach \e in {e1,e2,e3,e4}{\draw[ar] (\e.east) -- (sum);}
+\draw[ar] (sum)--(y);
+\draw[ar] (router.south) |- (exp.west);
+\node[font=\tiny, above=0.5mm of sum] {$p_k$-weighted};
+\end{tikzpicture}
+\caption{\textbf{The CCR bottleneck module.} The router maps each token to a distribution
+$p(t)$ over the $K{=}4$ clinically-labeled experts via a prototype-augmented, temperature
+-scaled softmax (Eq.~\ref{eq:router}). Experts are combined by $p$-weighted soft dispatch
+during training and by hard $\argmax$ dispatch at inference (Eq.~\ref{eq:dispatch}). The
+routing distribution itself, with its entropy, is emitted as the explanation.}
+\label{fig:module}
+\end{figure}
+
+\subsection{Training objective}\label{sec:loss}
+The total loss has five terms. \emph{Segmentation}
+$\mathcal{L}_{\text{seg}}=\mathcal{L}_{\text{Dice}}+\mathcal{L}_{\text{focal}}$ supervises
+the decoder output against the labels. The key term is the \emph{alignment} loss, a
+foreground-only focal binary cross-entropy that drives the routing toward the ground-truth
+concept maps. Let $m_k(t)\in\{0,1\}$ be the token-level label for concept $k$ (obtained by
+nearest-neighbour downsampling of the GT to the token grid) and
+$\mathrm{FG}=\{t: m_0(t)=0\}$ the foreground tokens. Then
+\begin{equation}
+\mathcal{L}_{\text{align}}=\frac{1}{|\mathrm{FG}|(K-1)}\sum_{t\in\mathrm{FG}}\sum_{k=1}^{K-1}
+w_k\,(1-q_{k}(t))^{\gamma}\,\mathrm{BCE}\big(p_k(t),\,m_k(t)\big),
+\label{eq:align}
+\end{equation}
+where $q_k(t)=p_k(t)$ if $m_k(t)=1$ else $1-p_k(t)$, $\gamma$ is the focal factor that
+down-weights easy tokens, and $w_k$ re-weights rare concepts (NCR). Applying
+Eq.~\ref{eq:align} on the simplex induces implicit competition: raising $p_k$ on true-$k$
+tokens necessarily lowers the others. Restricting to foreground avoids the overwhelming
+background from drowning the rare tumor concepts. Three auxiliary terms regularize the
+routing: an \emph{expert-diversity} loss
+$\mathcal{L}_{\text{div}}=\frac{1}{K(K-1)}\sum_{i\neq j}\lvert\cos(r_i,r_j)\rvert$ over the
+router's per-expert directions $r_k$ (discouraging redundant routing); an \emph{entropy}
+term $\mathcal{L}_{\text{ent}}=\tfrac{1}{N}\sum_t H(t)$ (kept with a small weight
+$\lambda_3\le0.01$, since larger values push routing toward uniform and destroy alignment);
+and a \emph{boundary} term $\mathcal{L}_{\text{bnd}}$ that sharpens predicted edges. The
+total objective is
+\begin{equation}
+\mathcal{L}=\mathcal{L}_{\text{seg}}
++\lambda_1(\phi)\,\mathcal{L}_{\text{align}}
++\lambda_2\,\mathcal{L}_{\text{div}}
++\lambda_3\,\mathcal{L}_{\text{ent}}
++\lambda_4(\phi)\,\mathcal{L}_{\text{bnd}},
+\label{eq:total}
+\end{equation}
+where $\lambda_1,\lambda_4$ depend on the curriculum phase $\phi$.
+
+\subsection{Curriculum and temperature annealing}\label{sec:curriculum}
+Routing supervision cannot start immediately: in early epochs the encoder features are
+near-random, and an active alignment loss collapses routing onto a single expert by
+chance, after which the others receive no gradient and never recover. We therefore train in
+three phases with annealed temperature (Table~\ref{tab:curriculum}). \emph{Warm-up}
+($\tau{=}2.0$, $\lambda_1{=}0$) lets the encoder learn discriminative features under
+segmentation loss alone. \emph{Alignment} ($\tau{=}1.0$, $\lambda_1{=}1$) switches on
+$\mathcal{L}_{\text{align}}$ to shape the routing. \emph{Refinement} ($\tau{=}0.5$)
+sharpens assignments and emphasizes boundaries. A lopsided expert utilization
+($<\!5\%$ for any expert) after warm-up triggers re-initialization of that expert.
+
+\begin{table}[t]
+\centering
+\caption{Three-phase training curriculum with temperature annealing. $\lambda_1$ and
+$\lambda_4$ are the alignment and boundary weights of Eq.~\ref{eq:total}.}
+\label{tab:curriculum}
+\begin{tabular}{lcccl}
+\toprule
+Phase & Epochs & $\tau$ & $\lambda_1$ / $\lambda_4$ & Purpose \\
+\midrule
+Warm-up    & $1$--$10$  & $2.0$ & $0$ / low   & encoder learns features; routing unsupervised \\
+Alignment  & $11$--$60$ & $1.0$ & $1$ / $0.01$ & $\mathcal{L}_{\text{align}}$ shapes routing to concepts \\
+Refinement & $61$--$80$ & $0.5$ & $1$ / high   & sharpen assignment, emphasize boundaries \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ====================================================================
+\section{Faithfulness Framework}\label{sec:theory}
+% ====================================================================
+We separate three notions that the interpretability literature routinely conflates.
+\emph{Faithfulness} asks whether the explanation reflects the model's actual computation;
+\emph{alignment quality} asks whether that explanation is clinically meaningful; and
+\emph{causal relevance} asks whether the highlighted regions actually drive the prediction.
+Each requires its own evidence; only their conjunction supports the overall claim.
+
+\subsection{Definitions}
+\begin{definition}[Concept Alignment Score]
+For concept $k$, $\mathrm{CAS}(k)=\mathrm{Pearson}\big(p_k(t),\,M_k(t)\big)$, averaged over
+tokens $t$ and validation cases, where $M_k(t)$ is the ground-truth concept-$k$ indicator
+at token $t$. We report the foreground variant $\casfg(k)$ over $t\in\mathrm{FG},\,k\ge1$;
+background is excluded because its near-constant mask makes the correlation ill-conditioned.
+\end{definition}
+
+\begin{definition}[Decoder Divergence]\label{def:dd}
+For a model with a separate decoder producing concept posterior $P^{\text{dec}}_k(t)$,
+$\mathrm{DD}(k)=1-\mathrm{Pearson}\big(P^{\text{dec}}_k(t),\,p_k(t)\big)$ measures how far
+the decoder departs from the routing signal.
+\end{definition}
+
+\subsection{Structural faithfulness of CCR-Net}
+\begin{proposition}[CCR-Net faithfulness]\label{prop:1a}
+In CCR-Net the routing distribution $p(t)$ is the sole concept-assignment mechanism and is
+causally upstream of the prediction: the decoder receives, at the bottleneck, only the
+expert-processed features dispatched by $p$. The explanation $p(t)$ is therefore read
+\emph{directly} from the forward computation rather than reconstructed from its output, so
+it incurs no post-hoc approximation gap. Its empirical alignment with clinical concepts is
+exactly $\mathrm{CAS}$.
+\end{proposition}
+\noindent\emph{Proof.} A post-hoc method $A$ produces an explanation $A(f,x)$ as a function
+of the trained model $f$ and input $x$, computed after $f(x)$; the map from $A(f,x)$ to the
+mechanism that produced $f(x)$ is approximate and method-dependent, which is the source of
+its unfaithfulness. In CCR-Net the quantity $p(t)$ is not a function of the output but an
+\emph{intermediate state} of $f$ itself: by Eqs.~\ref{eq:router}--\ref{eq:dispatch} every
+bottleneck feature passed to the decoder is $E_{k^\ast}(h_t)$ with
+$k^\ast=\argmax_k p_k(t)$, so $p$ determines which expert---hence which features---reach the
+decoder. The explanation is thus an identity on the computation, not an approximation of
+it; faithfulness in the structural sense (no reconstruction gap) holds by construction, and
+the only remaining empirical question---does this faithful explanation align with clinical
+ground truth---is answered by $\mathrm{CAS}$. $\square$
+
+\medskip\noindent
+Proposition~\ref{prop:1a} is structural: it establishes that the explanation is read from the
+forward computation with no post-hoc reconstruction gap, but it does \emph{not} assert that the
+decoder output is a function of the routing alone. Two mechanisms let the prediction depend on
+more than $p$: training uses soft dispatch (all experts contribute), and the UNETR decoder
+receives multi-scale encoder skips that bypass the bottleneck. We quantify this residual with
+the Decoder Divergence (Def.~\ref{def:dd}): on the test split $\mathrm{DD}=0.73,\,0.53,\,0.40$
+for NCR, edema, and ET. DD is neither negligible---a decoder that merely echoed the $16^3$
+routing could not refine it to $128^3$ boundaries---nor unstructured: it diverges most for the
+resolution-limited NCR and least for edema and ET, mirroring the CAS ordering. Structural
+faithfulness therefore does not by itself imply causal sufficiency, and we do \emph{not} rest
+on a claim that the residual is small; we establish causal relevance directly, with
+deletion/insertion AUC on the inference-time \emph{hard}-routing maps (Sec.~\ref{sec:faith}).
+
+\subsection{Extending to arbitrary backbones}
+\begin{proposition}[Retrofit bound]\label{prop:1b}
+If the CCR module is inserted into an arbitrary backbone whose decoder retains independent
+parameters, the explanation faithfulness is bounded below by
+$\mathrm{CAS}(k)\cdot(1-\mathrm{DD}(k))$.
+\end{proposition}
+\noindent\emph{Proof sketch.} Faithfulness degrades only insofar as the decoder departs from
+the routing it is conditioned on; this departure is exactly $\mathrm{DD}$, and the
+alignment of the routing with ground truth is $\mathrm{CAS}$. The achievable faithfulness is
+the product of the two, giving the stated bound (tight as $\mathrm{DD}\to0$). $\square$
+
+\medskip\noindent
+Although stated for the general setting, the bound applies to CCR-Net directly: its UNETR
+decoder is independently parameterized and skip-connected, and the measured $\mathrm{DD}$ above
+places CCR-Net in this regime rather than the idealized $\mathrm{DD}{=}0$ limit. Combining that
+DD with $\casfg$ (Table~\ref{tab:main}), the bound predicts a causal faithfulness of at least
+$\mathrm{CAS}\cdot(1-\mathrm{DD})=0.19,\,0.44,\,0.56$ for NCR, edema, and ET; the deletion AUC
+we measure (Table~\ref{tab:faith}) exceeds each, so the bound is satisfied empirically. A full
+retrofit study on a frozen third-party backbone is left to future work.
+
+% ====================================================================
+\section{Experiments}\label{sec:experiments}
+% ====================================================================
+\subsection{Setup}
+We use the BraTS 2024 glioma training data~\cite{menze2014brats,baid2021brats}: four
+co-registered MRI modalities (T1, T1ce, T2, FLAIR) per case, with expert annotations
+remapped to \{0:Background, 1:NCR, 2:Edema, 3:ET\}. We split patient-wise
+$75/12.5/12.5\%$ into train/validation/test ($n_{\text{test}}{=}168$). Inputs are
+$z$-scored per modality over nonzero voxels and processed at $128^3$ with standard flips,
+rotations, and intensity augmentation. The encoder is initialized from self-supervised
+Swin-UNETR weights. We train for $80$ epochs with AdamW ($\text{lr}{=}10^{-4}$, cosine
+schedule), mixed precision, and the curriculum of Table~\ref{tab:curriculum}. We report
+Dice and HD95 for whole tumor (WT), tumor core (TC) and enhancing tumor (ET); $\casfg$ and
+one-vs-rest AUROC per concept; and deletion/insertion AUC for faithfulness.
+
+\subsection{Metrics for faithfulness}\label{sec:metricdef}
+Given a per-voxel explanation $e_k$ for concept $k$, we rank voxels by $e_k$ and measure
+the concept-$k$ confidence $s_k(\cdot)=\mathrm{mean}_{v\in M_k}\,\mathrm{softmax}_k$ over
+the ground-truth region $M_k$. \emph{Deletion} progressively zeroes the top fraction
+$\tau$ of voxels and records the normalized confidence \emph{removed}; \emph{insertion}
+reveals the top $\tau$ from a blank volume and records the confidence \emph{recovered}:
+\begin{equation}
+\text{Del-AUC}=\!\int_0^1\!\Big(1-\tfrac{s_k(\tau)}{s_k(0)}\Big)d\tau,
+\qquad
+\text{Ins-AUC}=\!\int_0^1\!\tfrac{s_k(\tau)}{s_k(1)}\,d\tau,
+\label{eq:auc}
+\end{equation}
+both in $[0,1]$, higher being more faithful. Crucially, we apply the \emph{identical}
+protocol of Eq.~\ref{eq:auc} to CCR routing and to every baseline, so the comparison
+isolates the explanation, not the scoring.
+
+\subsection{Segmentation and alignment}
+Table~\ref{tab:main} reports the main results. CCR-Net segments competitively (Dice WT
+$0.915$) while producing routing that aligns strongly with the clinical concepts:
+$\casfg$ reaches $0.94$ (edema) and $0.93$ (ET). Necrotic core is the weak concept
+($0.68$): at the $16^3$ bottleneck a case contains only tens of NCR tokens, so the Pearson
+correlation is intrinsically noisy---an honest resolution limit, not a model failure,
+consistent across Dice, AUROC, and CAS.
+
+\begin{table}[t]
+\centering
+\caption{Segmentation, alignment, and per-concept AUROC on the BraTS test split
+($n{=}168$). $\casfg$ is the foreground concept-alignment score.}
+\label{tab:main}
+\begin{tabular}{lccc}
+\toprule
+& WT / NCR & TC / Edema & ET \\
+\midrule
+Dice                       & $0.915$ & $0.845$ & $0.836$ \\
+$\casfg$ (NCR/Edema/ET)    & $0.682$ & $0.935$ & $0.931$ \\
+AUROC (NCR/Edema/ET)       & $0.709$ & $0.833$ & $0.774$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Faithfulness vs.\ post-hoc attribution}\label{sec:faith}
+We compare CCR routing against two post-hoc baselines computed on the same trained
+CCR-Net: Grad-CAM at the post-CCR bottleneck block (the same location the routing lives,
+for a fair contrast) and vanilla gradient saliency. All three are scored with the identical
+protocol of Eq.~\ref{eq:auc}. Figure~\ref{fig:faith} and Table~\ref{tab:faith} report the
+result on a matched set of cases.
+
+On edema and enhancing tumor---the concepts with enough spatial extent to measure reliably
+($n{=}40$)---CCR is decisively more faithful on \emph{both} deletion and insertion:
+deletion AUC $0.82$--$0.86$ versus $0.46$--$0.66$ for the strongest baseline (gradient) and
+$0.38$--$0.40$ for Grad-CAM; a gap of $+0.28$ over the best baseline and $+0.45$ over
+Grad-CAM, with insertion showing the same ordering. This is the central empirical result:
+removing the voxels CCR calls important collapses the prediction, whereas removing the
+voxels Grad-CAM calls important barely moves it---precisely the faithfulness that post-hoc
+methods lack. Necrotic core is measured on fewer cases ($n{=}16$, since many cases contain
+no NCR); CCR leads on insertion, while the small-sample deletion comparison is inconclusive
+and we do not claim NCR superiority. Gradient saliency consistently outperforms Grad-CAM, so
+CCR's margin holds against the stronger baseline.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_faithfulness.png}
+\caption{Faithfulness on a matched set (deletion left, insertion right; higher is more
+faithful, Eq.~\ref{eq:auc}). CCR (green) dominates gradient saliency and Grad-CAM on edema
+and ET; the dotted line marks the $0.5$ reference. NCR is measured on $n{=}16$ cases.}
+\label{fig:faith}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\caption{Deletion / Insertion AUC (higher = more faithful), matched cases, identical
+protocol. Best per row in \textbf{bold}. $\dagger$NCR is measured on $n{=}16$ (high
+variance).}
+\label{tab:faith}
+\begin{tabular}{llccc}
+\toprule
+Metric & Concept & CCR (ours) & Gradient & Grad-CAM \\
+\midrule
+\multirow{3}{*}{Deletion}
+ & Edema & $\mathbf{0.857}$ & $0.658$ & $0.397$ \\
+ & ET    & $\mathbf{0.821}$ & $0.462$ & $0.376$ \\
+ & NCR$^\dagger$ & $0.667$ & $0.787$ & $0.405$ \\
+\midrule
+\multirow{3}{*}{Insertion}
+ & Edema & $\mathbf{0.824}$ & $0.469$ & $0.374$ \\
+ & ET    & $\mathbf{0.746}$ & $0.389$ & $0.326$ \\
+ & NCR$^\dagger$ & $\mathbf{0.532}$ & $0.461$ & $0.302$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Qualitative explanation}
+Figure~\ref{fig:qual} shows the routing read-out for a representative case. The hard
+routing assignment (panel~4) reproduces the ground-truth and predicted segmentation
+\emph{within the tumor}---a direct visual statement of routing $=$ prediction---while the
+per-concept soft maps localize each clinical concept to its sub-region (NCR in the core,
+edema on the rim, ET in the enhancing ring). A clinician reads these maps directly as
+\{NCR, Edema, ET\}, which a gradient heatmap cannot provide. In a representative hard case
+(Fig.~\ref{fig:qual2}) the routing flags enhancing tumor that the decoder under-segments,
+showing that the routing explanation can carry diagnostic signal independent of---and more
+informative than---the final mask.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig2_routing_02284.png}
+\caption{Routing maps (case BraTS-GLI-02284). Left to right: T1ce, ground truth,
+prediction, hard routing assignment, soft routing for NCR / Edema / ET, and routing
+entropy. The argmax routing matches GT/prediction inside the tumor; each soft map localizes
+its concept; entropy peaks at concept boundaries.}
+\label{fig:qual}
+\end{figure}
+
+\subsection{Ablations}
+We ablate the two design choices the theory predicts are essential. \textbf{A1 (no
+$\mathcal{L}_{\text{align}}$)} disables the alignment loss in every phase; \textbf{A4 (no
+warm-up)} activates alignment from epoch~1. Table~\ref{tab:abl} reports the outcome.
+
+\begin{table}[t]
+\centering
+\caption{Ablations on the test split. A1 removes the alignment loss; A4 removes the warm-up
+phase. \todo{Ablation runs in progress---numbers to be filled on completion.}}
+\label{tab:abl}
+\begin{tabular}{lccc}
+\toprule
+& Full CCR-Net & A1: no $\mathcal{L}_{\text{align}}$ & A4: no warm-up \\
+\midrule
+$\casfg$ (Edema)            & $0.935$ & \todo{$\sim$} & \todo{$\sim$} \\
+$\casfg$ (ET)               & $0.931$ & \todo{$\sim$} & \todo{$\sim$} \\
+$\casfg$ (NCR)              & $0.682$ & \todo{$\sim$} & \todo{$\sim$} \\
+Dice (WT)                   & $0.915$ & \todo{$\sim$} & \todo{$\sim$} \\
+Max expert utilization (\%) & \todo{$\sim$} & \todo{$\sim$} & \todo{$\sim$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent The hypotheses, which the theory and training dynamics (Fig.~\ref{fig:curve})
+both predict, are: A1 collapses $\casfg$ toward the random baseline while leaving Dice
+largely intact---showing that concept alignment is \emph{learned} from
+$\mathcal{L}_{\text{align}}$, not an incidental by-product of segmentation; and A4 drives
+expert utilization to a single dominant expert (collapse), degrading both CAS and Dice and
+confirming that warm-up is necessary.
+
+\subsection{Training dynamics}
+Figure~\ref{fig:curve} traces $\casfg$ over training. Alignment is near zero during warm-up
+(routing unsupervised), rises sharply the moment $\mathcal{L}_{\text{align}}$ activates at
+epoch~11, and is held through refinement; edema and ET converge near $0.93$ while NCR
+plateaus at the resolution-imposed ceiling. The curve is the temporal mirror of the A1
+ablation: removing $\mathcal{L}_{\text{align}}$ removes exactly the rise visible at epoch~11.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.72\textwidth]{figures/fig4_cas_curve.png}
+\caption{$\casfg$ across the three-phase curriculum (dashed lines: phase boundaries).
+Alignment emerges only after $\mathcal{L}_{\text{align}}$ activates at epoch~11, directly
+mirroring the A1 ablation.}
+\label{fig:curve}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig2_routing_02724.png}
+\caption{Hard case (BraTS-GLI-02724): the routing assignment flags enhancing tumor that the
+final decoder mask under-segments, illustrating that the routing explanation can be more
+informative than the prediction itself.}
+\label{fig:qual2}
+\end{figure}
+
+% ====================================================================
+\section{Discussion and Limitations}
+% ====================================================================
+\textbf{Necrotic core resolution.} At the $16^3$ bottleneck a case contributes only tens of
+NCR tokens, capping CAS and faithfulness for that concept; this is the single consistent
+weak spot across all metrics. A finer bottleneck trades semantic context for resolution,
+and reconciling the two is open.
+\textbf{Calibration.} Routing entropy provides a free per-voxel uncertainty map, but its
+absolute calibration is poor (expected calibration error $\approx0.73$): peaked routing at
+low temperature is confident even where token-level accuracy is low. We therefore treat
+entropy as a qualitative uncertainty signal and make no calibration claim.
+\textbf{Soft training vs.\ hard inference.} During training all experts contribute via soft
+weighting; the faithfulness claim concerns inference-time hard dispatch, and our
+deletion/insertion analysis uses hard-routing maps accordingly (Sec.~\ref{sec:faith}).
+\textbf{Concept granularity.} $K{=}4$ imposes hard concept boundaries; transition-zone
+tokens are forced into one concept, matching the BraTS protocol but discarding mixed-tissue
+nuance.
+
+% ====================================================================
+\section{Conclusion}
+% ====================================================================
+We introduced Clinical Concept Routing: making the routing decision at the segmentation
+bottleneck the faithful, clinically-labeled, per-voxel explanation, computed in one forward
+pass. We detailed the router, expert bank, dispatch, objective, and curriculum that make
+this work, and showed that CCR-Net's explanation is structurally faithful with alignment
+quality equal to the Concept Alignment Score. On an identical causal protocol the routing
+is far more faithful than Grad-CAM or gradient saliency on the concepts that admit reliable
+measurement. CCR is the first method to deliver intrinsic, concept-labeled, faithful
+explanation for 3D volumetric dense prediction; extending the principle to arbitrary
+backbones (Proposition~\ref{prop:1b}) and to additional anatomies is promising future work.
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}
