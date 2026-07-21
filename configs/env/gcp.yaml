@@ -23,7 +23,9 @@ gcp:
 #   Submit predictions to: https://www.synapse.org/ (BraTS 2024 GLI task) to get official Dice/HD95
 #   NOTE: evaluate.py cannot run on this data (no GT). Use visualize.py or inference-only script.
 #
-# pretrained_path still reads from gcsfuse (one-time load at startup, negligible).
+# pretrained_path is repo-relative (resolved from the repo root at runtime, like local.yaml).
+# Copy the weights in once, no gcsfuse mount needed:
+#   gsutil cp gs://research-brats/pretrained/model_swinvit.pt pretrained/model_swinvit.pt
 # checkpoint_dir is local; gcs_checkpoint_dir synced per checkpoint via gcloud storage cp.
 paths:
   # ~ expands to the current user's home (apply_env → _expand), so these are portable
@@ -31,7 +33,7 @@ paths:
   data_root:               "~/data/training_data1_v2"
   brats_official_val_root: "~/data/brats_official_val/validation_data"
   checkpoint_dir:          "~/checkpoints"
-  pretrained_path:         "/gcs/research-brats/pretrained/model_swinvit.pt"
+  pretrained_path:         "pretrained/model_swinvit.pt"
   gcs_checkpoint_dir:      "gs://research-brats/checkpoints"
   gcs_training_data:       "gs://research-brats/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
   gcs_val_data:            "gs://research-brats/BraTS2024-BraTS-GLI-ValidationData/validation_data"
