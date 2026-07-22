@@ -47,6 +47,7 @@ import numpy as np
 CONCEPTS = ("necrotic_core", "edema", "enhancing_tumor")
 REGION_MODES = ("gt", "pred")
 BASELINE_METHODS = ("gradcam", "gradient", "ig", "occlusion")
+ALIGN_METHODS = ("ccr",) + BASELINE_METHODS
 N_BOOT = 10000
 ALPHA = 0.05
 
@@ -191,6 +192,31 @@ def paired_vs_baselines(
     return results
 
 
+def alignment_analysis(align_rows: List[Dict[str, object]]) -> Dict[str, object]:
+    """Concept-discriminability (foreground AUROC): per-method 95% CI + paired CCR-vs-baseline.
+
+    Per-patient scalar per method = mean over concepts of {method}_auroc_fg_{concept} (nanmean).
+    """
+    per_method: Dict[str, np.ndarray] = {}
+    for m in ALIGN_METHODS:
+        vals = []
+        for r in align_rows:
+            cvals = [r.get(f"{m}_auroc_fg_{c}", float("nan")) for c in CONCEPTS]
+            cvals = [v for v in cvals if isinstance(v, (int, float)) and not math.isnan(v)]
+            vals.append(float(np.mean(cvals)) if cvals else float("nan"))
+        per_method[m] = np.array(vals, float)
+
+    out: Dict[str, object] = {"per_method": {}, "ccr_vs": {}}
+    for m in ALIGN_METHODS:
+        mean_v, lo, hi, n = bootstrap_ci(per_method[m])
+        out["per_method"][m] = {"mean": mean_v, "ci_lo": lo, "ci_hi": hi, "n": n}
+    for m in BASELINE_METHODS:
+        cmp = paired_compare(per_method["ccr"], per_method[m])
+        if cmp is not None:
+            out["ccr_vs"][m] = cmp
+    return out
+
+
 def multiseed_aggregate(summary_paths: List[str]) -> Dict[str, Dict[str, float]]:
     """mean +/- std across runs for the headline scalar metrics in each summary.json."""
     summaries = []
@@ -228,7 +254,7 @@ def _fmt(x: float, p: int = 3) -> str:
     return "nan" if (x is None or (isinstance(x, float) and math.isnan(x))) else f"{x:.{p}f}"
 
 
-def print_report(cis: Dict, paired: Dict, seeds: Optional[Dict]) -> None:
+def print_report(cis: Dict, paired: Dict, seeds: Optional[Dict], align: Optional[Dict] = None) -> None:
     print("\n===== CCR per-patient metrics — bootstrap 95% CI =====")
     print(f"{'metric':32s} {'mean':>8s}  {'95% CI':>18s}   n")
     for k, s in cis.items():
@@ -241,6 +267,17 @@ def print_report(cis: Dict, paired: Dict, seeds: Optional[Dict]) -> None:
         print(f"{k:44s} {_fmt(s['mean_diff']):>7s} "
               f"[{_fmt(s['ci_lo'])}, {_fmt(s['ci_hi'])}] {_fmt(s['wilcoxon_p'],4):>10s}  "
               f"{s['n_pairs']:>3d}  {sig}")
+
+    if align:
+        print("\n===== Concept-discriminability (fg AUROC, mean over concepts) — 95% CI =====")
+        for m, s in align["per_method"].items():
+            print(f"  {m:10s} {_fmt(s['mean'])}  [{_fmt(s['ci_lo'])}, {_fmt(s['ci_hi'])}]  n={s['n']}")
+        print("  -- CCR vs baseline (paired) --")
+        for m, s in align["ccr_vs"].items():
+            sig = "*" if s.get("significant_95") else " "
+            print(f"  ccr_vs_{m:10s} dMean={_fmt(s['mean_diff'])} "
+                  f"[{_fmt(s['ci_lo'])}, {_fmt(s['ci_hi'])}]  p={_fmt(s['wilcoxon_p'], 4)}  "
+                  f"n={s['n_pairs']}  {sig}")
 
     if seeds:
         print("\n===== Multi-seed variance (mean +/- std across seeds) =====")
@@ -286,12 +323,18 @@ def main() -> None:
     else:
         print(f"[warn] CCR CSV not found: {ccr_csv} — skipping CIs/paired tests.")
 
+    align: Optional[Dict] = None
+    align_csv = os.path.join(args.evals_dir, f"{args.split}_alignment", f"{args.split}_alignment.csv")
+    if os.path.exists(align_csv):
+        align = alignment_analysis(load_csv(align_csv))
+        report["concept_alignment"] = align
+
     seeds: Optional[Dict] = None
     if args.seed_summaries:
         seeds = multiseed_aggregate(args.seed_summaries)
         report["multiseed"] = seeds
 
-    print_report(cis, paired, seeds)
+    print_report(cis, paired, seeds, align)
 
     out_path = args.out or os.path.join(args.evals_dir, args.split, f"{args.split}_stats.json")
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
