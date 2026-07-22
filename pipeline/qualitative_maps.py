@@ -164,7 +164,7 @@ def main() -> None:
     # method rows
     for r, method in enumerate(METHODS, start=1):
         for c, (k, cname) in enumerate(CONCEPTS):
-            _panel(axes[r, c], maps[method][k], contour_k=k,
+            _panel(axes[r, c], maps[method][k][:, :, z], contour_k=k,
                    title=(cname if r == 1 else None),
                    ylabel=(method if c == 0 else None))
 
