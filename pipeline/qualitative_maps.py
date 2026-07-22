@@ -100,7 +100,7 @@ def main() -> None:
         lab = batch["label"][0].numpy()
         counts = {k: int((lab == k).sum()) for k, _ in CONCEPTS}
         if args.case_id:
-            if pid == args.case_id:
+            if args.case_id in str(pid):        # substring match (suffix-agnostic)
                 chosen = (batch, pid, lab); break
         elif all(c > 300 for c in counts.values()):
             chosen = (batch, pid, lab); break
