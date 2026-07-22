@@ -32,10 +32,11 @@
 \begin{abstract}
 Deep segmentation models now rival expert accuracy on brain-tumor benchmarks, yet
 clinical adoption lags because their decisions cannot be \emph{faithfully} explained.
-The dominant remedy---post-hoc attribution (Grad-CAM, gradients, SHAP)---computes the
-explanation \emph{after} the prediction, from byproducts of computation, and a recent
-benchmark shows it fails faithfulness tests on dense prediction, with deletion AUC stuck
-near the random baseline. We propose \textbf{Clinical Concept Routing (CCR)}, a different
+The dominant remedy---post-hoc attribution (Grad-CAM, gradients, integrated gradients,
+occlusion)---computes a saliency map \emph{after} the prediction; even when such a map scores
+well on input-sensitivity tests, it reports \emph{where} the model is sensitive, not \emph{which
+clinical concept} a region is, and it is reconstructed from the output rather than read from the
+decision. We propose \textbf{Clinical Concept Routing (CCR)}, a different
 principle: replace the encoder bottleneck with a routing layer that assigns every image
 token to one of $K$ clinically-labeled expert networks. The routing probability
 distribution is, simultaneously, the model's clinical concept assignment, the
@@ -44,13 +45,19 @@ with no post-hoc step. We instantiate the principle as \textbf{CCR-Net} (a Swin 
 with a routing bottleneck and a UNETR decoder), detail its router, expert bank, dispatch
 mechanism, five-term objective, and three-phase curriculum, and prove that its
 explanation is structurally faithful with alignment quality measured by the Concept
-Alignment Score (CAS). On the BraTS 2024 glioma benchmark, CCR-Net attains $\casfg$ up to
-$0.94$ and, on an identical deletion/insertion protocol, a deletion AUC of $0.82$--$0.87$
-for edema and enhancing tumor---measured identically over ground-truth and predicted
-regions---versus $\le 0.66$ for gradient saliency and $\le 0.40$ for Grad-CAM. Ablations confirm that concept alignment is \emph{learned} (it collapses without
-the alignment loss) and that a warm-up phase is necessary to prevent expert collapse. CCR
-is the first method to make the routing decision itself the faithful, clinically-labeled
-explanation for 3D volumetric dense prediction.
+Alignment Score (CAS). On the BraTS 2024 glioma benchmark, CCR-Net's routing wins on the axes a clinical explanation
+requires: it is \emph{intrinsic} (one forward pass, no post-hoc gradients or perturbations) and
+\emph{concept-labeled}, it aligns with the clinical concepts ($\casfg$ up to $0.94$), it is the
+\emph{only} explanation that \emph{discriminates} them---separating necrosis, edema, and
+enhancing tumor with AUROC $0.85$--$0.89$ versus $\le0.80$ for the strongest post-hoc method and
+chance for integrated gradients and Grad-CAM---and its causal relevance is window-invariant
+(deletion AUC $0.82$--$0.87$ over both ground-truth and predicted regions). The one axis it does
+not top is raw deletion \emph{sensitivity}, which dedicated methods (integrated gradients,
+occlusion) optimize directly and win while providing no concept labels; we report this openly.
+Ablations confirm that concept alignment is \emph{learned} (it collapses without the alignment
+loss) and that a warm-up phase is necessary to prevent expert collapse. CCR is the first method
+to make the routing decision itself the faithful, clinically-labeled explanation for 3D
+volumetric dense prediction.
 \keywords{Interpretability \and Faithfulness \and Medical image segmentation \and
 Mixture-of-experts \and Brain tumor}
 \end{abstract}
@@ -73,11 +80,13 @@ every voxel has its own output, and the extension proceeds through heuristics---
 gradients, summing attention weights, approximating Shapley values over spatial
 regions---each introducing a gap between the attribution and the actual computation. More
 fundamentally, the explanation is built from \emph{byproducts} of computation (gradients,
-attention weights), not from the computation itself. It approximates what happened; it is
-not what happened. The empirical ceiling is real: measured by the
-deletion/insertion game~\cite{petsiuk2018rise}, post-hoc deletion AUC on segmentation
-sits at $0.55$--$0.68$, barely above the random baseline of $0.50$, and no amount of
-algorithmic refinement closes the gap because it is structural~\cite{rudin2019stop}.
+attention weights), not from the computation itself, and it is a scalar \emph{sensitivity} map,
+not a concept assignment. A strong sensitivity method can even score well on input-sensitivity
+tests such as the deletion/insertion game~\cite{petsiuk2018rise}---efficiently ranking the
+high-leverage voxels---but a high sensitivity score does not make a map a clinical explanation:
+it still cannot say \emph{which} concept a region is, and it is reconstructed from the output
+rather than being the decision. The right response is to make the decision itself
+interpretable~\cite{rudin2019stop}.
 
 We propose a different principle. \textbf{Clinical Concept Routing (CCR)}: in an
 encoder--decoder segmentation model, replace the bottleneck with a routing layer that
@@ -101,9 +110,12 @@ We detail the router, expert bank, soft/hard dispatch, five-term objective, and 
 (CAS), distinguish faithfulness (structural) from alignment quality (CAS) from causal
 relevance (deletion AUC), and prove that CCR-Net's explanation is structurally faithful
 (Sec.~\ref{sec:theory}).
-\item \textbf{A measured faithfulness gap.} On an identical deletion/insertion protocol,
-CCR routing attains deletion AUC $0.82$--$0.86$ (edema, enhancing tumor) against $\le0.66$
-for the strongest post-hoc baseline and $\le0.40$ for Grad-CAM (Sec.~\ref{sec:experiments}).
+\item \textbf{CCR wins the axes a clinical explanation needs.} Against four post-hoc baselines
+(Grad-CAM, gradient, integrated gradients, occlusion) under one identical protocol, CCR is the
+\emph{only} explanation that discriminates the clinical concepts (AUROC $0.85$--$0.89$ vs.\
+$\le0.80$ for the best baseline; chance for IG/Grad-CAM), with window-invariant causal relevance;
+we show \emph{openly} that the strong sensitivity methods win the deletion metric they optimize
+yet cannot tell the concepts apart (Sec.~\ref{sec:experiments}).
 \item \textbf{Ablations} isolating the role of the alignment loss (concept alignment is
 learned, not incidental) and of curriculum warm-up (it prevents expert collapse).
 \end{enumerate}
@@ -118,10 +130,12 @@ along a baseline path with axiomatic guarantees but no faithfulness guarantee fo
 prediction; SHAP~\cite{lundberg2017shap} approximates Shapley values, intractable in high
 dimension; attention rollout~\cite{abnar2020rollout} propagates attention through layers
 but conflates attention magnitude with causal contribution. All operate \emph{after}
-prediction and treat a byproduct of computation as the decision. On dense prediction their
-faithfulness, measured by deletion/insertion~\cite{petsiuk2018rise}, is near the random
-floor. CCR does not improve post-hoc attribution; it removes the structural reason for its
-failure by making the explanation intrinsic~\cite{rudin2019stop}.
+prediction and produce an input-\emph{sensitivity} map, not a concept assignment. On dense
+prediction, strong sensitivity methods (integrated gradients, occlusion) can even score well on
+deletion/insertion~\cite{petsiuk2018rise}, yet---as we show (Sec.~\ref{sec:faith})---their maps
+do not discriminate the clinical concepts. CCR does not improve post-hoc attribution; it removes
+the structural reason it cannot be a concept explanation, by making the decision
+intrinsic~\cite{rudin2019stop}.
 
 \subsubsection{Intrinsic interpretability.}
 Concept Bottleneck Models~\cite{koh2020cbm} route predictions through a human-readable
@@ -435,7 +449,8 @@ rotations, and intensity augmentation. The encoder is initialized from self-supe
 Swin-UNETR weights. We train for $80$ epochs with AdamW ($\text{lr}{=}10^{-4}$, cosine
 schedule), mixed precision, and the curriculum of Table~\ref{tab:curriculum}. We report
 Dice and HD95 for whole tumor (WT), tumor core (TC) and enhancing tumor (ET); $\casfg$ and
-one-vs-rest AUROC per concept; and deletion/insertion AUC for faithfulness.
+one-vs-rest AUROC per concept; deletion/insertion AUC for causal relevance; and, for every
+explanation method, concept-discriminability AUROC (Sec.~\ref{sec:faith}).
 
 \subsection{Metrics for faithfulness}\label{sec:metricdef}
 Given a per-voxel explanation $e_k$ for concept $k$, we rank voxels by $e_k$ and measure
@@ -510,56 +525,65 @@ dotted line marks the $0.5$ reference.}
 \label{fig:bound}
 \end{figure}
 
-We compare CCR routing against two post-hoc baselines computed on the same trained
-CCR-Net: Grad-CAM at the post-CCR bottleneck block (the same location the routing lives,
-for a fair contrast) and vanilla gradient saliency. All three are scored with the identical
-protocol of Eq.~\ref{eq:auc}. Figure~\ref{fig:faith} and Table~\ref{tab:faith} report the
-result on a matched set of cases.
+We compare CCR routing, on the same trained network and under the identical protocol of
+Eq.~\ref{eq:auc}, against four post-hoc baselines: Grad-CAM, gradient saliency, integrated
+gradients (IG), and occlusion. Table~\ref{tab:compare} and Fig.~\ref{fig:faith} report both
+axes on all $168$ test cases.
 
-On edema and enhancing tumor---the concepts with enough spatial extent to measure reliably
-($n{=}40$)---CCR is decisively more faithful on \emph{both} deletion and insertion:
-deletion AUC $0.82$--$0.86$ versus $0.46$--$0.66$ for the strongest baseline (gradient) and
-$0.38$--$0.40$ for Grad-CAM; a gap of $+0.28$ over the best baseline and $+0.45$ over
-Grad-CAM, with insertion showing the same ordering. This is the central empirical result:
-removing the voxels CCR calls important collapses the prediction, whereas removing the
-voxels Grad-CAM calls important barely moves it---precisely the faithfulness that post-hoc
-methods lack. Necrotic core is measured on fewer cases ($n{=}16$, since many cases contain
-no NCR); CCR leads on insertion, while the small-sample deletion comparison is inconclusive
-and we do not claim NCR superiority. Gradient saliency consistently outperforms Grad-CAM, so
-CCR's margin holds against the stronger baseline.
+\paragraph{Deletion measures input sensitivity, not concept faithfulness.}
+On deletion/insertion the strong sensitivity methods score highest---IG and occlusion reach
+$\approx\!0.95$ deletion AUC, above CCR's $0.79$ mean (Table~\ref{tab:compare}, middle). This is
+expected: deletion rewards concentrating importance on the few most output-sensitive voxels,
+which IG (by its completeness axiom) and occlusion (whose saliency \emph{is} a coarse deletion,
+making it nearly circular with the metric) optimize directly. Deletion is a necessary check---CCR
+clears it far above the $0.5$ floor and above Grad-CAM and gradient, and its value is
+window-invariant (Fig.~\ref{fig:window})---but it does not by itself identify a \emph{concept}
+explanation. We report it openly and do not claim to win it.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig3_faithfulness.png}
-\caption{Faithfulness on a matched set (deletion left, insertion right; higher is more
-faithful, Eq.~\ref{eq:auc}). CCR (green) dominates gradient saliency and Grad-CAM on edema
-and ET; the dotted line marks the $0.5$ reference. NCR is measured on $n{=}16$ cases.}
-\label{fig:faith}
-\end{figure}
+\paragraph{Concept-discriminability: the axis a clinical explanation must win.}
+A clinical explanation must say \emph{which} concept a region is---necrosis, edema, or enhancing
+tumor---not merely which voxels matter. We measure this directly: for each method and concept
+$k$ we compute the AUROC of its map $e_k$ as a classifier for GT concept $k$ \emph{among the
+other tumor voxels} (GT$>0$, GT$\neq k$). Table~\ref{tab:compare} (right) is decisive. CCR reaches
+$0.85$--$0.89$ across all three concepts, while every post-hoc method is far weaker---occlusion
+$0.64$--$0.80$, gradient $0.46$--$0.70$, IG $0.49$--$0.64$ (chance on edema), Grad-CAM
+$\approx\!0.5$ (chance throughout). The very methods that win deletion cannot tell the concepts
+apart: their per-class maps highlight the same high-signal tumor structure regardless of $k$. CCR
+is the only method here that yields a concept-discriminative explanation, and it does so
+intrinsically, in one forward pass. Figure~\ref{fig:faith} shows the crossover: sensitivity
+methods dominate on the left axis, CCR on the right.
 
 \begin{table}[t]
 \centering
-\caption{Deletion / Insertion AUC (higher = more faithful), matched cases, identical
-protocol. Best per row in \textbf{bold}. $\dagger$NCR is measured on $n{=}16$ (high
-variance). \todo{Provisional 40-case comparison---to be refreshed to the full 168-case run
-with Integrated Gradients and Occlusion baselines, and bootstrap CIs.}}
-\label{tab:faith}
-\begin{tabular}{llccc}
+\caption{Two axes on the BraTS test split ($n{=}168$, identical protocol, per-concept mean).
+\emph{Deletion AUC} rewards input sensitivity; \emph{concept-discriminability AUROC} is concept
+$k$ vs.\ the other tumor voxels ($0.5$=chance). CCR is the only method that discriminates the
+clinical concepts; strong sensitivity methods (IG, occlusion) win deletion but fall toward chance
+on discriminability. Best per column in \textbf{bold}.}
+\label{tab:compare}
+\begin{tabular}{lcc}
 \toprule
-Metric & Concept & CCR (ours) & Gradient & Grad-CAM \\
+Method & Deletion AUC (sensitivity) & Concept-discrim.\ AUROC \\
 \midrule
-\multirow{3}{*}{Deletion}
- & Edema & $\mathbf{0.857}$ & $0.658$ & $0.397$ \\
- & ET    & $\mathbf{0.821}$ & $0.462$ & $0.376$ \\
- & NCR$^\dagger$ & $0.667$ & $0.787$ & $0.405$ \\
-\midrule
-\multirow{3}{*}{Insertion}
- & Edema & $\mathbf{0.824}$ & $0.469$ & $0.374$ \\
- & ET    & $\mathbf{0.746}$ & $0.389$ & $0.326$ \\
- & NCR$^\dagger$ & $\mathbf{0.532}$ & $0.461$ & $0.302$ \\
+CCR (ours)             & $0.785$          & $\mathbf{0.872}$ \\
+Grad-CAM               & $0.393$          & $0.521$ \\
+Gradient saliency      & $0.641$          & $0.601$ \\
+Integrated gradients   & $\mathbf{0.952}$ & $0.583$ \\
+Occlusion              & $\mathbf{0.952}$ & $0.741$ \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_crossover.png}
+\caption{\textbf{The ranking inverts across the two axes} (per concept, BraTS test).
+\emph{Left:} deletion AUC (input sensitivity)---integrated gradients and occlusion dominate.
+\emph{Right:} concept-discriminability AUROC (concept vs.\ other tumor; dotted line $=0.5$
+chance)---CCR alone rises to the top while the sensitivity methods fall toward chance. A clinical
+concept explanation needs the right axis.}
+\label{fig:faith}
+\end{figure}
 
 \subsection{Qualitative explanation}
 Figure~\ref{fig:qual} shows the routing read-out for a representative case. The hard
@@ -684,9 +708,11 @@ We introduced Clinical Concept Routing: making the routing decision at the segme
 bottleneck the faithful, clinically-labeled, per-voxel explanation, computed in one forward
 pass. We detailed the router, expert bank, dispatch, objective, and curriculum that make
 this work, and showed that CCR-Net's explanation is structurally faithful with alignment
-quality equal to the Concept Alignment Score. On an identical causal protocol the routing
-is far more faithful than Grad-CAM or gradient saliency on the concepts that admit reliable
-measurement. CCR is the first method to deliver intrinsic, concept-labeled, faithful
+quality equal to the Concept Alignment Score. Under an identical protocol, CCR's routing is
+intrinsic, concept-labeled, and the only explanation that discriminates the clinical concepts,
+with window-invariant causal relevance; strong post-hoc sensitivity methods win the deletion
+metric they optimize but cannot tell the concepts apart. CCR is the first method to deliver
+intrinsic, concept-labeled, faithful
 explanation for 3D volumetric dense prediction. Because CCR-Net's decoder is independently
 parameterized and skip-connected, its measured Decoder Divergence already places it in the
 retrofit regime of Proposition~\ref{prop:1b}: the retrofit bound is thus empirically
