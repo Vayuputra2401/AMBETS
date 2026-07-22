@@ -464,7 +464,8 @@ reveals the top $\tau$ from a blank volume and records the confidence \emph{reco
 \text{Ins-AUC}=\!\int_0^1\!\tfrac{s_k(\tau)}{s_k(1)}\,d\tau,
 \label{eq:auc}
 \end{equation}
-both in $[0,1]$, higher being more faithful. Crucially, we apply the \emph{identical}
+both in $[0,1]$, higher meaning stronger causal relevance (the top-ranked voxels drive the
+prediction). Crucially, we apply the \emph{identical}
 protocol of Eq.~\ref{eq:auc} to CCR routing and to every baseline, so the comparison
 isolates the explanation, not the scoring.
 
@@ -606,7 +607,7 @@ Table~\ref{tab:compare} (right).}
 \subsection{Qualitative explanation}
 Figure~\ref{fig:qual} shows the routing read-out for a representative case. The hard
 routing assignment (panel~4) reproduces the ground-truth and predicted segmentation
-\emph{within the tumor}---a direct visual statement of routing $=$ prediction---while the
+\emph{within the tumor}---the routing tracks the prediction (though not identically; DD)---while the
 per-concept soft maps localize each clinical concept to its sub-region (NCR in the core,
 edema on the rim, ET in the enhancing ring). A clinician reads these maps directly as
 \{NCR, Edema, ET\}, which a gradient heatmap cannot provide. In a representative hard case
