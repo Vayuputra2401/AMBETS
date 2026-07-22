@@ -155,6 +155,20 @@ the model's clinical concept assignment, (ii) a quantity that conditions every d
 computation, and (iii) the explanation read out for the user. We instantiate $K{=}4$ to
 match the BraTS annotation protocol exactly: \{Background, NCR, Edema, ET\}.
 
+\paragraph{What kind of explanation this is.}
+CCR does not attach a post-hoc saliency map to a fixed black box; it makes the model's
+decision interpretable \emph{by construction}~\cite{rudin2019stop}. Because the architecture
+must route each region to exactly one clinically-labeled expert \emph{before} the decoder can
+act, the routing is a load-bearing, concept-level decision variable---which expert processed a
+region, and with what confidence (entropy)---not a heatmap reconstructed from the output. It is
+causally upstream of the prediction and, as we measure (DD, Sec.~\ref{sec:theory}), \emph{not}
+identical to it; the per-concept experts make it modular, so one can inspect which expert fired
+and intervene by ablating it (the deletion analysis of Sec.~\ref{sec:faith}). This is a
+different object from a monolithic segmentation posterior and from a post-hoc attribution: the
+explanation \emph{is} the decision, read from the computation---so ``is routing just the
+prediction?'' misreads the claim. Routing is the concept-level decision that \emph{produces}
+the prediction, exposed faithfully rather than reconstructed.
+
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[
@@ -652,6 +666,16 @@ deletion/insertion analysis uses hard-routing maps accordingly (Sec.~\ref{sec:fa
 \textbf{Concept granularity.} $K{=}4$ imposes hard concept boundaries; transition-zone
 tokens are forced into one concept, matching the BraTS protocol but discarding mixed-tissue
 nuance.
+\textbf{Scope of the explanation.} CCR explains at the level of clinical \emph{concepts}
+---which of the $K$ experts processed each region, and with what confidence---not a finer
+account of the router's internal reasoning, and the concept content necessarily overlaps the
+segmentation it conditions. CCR is thus best understood as an inherently interpretable
+segmentation model whose routing decision is a faithful, intrinsic explanation, rather than a
+post-hoc saliency method: its advantage over a heatmap is faithfulness, concept labels,
+modularity, and free uncertainty---not spatial sharpness. Consistently, strong sensitivity
+methods (integrated gradients, occlusion) can score higher on deletion---an input-sensitivity
+metric they optimize directly---while failing to separate the clinical concepts
+(Sec.~\ref{sec:faith}); we report this openly rather than claiming to win every metric.
 
 % ====================================================================
 \section{Conclusion}
