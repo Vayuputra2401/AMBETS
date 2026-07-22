@@ -53,9 +53,13 @@ SEG_CMAP = ListedColormap(["#00000000", "#e04141", "#3bb143", "#3b6bdb"])  # bg,
 
 
 def _norm(a):
+    """Robust min-max to [0,1] (clip to 1st-99th pct so outliers don't crush the map)."""
     a = a.astype(np.float32)
-    lo, hi = np.nanmin(a), np.nanmax(a)
-    return (a - lo) / (hi - lo + 1e-8)
+    finite = a[np.isfinite(a)]
+    if finite.size == 0:
+        return a
+    lo, hi = np.percentile(finite, 1), np.percentile(finite, 99)
+    return np.clip((a - lo) / (hi - lo + 1e-8), 0.0, 1.0)
 
 
 def main() -> None:
@@ -133,6 +137,20 @@ def main() -> None:
     gt_sl = lab[:, :, z]
     pred_sl = pred[:, :, z]
 
+    # crop to the tumor bounding box (+ margin) so the per-concept maps are legible
+    ys, xs = np.where(gt_sl > 0)
+    if ys.size:
+        mrg = 16
+        r0, r1 = max(int(ys.min()) - mrg, 0), min(int(ys.max()) + mrg, H)
+        c0, c1 = max(int(xs.min()) - mrg, 0), min(int(xs.max()) + mrg, W)
+    else:
+        r0, r1, c0, c1 = 0, H, 0, W
+
+    def crop(a):
+        return a[r0:r1, c0:c1]
+
+    t1c, brain, gt_sl, pred_sl = crop(t1c), crop(brain), crop(gt_sl), crop(pred_sl)
+
     # --- figure: (context + 5 methods) rows x 3 concept columns ---
     nrows = 1 + len(METHODS)
     fig, axes = plt.subplots(nrows, 3, figsize=(7.5, 2.4 * nrows))
@@ -164,7 +182,7 @@ def main() -> None:
     # method rows
     for r, method in enumerate(METHODS, start=1):
         for c, (k, cname) in enumerate(CONCEPTS):
-            _panel(axes[r, c], maps[method][k][:, :, z], contour_k=k,
+            _panel(axes[r, c], crop(maps[method][k][:, :, z]), contour_k=k,
                    title=(cname if r == 1 else None),
                    ylabel=(method if c == 0 else None))
 
