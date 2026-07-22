@@ -347,6 +347,47 @@ def compute_insertion_auc(
 
 
 # ---------------------------------------------------------------------------
+# Concept-discriminability of an arbitrary explanation map
+# ---------------------------------------------------------------------------
+
+def concept_auroc_from_volume(
+    expl_k: torch.Tensor,   # [H, W, D] per-concept explanation map
+    label: torch.Tensor,    # [H, W, D] int64 GT labels
+    k: int,
+    foreground_only: bool = True,
+) -> float:
+    """
+    AUROC of a per-concept explanation volume e_k as a classifier for GT concept k.
+
+    Complements deletion/insertion AUC (which rewards input sensitivity): this measures
+    whether the map localizes the *clinical concept*. Two windows:
+      foreground_only=True  → negatives are the OTHER tumor voxels (GT>0, GT!=k): does the
+                              map separate concept k from the other sub-regions? — the
+                              concept-discriminability test a sensitivity heatmap fails.
+      foreground_only=False → negatives are all non-k voxels (mostly background): easier
+                              region-localization test.
+
+    Returns AUROC in [0,1] (0.5 = chance); NaN if concept k is absent from the window.
+    """
+    try:
+        from sklearn.metrics import roc_auc_score
+    except ImportError:
+        raise ImportError("scikit-learn required: pip install scikit-learn")
+
+    e = expl_k.detach().cpu().float().numpy().reshape(-1)
+    lab = label.detach().cpu().long().numpy().reshape(-1)
+    mask = (lab > 0) if foreground_only else np.ones_like(lab, dtype=bool)
+    e_m = e[mask]
+    pos = (lab[mask] == k).astype(int)
+    if pos.sum() == 0 or pos.sum() == pos.size:
+        return float("nan")
+    try:
+        return float(roc_auc_score(pos, e_m))
+    except Exception:
+        return float("nan")
+
+
+# ---------------------------------------------------------------------------
 # Decoder Divergence (Def 2) — quantifies the residual gap in Proposition 1
 # ---------------------------------------------------------------------------
 

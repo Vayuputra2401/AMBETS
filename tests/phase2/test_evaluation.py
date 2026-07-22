@@ -27,6 +27,7 @@ from ccrnet.utils.evaluation import (
     compute_deletion_auc,
     compute_insertion_auc,
     compute_decoder_divergence,
+    concept_auroc_from_volume,
     compute_ece,
     mc_dropout_entropy,
     _region_mask,
@@ -410,6 +411,36 @@ def test_dd_near_zero_when_decoder_matches_routing(synthetic_token_labels):
     for name, v in dd.items():
         if not math.isnan(v):
             assert v < 0.2, f"DD for {name} should be ~0 when decoder==routing, got {v}"
+
+
+# ---------------------------------------------------------------------------
+# 6d. concept_auroc_from_volume (concept-discriminability of an explanation map)
+# ---------------------------------------------------------------------------
+
+def test_concept_auroc_perfect_discriminability():
+    """A map high exactly on GT==k tumor voxels → foreground AUROC = 1.0."""
+    label = torch.zeros(8, 8, 8, dtype=torch.long)
+    label[:4] = 2   # edema half
+    label[4:] = 1   # NCR half (all foreground)
+    e = (label == 1).float()
+    assert concept_auroc_from_volume(e, label, 1, foreground_only=True) == pytest.approx(1.0, abs=1e-6)
+
+
+def test_concept_auroc_nondiscriminative_is_chance():
+    """A constant map (same for every concept) → foreground AUROC = 0.5 (chance)."""
+    label = torch.zeros(8, 8, 8, dtype=torch.long)
+    label[:4] = 2
+    label[4:] = 1
+    e = torch.ones(8, 8, 8)
+    au = concept_auroc_from_volume(e, label, 1, foreground_only=True)
+    assert math.isnan(au) or abs(au - 0.5) < 1e-6
+
+
+def test_concept_auroc_absent_concept_nan():
+    """Concept absent from the window → NaN."""
+    label = torch.full((8, 8, 8), 2, dtype=torch.long)   # only edema, no NCR
+    e = torch.rand(8, 8, 8)
+    assert math.isnan(concept_auroc_from_volume(e, label, 1, foreground_only=True))
 
 
 # ---------------------------------------------------------------------------
