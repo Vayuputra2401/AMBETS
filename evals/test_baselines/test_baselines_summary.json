@@ -1,0 +1,262 @@
+{
+  "gradcam_del_gt_necrotic_core": {
+    "mean": 0.454818457582833,
+    "std": 0.24036732652899476,
+    "n": 67
+  },
+  "gradcam_ins_gt_necrotic_core": {
+    "mean": 0.34976546355335414,
+    "std": 0.1575648695667031,
+    "n": 67
+  },
+  "gradcam_del_gt_edema": {
+    "mean": 0.39247976241784666,
+    "std": 0.15263006877808147,
+    "n": 168
+  },
+  "gradcam_ins_gt_edema": {
+    "mean": 0.36923760439941383,
+    "std": 0.1323295728908452,
+    "n": 168
+  },
+  "gradcam_del_gt_enhancing_tumor": {
+    "mean": 0.39991200866247484,
+    "std": 0.23567004607425912,
+    "n": 163
+  },
+  "gradcam_ins_gt_enhancing_tumor": {
+    "mean": 0.35553519625598085,
+    "std": 0.1773593884761519,
+    "n": 163
+  },
+  "gradient_del_gt_necrotic_core": {
+    "mean": 0.7874594540268065,
+    "std": 0.19963882731688212,
+    "n": 67
+  },
+  "gradient_ins_gt_necrotic_core": {
+    "mean": 0.46077447369185215,
+    "std": 0.17864342929138724,
+    "n": 67
+  },
+  "gradient_del_gt_edema": {
+    "mean": 0.6736890155438109,
+    "std": 0.1055440748624932,
+    "n": 168
+  },
+  "gradient_ins_gt_edema": {
+    "mean": 0.475115226289138,
+    "std": 0.11474609409915792,
+    "n": 168
+  },
+  "gradient_del_gt_enhancing_tumor": {
+    "mean": 0.46028880909852915,
+    "std": 0.3157915354705351,
+    "n": 163
+  },
+  "gradient_ins_gt_enhancing_tumor": {
+    "mean": 0.4105345887959752,
+    "std": 0.1717666211346346,
+    "n": 163
+  },
+  "ig_del_gt_necrotic_core": {
+    "mean": 0.9618876892684923,
+    "std": 0.049882623864195584,
+    "n": 67
+  },
+  "ig_ins_gt_necrotic_core": {
+    "mean": 0.9005263237729163,
+    "std": 0.08270534252820597,
+    "n": 67
+  },
+  "ig_del_gt_edema": {
+    "mean": 0.9476004841442999,
+    "std": 0.029132265248160392,
+    "n": 168
+  },
+  "ig_ins_gt_edema": {
+    "mean": 0.8980189020169084,
+    "std": 0.0673596383571073,
+    "n": 168
+  },
+  "ig_del_gt_enhancing_tumor": {
+    "mean": 0.946051203752995,
+    "std": 0.09199729696117544,
+    "n": 163
+  },
+  "ig_ins_gt_enhancing_tumor": {
+    "mean": 0.9294228570011667,
+    "std": 0.05004216568534695,
+    "n": 163
+  },
+  "occlusion_del_gt_necrotic_core": {
+    "mean": 0.9519874267027112,
+    "std": 0.09434614501446194,
+    "n": 67
+  },
+  "occlusion_ins_gt_necrotic_core": {
+    "mean": 0.9723120109538852,
+    "std": 0.3137511557579381,
+    "n": 67
+  },
+  "occlusion_del_gt_edema": {
+    "mean": 0.9417897162074162,
+    "std": 0.021827522429082646,
+    "n": 168
+  },
+  "occlusion_ins_gt_edema": {
+    "mean": 0.8969240314937282,
+    "std": 0.058775317279760236,
+    "n": 168
+  },
+  "occlusion_del_gt_enhancing_tumor": {
+    "mean": 0.96140745584182,
+    "std": 0.029789389552264053,
+    "n": 163
+  },
+  "occlusion_ins_gt_enhancing_tumor": {
+    "mean": 0.9176623950323637,
+    "std": 0.11102738708950567,
+    "n": 163
+  },
+  "gradcam_del_pred_necrotic_core": {
+    "mean": 0.4624678672039435,
+    "std": 0.22252001624239864,
+    "n": 91
+  },
+  "gradcam_ins_pred_necrotic_core": {
+    "mean": 0.3348220917883396,
+    "std": 0.1459040696492862,
+    "n": 91
+  },
+  "gradcam_del_pred_edema": {
+    "mean": 0.39424551544750175,
+    "std": 0.14942132081720252,
+    "n": 168
+  },
+  "gradcam_ins_pred_edema": {
+    "mean": 0.3677004533188343,
+    "std": 0.12822832065211529,
+    "n": 168
+  },
+  "gradcam_del_pred_enhancing_tumor": {
+    "mean": 0.41376939167612226,
+    "std": 0.20704254484522275,
+    "n": 168
+  },
+  "gradcam_ins_pred_enhancing_tumor": {
+    "mean": 0.3455175059227758,
+    "std": 0.15506049852243303,
+    "n": 168
+  },
+  "gradient_del_pred_necrotic_core": {
+    "mean": 0.820638722471129,
+    "std": 0.1741877910369952,
+    "n": 91
+  },
+  "gradient_ins_pred_necrotic_core": {
+    "mean": 0.4175541195116936,
+    "std": 0.1564415539223948,
+    "n": 91
+  },
+  "gradient_del_pred_edema": {
+    "mean": 0.6810459936832162,
+    "std": 0.1018686261718951,
+    "n": 168
+  },
+  "gradient_ins_pred_edema": {
+    "mean": 0.4706126852990617,
+    "std": 0.11042040369076785,
+    "n": 168
+  },
+  "gradient_del_pred_enhancing_tumor": {
+    "mean": 0.5003555009560273,
+    "std": 0.20349164856819235,
+    "n": 168
+  },
+  "gradient_ins_pred_enhancing_tumor": {
+    "mean": 0.40106720061372625,
+    "std": 0.16741312866890862,
+    "n": 168
+  },
+  "ig_del_pred_necrotic_core": {
+    "mean": 0.9698539619773641,
+    "std": 0.012185635885517467,
+    "n": 91
+  },
+  "ig_ins_pred_necrotic_core": {
+    "mean": 0.8930876852242429,
+    "std": 0.06653674968240846,
+    "n": 91
+  },
+  "ig_del_pred_edema": {
+    "mean": 0.9481511875499244,
+    "std": 0.0286457405133527,
+    "n": 168
+  },
+  "ig_ins_pred_edema": {
+    "mean": 0.895953867844646,
+    "std": 0.06799042027576938,
+    "n": 168
+  },
+  "ig_del_pred_enhancing_tumor": {
+    "mean": 0.9549668871613044,
+    "std": 0.029987281286709626,
+    "n": 168
+  },
+  "ig_ins_pred_enhancing_tumor": {
+    "mean": 0.9261178500997438,
+    "std": 0.05047542397932856,
+    "n": 168
+  },
+  "occlusion_del_pred_necrotic_core": {
+    "mean": 0.9725504229638792,
+    "std": 0.003942658447408003,
+    "n": 91
+  },
+  "occlusion_ins_pred_necrotic_core": {
+    "mean": 0.9701797899476814,
+    "std": 0.1598768286298473,
+    "n": 91
+  },
+  "occlusion_del_pred_edema": {
+    "mean": 0.9413250392606285,
+    "std": 0.021927239691960396,
+    "n": 168
+  },
+  "occlusion_ins_pred_edema": {
+    "mean": 0.8936972914997612,
+    "std": 0.056424858415928814,
+    "n": 168
+  },
+  "occlusion_del_pred_enhancing_tumor": {
+    "mean": 0.9642358999140234,
+    "std": 0.010986407043682655,
+    "n": 168
+  },
+  "occlusion_ins_pred_enhancing_tumor": {
+    "mean": 0.9102815502633186,
+    "std": 0.061698102499177905,
+    "n": 168
+  },
+  "methods": [
+    "gradcam",
+    "gradient",
+    "ig",
+    "occlusion"
+  ],
+  "n_cases": 168,
+  "checkpoint": "/home/pathikreetofficial/checkpoints/20260621_120750/epoch_0080.pth",
+  "split": "test",
+  "thresholds": [
+    0.0,
+    0.05,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    1.0
+  ],
+  "elapsed_s": 52384.223303079605
+}

@@ -1,0 +1,100 @@
+{
+  "dice_wt": {
+    "mean": 0.9147568745095105,
+    "std": 0.0814117467800015
+  },
+  "dice_tc": {
+    "mean": 0.845347450919973,
+    "std": 0.19947431600181656
+  },
+  "dice_et": {
+    "mean": 0.8369583692893756,
+    "std": 0.20379596614289766
+  },
+  "cas_fg_necrotic_core": 0.6876256234739986,
+  "cas_fg_edema": 0.9352603732950464,
+  "cas_fg_enhancing_tumor": 0.9304958644173887,
+  "auroc_necrotic_core": 0.71080802111097,
+  "auroc_edema": 0.8318276372946476,
+  "auroc_enhancing_tumor": 0.7735444869231175,
+  "routing_ece": 0.7295559812784924,
+  "dd_necrotic_core": {
+    "mean": 0.7326876599451602,
+    "std": 0.2300433818413688,
+    "n": 168
+  },
+  "dd_edema": {
+    "mean": 0.5310621328576087,
+    "std": 0.22258252142173854,
+    "n": 168
+  },
+  "dd_enhancing_tumor": {
+    "mean": 0.39484997988507575,
+    "std": 0.18301511610292528,
+    "n": 168
+  },
+  "del_auc_gt_necrotic_core": {
+    "mean": 0.6748512233018784,
+    "std": 0.06423648968799237,
+    "n": 67
+  },
+  "del_auc_gt_edema": {
+    "mean": 0.8661556479219703,
+    "std": 0.06691677358387398,
+    "n": 168
+  },
+  "del_auc_gt_enhancing_tumor": {
+    "mean": 0.8150036666936848,
+    "std": 0.09411906054375672,
+    "n": 163
+  },
+  "del_auc_pred_necrotic_core": {
+    "mean": 0.6669019524496518,
+    "std": 0.0620010250543107,
+    "n": 91
+  },
+  "del_auc_pred_edema": {
+    "mean": 0.8664051559309219,
+    "std": 0.06616674553022117,
+    "n": 168
+  },
+  "del_auc_pred_enhancing_tumor": {
+    "mean": 0.8192574505245189,
+    "std": 0.08148895818735509,
+    "n": 168
+  },
+  "ins_auc_gt_necrotic_core": {
+    "mean": 0.5423587121625847,
+    "std": 0.07936526447913073,
+    "n": 67
+  },
+  "ins_auc_gt_edema": {
+    "mean": 0.8312207568881915,
+    "std": 0.08977331879518971,
+    "n": 168
+  },
+  "ins_auc_gt_enhancing_tumor": {
+    "mean": 0.754100837901796,
+    "std": 0.16958956838251404,
+    "n": 163
+  },
+  "ins_auc_pred_necrotic_core": {
+    "mean": 0.5160305244892904,
+    "std": 0.08016146428566251,
+    "n": 91
+  },
+  "ins_auc_pred_edema": {
+    "mean": 0.8279029901675389,
+    "std": 0.09212143188969278,
+    "n": 168
+  },
+  "ins_auc_pred_enhancing_tumor": {
+    "mean": 0.7297831139024114,
+    "std": 0.10346944343916982,
+    "n": 168
+  },
+  "n_patients": 168,
+  "checkpoint": "/home/pathikreetofficial/checkpoints/20260621_120750/epoch_0080.pth",
+  "split": "test",
+  "elapsed_s": 5684.6113703250885
+}

@@ -1,0 +1,163 @@
+{
+  "ccr_auroc_fg_necrotic_core": {
+    "mean": 0.8529692499673528,
+    "std": 0.09825693842417253,
+    "n": 67
+  },
+  "ccr_auroc_fg_edema": {
+    "mean": 0.8908923444493423,
+    "std": 0.06678647179902081,
+    "n": 164
+  },
+  "ccr_auroc_fg_enhancing_tumor": {
+    "mean": 0.87217183982932,
+    "std": 0.09988704040844225,
+    "n": 163
+  },
+  "gradcam_auroc_fg_necrotic_core": {
+    "mean": 0.4959949089418962,
+    "std": 0.12421930406121606,
+    "n": 67
+  },
+  "gradcam_auroc_fg_edema": {
+    "mean": 0.5141244815556022,
+    "std": 0.11960713601761472,
+    "n": 164
+  },
+  "gradcam_auroc_fg_enhancing_tumor": {
+    "mean": 0.5519270961272182,
+    "std": 0.17385209972163573,
+    "n": 163
+  },
+  "gradient_auroc_fg_necrotic_core": {
+    "mean": 0.6444814840891379,
+    "std": 0.15612103894738397,
+    "n": 67
+  },
+  "gradient_auroc_fg_edema": {
+    "mean": 0.6948807397053098,
+    "std": 0.1804109532072358,
+    "n": 164
+  },
+  "gradient_auroc_fg_enhancing_tumor": {
+    "mean": 0.4629419246024229,
+    "std": 0.16176991914816874,
+    "n": 163
+  },
+  "ig_auroc_fg_necrotic_core": {
+    "mean": 0.6369091669623234,
+    "std": 0.11841204674778397,
+    "n": 67
+  },
+  "ig_auroc_fg_edema": {
+    "mean": 0.49303456942218593,
+    "std": 0.1332912285959397,
+    "n": 164
+  },
+  "ig_auroc_fg_enhancing_tumor": {
+    "mean": 0.6190370646442255,
+    "std": 0.11403055602037873,
+    "n": 163
+  },
+  "occlusion_auroc_fg_necrotic_core": {
+    "mean": 0.795819818955504,
+    "std": 0.13764665836419412,
+    "n": 67
+  },
+  "occlusion_auroc_fg_edema": {
+    "mean": 0.6356898556714188,
+    "std": 0.170821365925677,
+    "n": 164
+  },
+  "occlusion_auroc_fg_enhancing_tumor": {
+    "mean": 0.7911659187060996,
+    "std": 0.10711020137169562,
+    "n": 163
+  },
+  "ccr_auroc_all_necrotic_core": {
+    "mean": 0.6582914228643061,
+    "std": 0.053072016732620554,
+    "n": 67
+  },
+  "ccr_auroc_all_edema": {
+    "mean": 0.8699058463638448,
+    "std": 0.06401751060409781,
+    "n": 168
+  },
+  "ccr_auroc_all_enhancing_tumor": {
+    "mean": 0.790363536844167,
+    "std": 0.0759987429536633,
+    "n": 163
+  },
+  "gradcam_auroc_all_necrotic_core": {
+    "mean": 0.4586020801298153,
+    "std": 0.17630356165169683,
+    "n": 67
+  },
+  "gradcam_auroc_all_edema": {
+    "mean": 0.44885202834936844,
+    "std": 0.12456302556481384,
+    "n": 168
+  },
+  "gradcam_auroc_all_enhancing_tumor": {
+    "mean": 0.4393390323076282,
+    "std": 0.17867190950075407,
+    "n": 163
+  },
+  "gradient_auroc_all_necrotic_core": {
+    "mean": 0.6912764549680553,
+    "std": 0.1627055995340484,
+    "n": 67
+  },
+  "gradient_auroc_all_edema": {
+    "mean": 0.6025247059487252,
+    "std": 0.08250116206748757,
+    "n": 168
+  },
+  "gradient_auroc_all_enhancing_tumor": {
+    "mean": 0.42088945966287356,
+    "std": 0.17303364250929731,
+    "n": 163
+  },
+  "ig_auroc_all_necrotic_core": {
+    "mean": 0.927183588232841,
+    "std": 0.054309702364535514,
+    "n": 67
+  },
+  "ig_auroc_all_edema": {
+    "mean": 0.9223473644613029,
+    "std": 0.05367501752268616,
+    "n": 168
+  },
+  "ig_auroc_all_enhancing_tumor": {
+    "mean": 0.930770026391822,
+    "std": 0.05331986089144133,
+    "n": 163
+  },
+  "occlusion_auroc_all_necrotic_core": {
+    "mean": 0.9481496180612146,
+    "std": 0.11265935228038043,
+    "n": 67
+  },
+  "occlusion_auroc_all_edema": {
+    "mean": 0.9475354167180945,
+    "std": 0.021679549931620273,
+    "n": 168
+  },
+  "occlusion_auroc_all_enhancing_tumor": {
+    "mean": 0.9675325847504375,
+    "std": 0.01926908974474016,
+    "n": 163
+  },
+  "methods": [
+    "ccr",
+    "gradcam",
+    "gradient",
+    "ig",
+    "occlusion"
+  ],
+  "n_cases": 168,
+  "checkpoint": "/home/pathikreetofficial/checkpoints/20260621_120750/epoch_0080.pth",
+  "split": "test",
+  "elapsed_s": 23241.123167037964
+}

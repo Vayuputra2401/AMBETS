@@ -1,0 +1,25 @@
+{
+  "dice_wt": {
+    "mean": 0.9147190363811595,
+    "std": 0.0815339743718792
+  },
+  "dice_tc": {
+    "mean": 0.8453797711838122,
+    "std": 0.200019637415484
+  },
+  "dice_et": {
+    "mean": 0.8372383951036356,
+    "std": 0.20437781440792746
+  },
+  "cas_fg_necrotic_core": 0.6808877092895247,
+  "cas_fg_edema": 0.9360395763931898,
+  "cas_fg_enhancing_tumor": 0.9308980432301265,
+  "auroc_necrotic_core": 0.7096758157491142,
+  "auroc_edema": 0.8335212209449824,
+  "auroc_enhancing_tumor": 0.7731997988878739,
+  "routing_ece": 0.7284453330348588,
+  "n_patients": 168,
+  "checkpoint": "/home/g21cs2026/checkpoints/20260621_120750/epoch_0080.pth",
+  "split": "test",
+  "elapsed_s": 415.1284935474396
+}

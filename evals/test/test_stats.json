@@ -1,0 +1,603 @@
+{
+  "ccr_csv": "evals\\test\\test_results.csv",
+  "baseline_csv": "evals\\test_baselines\\test_baselines.csv",
+  "split": "test",
+  "ccr_confidence_intervals": {
+    "dice_wt": {
+      "mean": 0.9147568745095105,
+      "ci_lo": 0.9010441030397833,
+      "ci_hi": 0.9256851784352745,
+      "n": 168
+    },
+    "dice_tc": {
+      "mean": 0.845347450919973,
+      "ci_lo": 0.8136978935472821,
+      "ci_hi": 0.873395757532389,
+      "n": 168
+    },
+    "dice_et": {
+      "mean": 0.8369583692893756,
+      "ci_lo": 0.8048753984644614,
+      "ci_hi": 0.8658495474676063,
+      "n": 168
+    },
+    "ece": {
+      "mean": 0.7300397940184078,
+      "ci_lo": 0.7181538613573815,
+      "ci_hi": 0.7415799965280199,
+      "n": 168
+    },
+    "dd_necrotic_core": {
+      "mean": 0.7326876599451602,
+      "ci_lo": 0.6981042099813425,
+      "ci_hi": 0.7664189337053112,
+      "n": 168
+    },
+    "dd_edema": {
+      "mean": 0.5310621328576087,
+      "ci_lo": 0.4980625534679951,
+      "ci_hi": 0.5652960640777784,
+      "n": 168
+    },
+    "dd_enhancing_tumor": {
+      "mean": 0.39484997988507575,
+      "ci_lo": 0.3680996245506942,
+      "ci_hi": 0.4225929544129044,
+      "n": 168
+    },
+    "del_auc_gt_necrotic_core": {
+      "mean": 0.6748512233018784,
+      "ci_lo": 0.6591880468751795,
+      "ci_hi": 0.6900958801261897,
+      "n": 67
+    },
+    "del_auc_gt_edema": {
+      "mean": 0.8661556479219703,
+      "ci_lo": 0.8560267084096381,
+      "ci_hi": 0.8760275303642245,
+      "n": 168
+    },
+    "del_auc_gt_enhancing_tumor": {
+      "mean": 0.8150036666936851,
+      "ci_lo": 0.7998923584806584,
+      "ci_hi": 0.8284103786924208,
+      "n": 163
+    },
+    "ins_auc_gt_necrotic_core": {
+      "mean": 0.5423587121625847,
+      "ci_lo": 0.5231000558146087,
+      "ci_hi": 0.5605282214436604,
+      "n": 67
+    },
+    "ins_auc_gt_edema": {
+      "mean": 0.8312207568881915,
+      "ci_lo": 0.8175350778272386,
+      "ci_hi": 0.8444305158705636,
+      "n": 168
+    },
+    "ins_auc_gt_enhancing_tumor": {
+      "mean": 0.754100837901796,
+      "ci_lo": 0.7318201202003235,
+      "ci_hi": 0.78331075909984,
+      "n": 163
+    },
+    "del_auc_pred_necrotic_core": {
+      "mean": 0.6669019524496517,
+      "ci_lo": 0.6545136351691596,
+      "ci_hi": 0.6796571786596881,
+      "n": 91
+    },
+    "del_auc_pred_edema": {
+      "mean": 0.8664051559309219,
+      "ci_lo": 0.8563862016834997,
+      "ci_hi": 0.8761907118122821,
+      "n": 168
+    },
+    "del_auc_pred_enhancing_tumor": {
+      "mean": 0.8192574505245189,
+      "ci_lo": 0.8065229202856836,
+      "ci_hi": 0.8308382958202387,
+      "n": 168
+    },
+    "ins_auc_pred_necrotic_core": {
+      "mean": 0.5160305244892904,
+      "ci_lo": 0.4992299967089341,
+      "ci_hi": 0.5323503049905484,
+      "n": 91
+    },
+    "ins_auc_pred_edema": {
+      "mean": 0.8279029901675389,
+      "ci_lo": 0.8140047168005864,
+      "ci_hi": 0.8416126038789236,
+      "n": 168
+    },
+    "ins_auc_pred_enhancing_tumor": {
+      "mean": 0.7297831139024114,
+      "ci_lo": 0.7138353604755491,
+      "ci_hi": 0.7446487138193492,
+      "n": 168
+    }
+  },
+  "paired_vs_baselines": {
+    "del|gt|necrotic_core|ccr_vs_gradcam": {
+      "mean_ccr": 0.6748512233018784,
+      "mean_baseline": 0.454818457582833,
+      "mean_diff": 0.22003276571904543,
+      "ci_lo": 0.16892048237824392,
+      "ci_hi": 0.2710493571026696,
+      "wilcoxon_p": 2.0126851066434458e-09,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "del|gt|necrotic_core|ccr_vs_gradient": {
+      "mean_ccr": 0.6748512233018784,
+      "mean_baseline": 0.7874594540268064,
+      "mean_diff": -0.11260823072492804,
+      "ci_lo": -0.16179041562395552,
+      "ci_hi": -0.05993237334815343,
+      "wilcoxon_p": 0.0002911443959181449,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "del|gt|necrotic_core|ccr_vs_ig": {
+      "mean_ccr": 0.6748512233018784,
+      "mean_baseline": 0.9618876892684923,
+      "mean_diff": -0.28703646596661375,
+      "ci_lo": -0.3035711311069824,
+      "ci_hi": -0.27020012279744854,
+      "wilcoxon_p": 1.1197003099219983e-12,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "del|gt|necrotic_core|ccr_vs_occlusion": {
+      "mean_ccr": 0.6748512233018784,
+      "mean_baseline": 0.9519874267027113,
+      "mean_diff": -0.27713620340083284,
+      "ci_lo": -0.29762317303361324,
+      "ci_hi": -0.2532672235387609,
+      "wilcoxon_p": 1.4035933133217997e-12,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "del|gt|edema|ccr_vs_gradcam": {
+      "mean_ccr": 0.8661556479219703,
+      "mean_baseline": 0.39247976241784666,
+      "mean_diff": 0.4736758855041237,
+      "ci_lo": 0.4452945322708126,
+      "ci_hi": 0.5011527921430163,
+      "wilcoxon_p": 5.209960550096769e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|gt|edema|ccr_vs_gradient": {
+      "mean_ccr": 0.8661556479219703,
+      "mean_baseline": 0.6736890155438109,
+      "mean_diff": 0.1924666323781595,
+      "ci_lo": 0.17542835226040665,
+      "ci_hi": 0.20977451070683925,
+      "wilcoxon_p": 2.231717603525972e-28,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|gt|edema|ccr_vs_ig": {
+      "mean_ccr": 0.8661556479219703,
+      "mean_baseline": 0.9476004841442999,
+      "mean_diff": -0.0814448362223293,
+      "ci_lo": -0.08976389653675629,
+      "ci_hi": -0.0736532438148981,
+      "wilcoxon_p": 2.592932982651446e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|gt|edema|ccr_vs_occlusion": {
+      "mean_ccr": 0.8661556479219703,
+      "mean_baseline": 0.9417897162074162,
+      "mean_diff": -0.07563406828544589,
+      "ci_lo": -0.08436134094867562,
+      "ci_hi": -0.06702324556571093,
+      "wilcoxon_p": 2.6618978930240587e-28,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|gt|enhancing_tumor|ccr_vs_gradcam": {
+      "mean_ccr": 0.8150036666936851,
+      "mean_baseline": 0.39991200866247484,
+      "mean_diff": 0.4150916580312101,
+      "ci_lo": 0.3787551275102459,
+      "ci_hi": 0.45136224833961497,
+      "wilcoxon_p": 6.003865396891637e-27,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "del|gt|enhancing_tumor|ccr_vs_gradient": {
+      "mean_ccr": 0.8150036666936851,
+      "mean_baseline": 0.4602888090985292,
+      "mean_diff": 0.3547148575951558,
+      "ci_lo": 0.30934431750210717,
+      "ci_hi": 0.4049764030508014,
+      "wilcoxon_p": 4.318514538325232e-24,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "del|gt|enhancing_tumor|ccr_vs_ig": {
+      "mean_ccr": 0.8150036666936851,
+      "mean_baseline": 0.9460512037529948,
+      "mean_diff": -0.1310475370593099,
+      "ci_lo": -0.1456243068683033,
+      "ci_hi": -0.1166796773264142,
+      "wilcoxon_p": 7.446562316328643e-27,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "del|gt|enhancing_tumor|ccr_vs_occlusion": {
+      "mean_ccr": 0.8150036666936851,
+      "mean_baseline": 0.96140745584182,
+      "mean_diff": -0.14640378914813493,
+      "ci_lo": -0.1596493681361349,
+      "ci_hi": -0.13412553600731766,
+      "wilcoxon_p": 1.6855784149319284e-28,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "del|pred|necrotic_core|ccr_vs_gradcam": {
+      "mean_ccr": 0.6669019524496517,
+      "mean_baseline": 0.4624678672039434,
+      "mean_diff": 0.20443408524570827,
+      "ci_lo": 0.1628185563888738,
+      "ci_hi": 0.24476603505561892,
+      "wilcoxon_p": 1.1076869313757273e-11,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "del|pred|necrotic_core|ccr_vs_gradient": {
+      "mean_ccr": 0.6669019524496517,
+      "mean_baseline": 0.8206387224711288,
+      "mean_diff": -0.1537367700214772,
+      "ci_lo": -0.19217926913614988,
+      "ci_hi": -0.11214938671730769,
+      "wilcoxon_p": 1.0704310603658134e-08,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "del|pred|necrotic_core|ccr_vs_ig": {
+      "mean_ccr": 0.6669019524496517,
+      "mean_baseline": 0.9698539619773642,
+      "mean_diff": -0.3029520095277124,
+      "ci_lo": -0.3165993314166998,
+      "ci_hi": -0.28863498094682205,
+      "wilcoxon_p": 1.1920864122849158e-16,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "del|pred|necrotic_core|ccr_vs_occlusion": {
+      "mean_ccr": 0.6669019524496517,
+      "mean_baseline": 0.972550422963879,
+      "mean_diff": -0.30564847051422755,
+      "ci_lo": -0.3181482315742812,
+      "ci_hi": -0.29278523740239193,
+      "wilcoxon_p": 1.1920864122849158e-16,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "del|pred|edema|ccr_vs_gradcam": {
+      "mean_ccr": 0.8664051559309219,
+      "mean_baseline": 0.39424551544750175,
+      "mean_diff": 0.47215964048342024,
+      "ci_lo": 0.4439238116321176,
+      "ci_hi": 0.49928391893779256,
+      "wilcoxon_p": 5.209960550096769e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|pred|edema|ccr_vs_gradient": {
+      "mean_ccr": 0.8664051559309219,
+      "mean_baseline": 0.6810459936832162,
+      "mean_diff": 0.18535916224770574,
+      "ci_lo": 0.1689689798704175,
+      "ci_hi": 0.2021009494297355,
+      "wilcoxon_p": 2.906878891864356e-28,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|pred|edema|ccr_vs_ig": {
+      "mean_ccr": 0.8664051559309219,
+      "mean_baseline": 0.9481511875499244,
+      "mean_diff": -0.08174603161900236,
+      "ci_lo": -0.08978641185169381,
+      "ci_hi": -0.074033096839788,
+      "wilcoxon_p": 2.5468263428122084e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|pred|edema|ccr_vs_occlusion": {
+      "mean_ccr": 0.8664051559309219,
+      "mean_baseline": 0.9413250392606285,
+      "mean_diff": -0.07491988332970652,
+      "ci_lo": -0.0834327495525005,
+      "ci_hi": -0.0664869126259689,
+      "wilcoxon_p": 3.4055152557325863e-28,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|pred|enhancing_tumor|ccr_vs_gradcam": {
+      "mean_ccr": 0.8192574505245189,
+      "mean_baseline": 0.41376939167612226,
+      "mean_diff": 0.4054880588483968,
+      "ci_lo": 0.37068371453515486,
+      "ci_hi": 0.4390502462289992,
+      "wilcoxon_p": 1.8520921451289923e-27,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|pred|enhancing_tumor|ccr_vs_gradient": {
+      "mean_ccr": 0.8192574505245189,
+      "mean_baseline": 0.5003555009560273,
+      "mean_diff": 0.31890194956849166,
+      "ci_lo": 0.28085596283417036,
+      "ci_hi": 0.3570114394869251,
+      "wilcoxon_p": 1.0053142630522405e-23,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|pred|enhancing_tumor|ccr_vs_ig": {
+      "mean_ccr": 0.8192574505245189,
+      "mean_baseline": 0.9549668871613044,
+      "mean_diff": -0.13570943663678536,
+      "ci_lo": -0.14980541671039016,
+      "ci_hi": -0.1227100856152777,
+      "wilcoxon_p": 5.0272879372274275e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "del|pred|enhancing_tumor|ccr_vs_occlusion": {
+      "mean_ccr": 0.8192574505245189,
+      "mean_baseline": 0.9642358999140234,
+      "mean_diff": -0.14497844938950427,
+      "ci_lo": -0.15812634845733553,
+      "ci_hi": -0.13312023470507997,
+      "wilcoxon_p": 2.592932982651446e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|gt|necrotic_core|ccr_vs_gradcam": {
+      "mean_ccr": 0.5423587121625847,
+      "mean_baseline": 0.3497654635533541,
+      "mean_diff": 0.1925932486092305,
+      "ci_lo": 0.14782643738489668,
+      "ci_hi": 0.23448486234670932,
+      "wilcoxon_p": 6.5086765402947925e-09,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "ins|gt|necrotic_core|ccr_vs_gradient": {
+      "mean_ccr": 0.5423587121625847,
+      "mean_baseline": 0.46077447369185215,
+      "mean_diff": 0.08158423847073241,
+      "ci_lo": 0.03999287849118012,
+      "ci_hi": 0.12227376080977166,
+      "wilcoxon_p": 6.225404502406017e-05,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "ins|gt|necrotic_core|ccr_vs_ig": {
+      "mean_ccr": 0.5423587121625847,
+      "mean_baseline": 0.9005263237729163,
+      "mean_diff": -0.35816761161033167,
+      "ci_lo": -0.3810991669270537,
+      "ci_hi": -0.335854746927296,
+      "wilcoxon_p": 1.1197003099219983e-12,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "ins|gt|necrotic_core|ccr_vs_occlusion": {
+      "mean_ccr": 0.5423587121625847,
+      "mean_baseline": 0.9723120109538852,
+      "mean_diff": -0.42995329879130056,
+      "ci_lo": -0.5200063844139324,
+      "ci_hi": -0.36421280133068856,
+      "wilcoxon_p": 1.1197003099219983e-12,
+      "n_pairs": 67,
+      "significant_95": true
+    },
+    "ins|gt|edema|ccr_vs_gradcam": {
+      "mean_ccr": 0.8312207568881915,
+      "mean_baseline": 0.36923760439941383,
+      "mean_diff": 0.4619831524887777,
+      "ci_lo": 0.4338635663881153,
+      "ci_hi": 0.48892881098247115,
+      "wilcoxon_p": 4.938349253629355e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|gt|edema|ccr_vs_gradient": {
+      "mean_ccr": 0.8312207568881915,
+      "mean_baseline": 0.475115226289138,
+      "mean_diff": 0.3561055305990536,
+      "ci_lo": 0.3401649053490537,
+      "ci_hi": 0.37313033061165984,
+      "wilcoxon_p": 2.639867745503926e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|gt|edema|ccr_vs_ig": {
+      "mean_ccr": 0.8312207568881915,
+      "mean_baseline": 0.8980189020169084,
+      "mean_diff": -0.06679814512871676,
+      "ci_lo": -0.07632847011959029,
+      "ci_hi": -0.05807134030227491,
+      "wilcoxon_p": 3.964587434702859e-26,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|gt|edema|ccr_vs_occlusion": {
+      "mean_ccr": 0.8312207568881915,
+      "mean_baseline": 0.8969240314937282,
+      "mean_diff": -0.0657032746055368,
+      "ci_lo": -0.0755836183404809,
+      "ci_hi": -0.05624343948344922,
+      "wilcoxon_p": 3.4050694261268267e-26,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|gt|enhancing_tumor|ccr_vs_gradcam": {
+      "mean_ccr": 0.754100837901796,
+      "mean_baseline": 0.35553519625598085,
+      "mean_diff": 0.39856564164581515,
+      "ci_lo": 0.36186727672156244,
+      "ci_hi": 0.43746314046086576,
+      "wilcoxon_p": 6.112673387681106e-27,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "ins|gt|enhancing_tumor|ccr_vs_gradient": {
+      "mean_ccr": 0.754100837901796,
+      "mean_baseline": 0.4105345887959752,
+      "mean_diff": 0.3435662491058209,
+      "ci_lo": 0.3038992392199358,
+      "ci_hi": 0.38549288373966994,
+      "wilcoxon_p": 7.186587462222945e-25,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "ins|gt|enhancing_tumor|ccr_vs_ig": {
+      "mean_ccr": 0.754100837901796,
+      "mean_baseline": 0.9294228570011664,
+      "mean_diff": -0.17532201909937054,
+      "ci_lo": -0.19752541499488407,
+      "ci_hi": -0.14601702954767184,
+      "wilcoxon_p": 3.62697013490595e-27,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "ins|gt|enhancing_tumor|ccr_vs_occlusion": {
+      "mean_ccr": 0.754100837901796,
+      "mean_baseline": 0.9176623950323637,
+      "mean_diff": -0.16356155713056764,
+      "ci_lo": -0.19088378038967116,
+      "ci_hi": -0.1332262769757544,
+      "wilcoxon_p": 6.618640741065037e-26,
+      "n_pairs": 163,
+      "significant_95": true
+    },
+    "ins|pred|necrotic_core|ccr_vs_gradcam": {
+      "mean_ccr": 0.5160305244892904,
+      "mean_baseline": 0.33482209178833955,
+      "mean_diff": 0.18120843270095094,
+      "ci_lo": 0.14717126508264686,
+      "ci_hi": 0.21244848708462613,
+      "wilcoxon_p": 5.398918754968998e-12,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "ins|pred|necrotic_core|ccr_vs_gradient": {
+      "mean_ccr": 0.5160305244892904,
+      "mean_baseline": 0.4175541195116936,
+      "mean_diff": 0.09847640497759694,
+      "ci_lo": 0.0671152407203938,
+      "ci_hi": 0.12864052581206303,
+      "wilcoxon_p": 2.187488505170913e-08,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "ins|pred|necrotic_core|ccr_vs_ig": {
+      "mean_ccr": 0.5160305244892904,
+      "mean_baseline": 0.8930876852242429,
+      "mean_diff": -0.37705716073495227,
+      "ci_lo": -0.3965253162675383,
+      "ci_hi": -0.3574127294843549,
+      "wilcoxon_p": 1.1920864122849158e-16,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "ins|pred|necrotic_core|ccr_vs_occlusion": {
+      "mean_ccr": 0.5160305244892904,
+      "mean_baseline": 0.9701797899476814,
+      "mean_diff": -0.4541492654583909,
+      "ci_lo": -0.4945240278005719,
+      "ci_hi": -0.4180306384035516,
+      "wilcoxon_p": 1.1920864122849158e-16,
+      "n_pairs": 91,
+      "significant_95": true
+    },
+    "ins|pred|edema|ccr_vs_gradcam": {
+      "mean_ccr": 0.8279029901675389,
+      "mean_baseline": 0.3677004533188343,
+      "mean_diff": 0.46020253684870466,
+      "ci_lo": 0.4323654528862152,
+      "ci_hi": 0.4871706590728628,
+      "wilcoxon_p": 4.8509719258268747e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|pred|edema|ccr_vs_gradient": {
+      "mean_ccr": 0.8279029901675389,
+      "mean_baseline": 0.4706126852990617,
+      "mean_diff": 0.35729030486847724,
+      "ci_lo": 0.3413998791111547,
+      "ci_hi": 0.3737913337819243,
+      "wilcoxon_p": 2.592932982651446e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|pred|edema|ccr_vs_ig": {
+      "mean_ccr": 0.8279029901675389,
+      "mean_baseline": 0.895953867844646,
+      "mean_diff": -0.06805087767710731,
+      "ci_lo": -0.07750673056308093,
+      "ci_hi": -0.059335948202383616,
+      "wilcoxon_p": 1.9792225394891664e-26,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|pred|edema|ccr_vs_occlusion": {
+      "mean_ccr": 0.8279029901675389,
+      "mean_baseline": 0.8936972914997612,
+      "mean_diff": -0.06579430133222242,
+      "ci_lo": -0.0753097366106698,
+      "ci_hi": -0.05689923859994898,
+      "wilcoxon_p": 3.392701812952057e-27,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|pred|enhancing_tumor|ccr_vs_gradcam": {
+      "mean_ccr": 0.7297831139024114,
+      "mean_baseline": 0.3455175059227758,
+      "mean_diff": 0.3842656079796356,
+      "ci_lo": 0.3548360163002913,
+      "ci_hi": 0.41279575610498925,
+      "wilcoxon_p": 5.280950415452733e-28,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|pred|enhancing_tumor|ccr_vs_gradient": {
+      "mean_ccr": 0.7297831139024114,
+      "mean_baseline": 0.40106720061372625,
+      "mean_diff": 0.3287159132886851,
+      "ci_lo": 0.29524827291274036,
+      "ci_hi": 0.36197364948470084,
+      "wilcoxon_p": 1.765496876612426e-25,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|pred|enhancing_tumor|ccr_vs_ig": {
+      "mean_ccr": 0.7297831139024114,
+      "mean_baseline": 0.9261178500997438,
+      "mean_diff": -0.19633473619733244,
+      "ci_lo": -0.2111332929593469,
+      "ci_hi": -0.18221075531237585,
+      "wilcoxon_p": 2.5468263428122084e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    },
+    "ins|pred|enhancing_tumor|ccr_vs_occlusion": {
+      "mean_ccr": 0.7297831139024114,
+      "mean_baseline": 0.9102815502633186,
+      "mean_diff": -0.1804984363609074,
+      "ci_lo": -0.1992586763363096,
+      "ci_hi": -0.16281504632616098,
+      "wilcoxon_p": 2.9397116424158314e-29,
+      "n_pairs": 168,
+      "significant_95": true
+    }
+  }
+}
