@@ -551,7 +551,9 @@ $\approx\!0.5$ (chance throughout). The very methods that win deletion cannot te
 apart: their per-class maps highlight the same high-signal tumor structure regardless of $k$. CCR
 is the only method here that yields a concept-discriminative explanation, and it does so
 intrinsically, in one forward pass. Figure~\ref{fig:faith} shows the crossover: sensitivity
-methods dominate on the left axis, CCR on the right.
+methods dominate on the left axis, CCR on the right. Figure~\ref{fig:qualmaps} shows the same
+effect qualitatively---CCR's three per-concept maps differ and fall inside the ground-truth
+boundaries, whereas the sensitivity methods produce nearly the \emph{same} map for every concept.
 
 \begin{table}[t]
 \centering
@@ -583,6 +585,19 @@ Occlusion              & $\mathbf{0.952}$ & $0.741$ \\
 chance)---CCR alone rises to the top while the sensitivity methods fall toward chance. A clinical
 concept explanation needs the right axis.}
 \label{fig:faith}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/fig7_qual_maps.png}
+\caption{\textbf{Per-concept explanation maps} (case BraTS-GLI-02284, one axial slice;
+cyan~$=$~GT concept boundary). \emph{Rows}: input/segmentation, then each method;
+\emph{columns}: NCR, edema, ET. CCR's three maps \emph{differ} and concentrate inside the
+correct boundaries---a concept partition---whereas Grad-CAM, gradient, and IG produce nearly the
+\emph{same} map for every concept (high-sensitivity structure, not a concept assignment) and
+occlusion is coarse and only partly concept-specific. This is the qualitative face of
+Table~\ref{tab:compare} (right).}
+\label{fig:qualmaps}
 \end{figure}
 
 \subsection{Qualitative explanation}
