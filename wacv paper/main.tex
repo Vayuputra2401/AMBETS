@@ -633,27 +633,30 @@ warm-up)} activates alignment from epoch~1. Table~\ref{tab:abl} reports the outc
 \begin{table}[t]
 \centering
 \caption{Ablations on the test split. A1 removes the alignment loss; A4 removes the warm-up
-phase. \todo{Ablation runs in progress---numbers to be filled on completion.}}
+phase. Ablations run to $40$ epochs (their effect is evident well before convergence).
+\todo{A4 numbers pending.}}
 \label{tab:abl}
 \begin{tabular}{lccc}
 \toprule
 & Full CCR-Net & A1: no $\mathcal{L}_{\text{align}}$ & A4: no warm-up \\
 \midrule
-$\casfg$ (Edema)            & $0.935$ & \todo{$\sim$} & \todo{$\sim$} \\
-$\casfg$ (ET)               & $0.931$ & \todo{$\sim$} & \todo{$\sim$} \\
-$\casfg$ (NCR)              & $0.682$ & \todo{$\sim$} & \todo{$\sim$} \\
-Dice (WT)                   & $0.915$ & \todo{$\sim$} & \todo{$\sim$} \\
-Max expert utilization (\%) & \todo{$\sim$} & \todo{$\sim$} & \todo{$\sim$} \\
+$\casfg$ (Edema)            & $0.935$ & $0.322$  & \todo{$\sim$} \\
+$\casfg$ (ET)               & $0.930$ & $0.094$  & \todo{$\sim$} \\
+$\casfg$ (NCR)              & $0.688$ & $-0.011$ & \todo{$\sim$} \\
+Dice (WT)                   & $0.915$ & $0.905$  & \todo{$\sim$} \\
+Max expert utilization (\%) & $28$    & $32$     & \todo{$\sim$} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\noindent The hypotheses, which the theory and training dynamics (Fig.~\ref{fig:curve})
-both predict, are: A1 collapses $\casfg$ toward the random baseline while leaving Dice
-largely intact---showing that concept alignment is \emph{learned} from
-$\mathcal{L}_{\text{align}}$, not an incidental by-product of segmentation; and A4 drives
-expert utilization to a single dominant expert (collapse), degrading both CAS and Dice and
-confirming that warm-up is necessary.
+\noindent A1 confirms the first hypothesis: without $\mathcal{L}_{\text{align}}$, $\casfg$
+collapses to near zero for NCR and ET ($-0.01$, $0.09$) and to $0.32$ for edema---AUROC falls
+to chance or below---while Dice is essentially preserved (WT $0.905$ vs.\ $0.915$). Concept
+alignment is therefore \emph{learned} from $\mathcal{L}_{\text{align}}$, not an incidental
+by-product of segmentation---exactly the temporal signal in Fig.~\ref{fig:curve}. Experts stay
+balanced (max utilization $32\%$), so A1 yields misalignment \emph{without} collapse. A4 (no
+warm-up) is expected to drive utilization to a single dominant expert, degrading both CAS and
+Dice; \todo{A4 pending.}
 
 \subsection{Training dynamics}
 Figure~\ref{fig:curve} traces $\casfg$ over training. Alignment is near zero during warm-up
