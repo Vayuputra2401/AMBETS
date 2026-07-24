@@ -149,7 +149,7 @@ AMBETS/
 - **Bottleneck placement only**: CCR goes at the encoder bottleneck. NOT at output, NOT at intermediate layers.
 - **NeuroReAct is unpublished**: Do not cite it anywhere in the CCR paper. Section 8 uses standalone Gemini 1.5 Pro only.
 - **K=4 for BraTS**: {Background, NCR, ED, ET} — matches BraTS annotation protocol exactly.
-- **Warm up before L_align**: Do not activate alignment loss until epoch 11. Starting earlier causes expert collapse.
+- **Warm up is a DEFAULT, not a hard requirement** (corrected 2026-07-24 by the A4 ablation): The main config delays L_align until epoch 11 and we keep it as a safe default. It was *originally believed* necessary to prevent expert collapse — but **A4 (no warm-up, L_align from epoch 1) showed NO collapse**: CAS 0.932/0.927/0.666 ≈ full model (0.935/0.930/0.688), Dice WT 0.908. With the pretrained SSL encoder (features are not random at ep1) + prototype-anchored router + diversity loss (active from ep1), warm-up is redundant; its only measurable effect is mild utilization balance (max util 28% with vs 41% without). Do NOT claim warm-up "prevents collapse" — report it as a robustness result.
 - **λ₃ (entropy) ≤ 0.01**: Larger values push routing toward uniform, destroying CAS and Proposition 2.
 
 ## Key metrics to track during training
