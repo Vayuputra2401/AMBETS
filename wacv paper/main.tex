@@ -55,7 +55,7 @@ chance for integrated gradients and Grad-CAM---and its causal relevance is windo
 not top is raw deletion \emph{sensitivity}, which dedicated methods (integrated gradients,
 occlusion) optimize directly and win while providing no concept labels; we report this openly.
 Ablations confirm that concept alignment is \emph{learned} (it collapses without the alignment
-loss) and that a warm-up phase is necessary to prevent expert collapse. CCR is the first method
+loss), while the routing aligns robustly even without the warm-up phase. CCR is the first method
 to make the routing decision itself the faithful, clinically-labeled explanation for 3D
 volumetric dense prediction.
 \keywords{Interpretability \and Faithfulness \and Medical image segmentation \and
@@ -117,7 +117,8 @@ $\le0.80$ for the best baseline; chance for IG/Grad-CAM), with window-invariant 
 we show \emph{openly} that the strong sensitivity methods win the deletion metric they optimize
 yet cannot tell the concepts apart (Sec.~\ref{sec:experiments}).
 \item \textbf{Ablations} isolating the role of the alignment loss (concept alignment is
-learned, not incidental) and of curriculum warm-up (it prevents expert collapse).
+learned, not incidental) and of curriculum warm-up (the routing aligns even without it---a
+robustness result).
 \end{enumerate}
 
 % ====================================================================
@@ -331,9 +332,10 @@ total objective is
 where $\lambda_1,\lambda_4$ depend on the curriculum phase $\phi$.
 
 \subsection{Curriculum and temperature annealing}\label{sec:curriculum}
-Routing supervision cannot start immediately: in early epochs the encoder features are
-near-random, and an active alignment loss collapses routing onto a single expert by
-chance, after which the others receive no gradient and never recover. We therefore train in
+We introduce routing supervision gradually: warm-up delays $\mathcal{L}_{\text{align}}$ so the
+encoder settles before routing is forced, a precaution against early instability---though with a
+pretrained encoder it proves unnecessary in practice (A4, Sec.~\ref{sec:experiments}), so we
+retain it only as a safe default. We train in
 three phases with annealed temperature (Table~\ref{tab:curriculum}). \emph{Warm-up}
 ($\tau{=}2.0$, $\lambda_1{=}0$) lets the encoder learn discriminative features under
 segmentation loss alone. \emph{Alignment} ($\tau{=}1.0$, $\lambda_1{=}1$) switches on
@@ -626,25 +628,27 @@ its concept; entropy peaks at concept boundaries.}
 \end{figure}
 
 \subsection{Ablations}
-We ablate the two design choices the theory predicts are essential. \textbf{A1 (no
+We ablate two training choices: the alignment loss and the warm-up phase. \textbf{A1 (no
 $\mathcal{L}_{\text{align}}$)} disables the alignment loss in every phase; \textbf{A4 (no
-warm-up)} activates alignment from epoch~1. Table~\ref{tab:abl} reports the outcome.
+warm-up)} activates alignment from epoch~1. Table~\ref{tab:abl} reports the outcome---one choice
+is essential, the other is not.
 
 \begin{table}[t]
 \centering
-\caption{Ablations on the test split. A1 removes the alignment loss; A4 removes the warm-up
-phase. Ablations run to $40$ epochs (their effect is evident well before convergence).
-\todo{A4 numbers pending.}}
+\caption{Ablations on the test split (run to $40$ epochs; the effect is evident well before
+convergence). A1 (no alignment loss) collapses CAS while preserving Dice---alignment is
+\emph{learned}. A4 (no warm-up) matches the full model on CAS and Dice with only a mild
+utilization skew---the design is robust and warm-up is a stabilizing default, not a requirement.}
 \label{tab:abl}
 \begin{tabular}{lccc}
 \toprule
 & Full CCR-Net & A1: no $\mathcal{L}_{\text{align}}$ & A4: no warm-up \\
 \midrule
-$\casfg$ (Edema)            & $0.935$ & $0.322$  & \todo{$\sim$} \\
-$\casfg$ (ET)               & $0.930$ & $0.094$  & \todo{$\sim$} \\
-$\casfg$ (NCR)              & $0.688$ & $-0.011$ & \todo{$\sim$} \\
-Dice (WT)                   & $0.915$ & $0.905$  & \todo{$\sim$} \\
-Max expert utilization (\%) & $28$    & $32$     & \todo{$\sim$} \\
+$\casfg$ (Edema)            & $0.935$ & $0.322$  & $0.932$ \\
+$\casfg$ (ET)               & $0.930$ & $0.094$  & $0.927$ \\
+$\casfg$ (NCR)              & $0.688$ & $-0.011$ & $0.666$ \\
+Dice (WT)                   & $0.915$ & $0.905$  & $0.908$ \\
+Max expert utilization (\%) & $28$    & $32$     & $41$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -653,10 +657,13 @@ Max expert utilization (\%) & $28$    & $32$     & \todo{$\sim$} \\
 collapses to near zero for NCR and ET ($-0.01$, $0.09$) and to $0.32$ for edema---AUROC falls
 to chance or below---while Dice is essentially preserved (WT $0.905$ vs.\ $0.915$). Concept
 alignment is therefore \emph{learned} from $\mathcal{L}_{\text{align}}$, not an incidental
-by-product of segmentation---exactly the temporal signal in Fig.~\ref{fig:curve}. Experts stay
-balanced (max utilization $32\%$), so A1 yields misalignment \emph{without} collapse. A4 (no
-warm-up) is expected to drive utilization to a single dominant expert, degrading both CAS and
-Dice; \todo{A4 pending.}
+by-product of segmentation---exactly the temporal signal in Fig.~\ref{fig:curve}. A4 tells the
+opposite, and equally informative, story: activating $\mathcal{L}_{\text{align}}$ from epoch~1
+leaves CAS and Dice essentially unchanged ($\casfg$ $0.93/0.93/0.67$; Dice WT $0.908$) with
+\emph{no} expert collapse. The pretrained encoder, prototype-anchored router, and always-on
+diversity loss make warm-up a stabilizing default rather than a requirement; its only measurable
+effect is more balanced utilization (max $28\%$ with warm-up vs.\ $41\%$ without). We retain
+warm-up as a safe default but do not depend on it.
 
 \subsection{Training dynamics}
 Figure~\ref{fig:curve} traces $\casfg$ over training. Alignment is near zero during warm-up
