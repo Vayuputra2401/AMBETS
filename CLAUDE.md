@@ -154,7 +154,8 @@ AMBETS/
 
 ## Key metrics to track during training
 
-- **CAS_fg(k)** for k=1,2,3 (NCR, Edema, ET foreground only) — primary metric, target ≥ 0.85
+- **Concept-discriminability AUROC** (foreground: concept k vs OTHER tumor voxels; `pipeline/concept_alignment.py`) — **THE paper's headline faithfulness metric** (post-reframe 2026-07-22). CCR 0.87 ≫ best baseline occlusion 0.74 (p<0.001, non-overlapping CIs); A1 ablation shows L_align drives it (0.87→0.61 without alignment). **Deletion/insertion AUC is now framed as "input sensitivity" — IG/Occlusion WIN it (~0.95), so it is NOT the headline; conceded openly. Do NOT claim CCR beats post-hoc on deletion.**
+- **CAS_fg(k)** for k=1,2,3 (NCR, Edema, ET foreground only) — routing-vs-GT alignment metric (Pearson). NCR realistic ceiling ~0.69 at 16³ (target ≥ 0.85 was aspirational)
 - **CAS_all(k)** — report in supplementary for completeness (includes background)
 - **Do NOT report CAS(background)** as evidence of routing quality — low variance in M_0 makes Pearson unreliable
 - Expert utilization % — re-init any expert <5% usage after epoch 20

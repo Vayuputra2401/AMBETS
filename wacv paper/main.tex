@@ -657,7 +657,11 @@ Max expert utilization (\%) & $28$    & $32$     & $41$ \\
 collapses to near zero for NCR and ET ($-0.01$, $0.09$) and to $0.32$ for edema---AUROC falls
 to chance or below---while Dice is essentially preserved (WT $0.905$ vs.\ $0.915$). Concept
 alignment is therefore \emph{learned} from $\mathcal{L}_{\text{align}}$, not an incidental
-by-product of segmentation---exactly the temporal signal in Fig.~\ref{fig:curve}. A4 tells the
+by-product of segmentation---exactly the temporal signal in Fig.~\ref{fig:curve}. Crucially, the
+collapse reaches the headline metric: A1's concept-discriminability falls from $0.87$ to $0.61$
+(NCR to chance), and CCR's routing then no longer exceeds the best post-hoc baseline (occlusion
+$0.74$)---$\mathcal{L}_{\text{align}}$ is precisely what makes the routing a
+concept-\emph{discriminative} explanation rather than a sensitivity map. A4 tells the
 opposite, and equally informative, story: activating $\mathcal{L}_{\text{align}}$ from epoch~1
 leaves CAS and Dice essentially unchanged ($\casfg$ $0.93/0.93/0.67$; Dice WT $0.908$) with
 \emph{no} expert collapse. The pretrained encoder, prototype-anchored router, and always-on
