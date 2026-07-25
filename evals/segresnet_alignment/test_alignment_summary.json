@@ -1,0 +1,39 @@
+{
+  "ccr_auroc_fg_necrotic_core": {
+    "mean": 0.852543395089694,
+    "std": 0.10412713282541557,
+    "n": 67
+  },
+  "ccr_auroc_fg_edema": {
+    "mean": 0.9047393671356375,
+    "std": 0.05977428224337315,
+    "n": 164
+  },
+  "ccr_auroc_fg_enhancing_tumor": {
+    "mean": 0.8890355606020363,
+    "std": 0.09652177126650617,
+    "n": 163
+  },
+  "ccr_auroc_all_necrotic_core": {
+    "mean": 0.896502970544421,
+    "std": 0.03032663031511096,
+    "n": 67
+  },
+  "ccr_auroc_all_edema": {
+    "mean": 0.6833106287950704,
+    "std": 0.03917537373785914,
+    "n": 168
+  },
+  "ccr_auroc_all_enhancing_tumor": {
+    "mean": 0.6388106744314075,
+    "std": 0.06860847110528878,
+    "n": 163
+  },
+  "methods": [
+    "ccr"
+  ],
+  "n_cases": 168,
+  "checkpoint": "/home/pathikreetofficial/checkpoints/20260725_094809/epoch_0080.pth",
+  "split": "test",
+  "elapsed_s": 236.71751403808594
+}
