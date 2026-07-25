@@ -1,0 +1,2658 @@
+[
+  {
+    "epoch": 1,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.996183729391579e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.39151400849370094,
+      "seg": 0.3000161308479262,
+      "align": 0.0,
+      "diversity": 0.1627076127009808,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.010144071624094447
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.12621974004561143,
+      "necrotic_core": 0.0656906820142998,
+      "edema": 0.37989557330189844,
+      "enhancing_tumor": 0.42819400463819035
+    },
+    "train_time_sec": 389.5,
+    "val_time_sec": 0.0,
+    "total_time_sec": 389.5,
+    "timestamp": "2026-07-25 09:54:42"
+  },
+  {
+    "epoch": 2,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.984740801978984e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.24934868188299372,
+      "seg": 0.22370210963005616,
+      "align": 0.0,
+      "diversity": 0.030927533247091125,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.01018280550448088
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.113525390625,
+      "necrotic_core": 0.0625,
+      "edema": 0.4136620997442061,
+      "enhancing_tumor": 0.4103125096307939
+    },
+    "train_time_sec": 386.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 386.8,
+    "timestamp": "2026-07-25 10:01:11"
+  },
+  {
+    "epoch": 3,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.965688861926886e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.22324405782497847,
+      "seg": 0.19874628924230148,
+      "align": 0.0,
+      "diversity": 0.0288118650343203,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.010091836461374864
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.113525390625,
+      "necrotic_core": 0.0625,
+      "edema": 0.4108214970876479,
+      "enhancing_tumor": 0.4131531122873521
+    },
+    "train_time_sec": 387.3,
+    "val_time_sec": 0.0,
+    "total_time_sec": 387.3,
+    "timestamp": "2026-07-25 10:07:41"
+  },
+  {
+    "epoch": 4,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.939057285945933e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20623011757019002,
+      "seg": 0.1822189581479429,
+      "align": 0.0,
+      "diversity": 0.02812447216310327,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.009948923235990592
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11352442754561144,
+      "necrotic_core": 0.06249783307137574,
+      "edema": 0.4113870654585799,
+      "enhancing_tumor": 0.41259067392443294
+    },
+    "train_time_sec": 388.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 388.8,
+    "timestamp": "2026-07-25 10:14:13"
+  },
+  {
+    "epoch": 5,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.904887137995992e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19476043903204582,
+      "seg": 0.1710621883773063,
+      "align": 0.0,
+      "diversity": 0.02786389452678976,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.009766303568608192
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": -0.006957678848388296,
+        "edema": 0.12400661073474264,
+        "enhancing_tumor": 0.10851766423759283
+      },
+      "dice": {
+        "WT": 0.8505285634171396,
+        "TC": 0.7130946425366844,
+        "ET": 0.7028042981135578
+      }
+    },
+    "expert_utilization": {
+      "background": 0.1135241867757643,
+      "necrotic_core": 0.06249590691259862,
+      "edema": 0.4128930808524408,
+      "enhancing_tumor": 0.4110868254591962
+    },
+    "train_time_sec": 386.9,
+    "val_time_sec": 66.0,
+    "total_time_sec": 458.4,
+    "timestamp": "2026-07-25 10:21:56"
+  },
+  {
+    "epoch": 6,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.8632311059685e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.18645523935262504,
+      "seg": 0.16303084138964524,
+      "align": 0.0,
+      "diversity": 0.027735853521796257,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.009556470995427236
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.113525390625,
+      "necrotic_core": 0.06249325844428008,
+      "edema": 0.4106043226855276,
+      "enhancing_tumor": 0.4133770282451923
+    },
+    "train_time_sec": 386.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 386.9,
+    "timestamp": "2026-07-25 10:28:24"
+  },
+  {
+    "epoch": 7,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.814153420445554e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17920584188630947,
+      "seg": 0.15606022639754843,
+      "align": 0.0,
+      "diversity": 0.027656898661140038,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.009317166289531385
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1135229829265286,
+      "necrotic_core": 0.06249566614275148,
+      "edema": 0.4140107344828649,
+      "enhancing_tumor": 0.40997061644785504
+    },
+    "train_time_sec": 387.5,
+    "val_time_sec": 0.0,
+    "total_time_sec": 387.5,
+    "timestamp": "2026-07-25 10:34:56"
+  },
+  {
+    "epoch": 8,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.757729755661012e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17362929929848725,
+      "seg": 0.1508191512379597,
+      "align": 0.0,
+      "diversity": 0.027506958386498914,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.009056668980249169
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1135169636803501,
+      "necrotic_core": 0.06248988766642012,
+      "edema": 0.4113432453464004,
+      "enhancing_tumor": 0.4126499033068294
+    },
+    "train_time_sec": 386.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 386.9,
+    "timestamp": "2026-07-25 10:41:26"
+  },
+  {
+    "epoch": 9,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.694047112816299e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1701557477697348,
+      "seg": 0.14766091551940294,
+      "align": 0.0,
+      "diversity": 0.02743738568048094,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.008776139833503338
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11351913060897435,
+      "necrotic_core": 0.06248747996794872,
+      "edema": 0.41322052784455127,
+      "enhancing_tumor": 0.41077286157852566
+    },
+    "train_time_sec": 388.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 388.9,
+    "timestamp": "2026-07-25 10:47:58"
+  },
+  {
+    "epoch": 10,
+    "phase": "warmup",
+    "tau_target": 2.0,
+    "lr": 9.62320368593087e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.16698873252102728,
+      "seg": 0.1447943915398075,
+      "align": 0.0,
+      "diversity": 0.02743511556976528,
+      "entropy": 0.0,
+      "boundary": 0.0,
+      "contrastive": 0.0,
+      "tau_reg": 0.008476783172457059
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": -0.011260761261739282,
+        "edema": 0.1568357609730911,
+        "enhancing_tumor": 0.15118602445952578
+      },
+      "dice": {
+        "WT": 0.8775107704457783,
+        "TC": 0.765405675414289,
+        "ET": 0.7474056972326057
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11352466831545859,
+      "necrotic_core": 0.0624927769045858,
+      "edema": 0.41206531411797337,
+      "enhancing_tumor": 0.41191724066198226
+    },
+    "train_time_sec": 390.4,
+    "val_time_sec": 61.2,
+    "total_time_sec": 456.9,
+    "timestamp": "2026-07-25 10:55:39"
+  },
+  {
+    "epoch": 11,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 9.545308710434153e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.3419119939575416,
+      "seg": 0.14750552025698935,
+      "align": 0.08578268566536382,
+      "diversity": 0.03638006719582415,
+      "entropy": 0.06355743212014606,
+      "boundary": 0.1411330734675335,
+      "contrastive": 0.1579223192192002,
+      "tau_reg": 8.155818973737723e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11444344605214497,
+      "necrotic_core": 0.06251035310342702,
+      "edema": 0.4408007138344428,
+      "enhancing_tumor": 0.38224548700998523
+    },
+    "train_time_sec": 402.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.9,
+    "timestamp": "2026-07-25 11:02:24"
+  },
+  {
+    "epoch": 12,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 9.460482294732421e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.29105356830875784,
+      "seg": 0.14389084636452343,
+      "align": 0.05176421354886524,
+      "diversity": 0.03375641816650211,
+      "entropy": 0.04934596741954104,
+      "boundary": 0.13088310145106188,
+      "contrastive": 0.128939664913757,
+      "tau_reg": 8.000640555756089e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11344738119452663,
+      "necrotic_core": 0.06263916497164694,
+      "edema": 0.4279033954326923,
+      "enhancing_tumor": 0.3960100584011341
+    },
+    "train_time_sec": 400.1,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.1,
+    "timestamp": "2026-07-25 11:09:07"
+  },
+  {
+    "epoch": 13,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 9.368855235010347e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.28113393498771994,
+      "seg": 0.14175527278220013,
+      "align": 0.04652282819991735,
+      "diversity": 0.03273674938827753,
+      "entropy": 0.043537736532353676,
+      "boundary": 0.1249677186649976,
+      "contrastive": 0.12828207645516534,
+      "tau_reg": 7.714042491146365e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11330388236563116,
+      "necrotic_core": 0.06278771996733234,
+      "edema": 0.41768103003266766,
+      "enhancing_tumor": 0.40622736763436884
+    },
+    "train_time_sec": 399.3,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.3,
+    "timestamp": "2026-07-25 11:15:49"
+  },
+  {
+    "epoch": 14,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 9.270568813552756e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2703443154677954,
+      "seg": 0.13930618934722752,
+      "align": 0.04423472366439819,
+      "diversity": 0.031882512396021474,
+      "entropy": 0.03830207477891322,
+      "boundary": 0.1188273749303227,
+      "contrastive": 0.11585711022722621,
+      "tau_reg": 7.37773865177544e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11336166712894477,
+      "necrotic_core": 0.06267937353611933,
+      "edema": 0.42292066344612916,
+      "enhancing_tumor": 0.4010382958888067
+    },
+    "train_time_sec": 402.7,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.7,
+    "timestamp": "2026-07-25 11:22:36"
+  },
+  {
+    "epoch": 15,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 9.1657745808976e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2601455971525148,
+      "seg": 0.13795656860940145,
+      "align": 0.03930235777045731,
+      "diversity": 0.031701666920186854,
+      "entropy": 0.036207536164729964,
+      "boundary": 0.11578731465427099,
+      "contrastive": 0.10622295738664328,
+      "tau_reg": 7.067835739415591e-05
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.6987495541249396,
+        "edema": 0.9127957326839952,
+        "enhancing_tumor": 0.8968860921410892
+      },
+      "dice": {
+        "WT": 0.8740381461878618,
+        "TC": 0.7826030428821339,
+        "ET": 0.7703105044452059
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11338622565335306,
+      "necrotic_core": 0.06286404400887574,
+      "edema": 0.424450515054857,
+      "enhancing_tumor": 0.3992992152829142
+    },
+    "train_time_sec": 399.1,
+    "val_time_sec": 63.4,
+    "total_time_sec": 468.9,
+    "timestamp": "2026-07-25 11:30:27"
+  },
+  {
+    "epoch": 16,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 9.05463412215599e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.25449728772514435,
+      "seg": 0.13535632101976894,
+      "align": 0.03833636151583788,
+      "diversity": 0.031223879091044855,
+      "entropy": 0.03325563989197596,
+      "boundary": 0.11123881671078048,
+      "contrastive": 0.10473617255302878,
+      "tau_reg": 6.761030281142605e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1134334165433925,
+      "necrotic_core": 0.06271693363227318,
+      "edema": 0.41950654701368345,
+      "enhancing_tumor": 0.4043431028106509
+    },
+    "train_time_sec": 402.0,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.0,
+    "timestamp": "2026-07-25 11:37:11"
+  },
+  {
+    "epoch": 17,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 8.937318807859687e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.24941300600767136,
+      "seg": 0.1340078298549886,
+      "align": 0.037321501828675385,
+      "diversity": 0.030967807542363685,
+      "entropy": 0.03165330739298751,
+      "boundary": 0.1068161316803809,
+      "contrastive": 0.1005794797329396,
+      "tau_reg": 6.455089109047377e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11337177946252465,
+      "necrotic_core": 0.0627609945142998,
+      "edema": 0.4181363258136095,
+      "enhancing_tumor": 0.4057309002095661
+    },
+    "train_time_sec": 401.7,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.7,
+    "timestamp": "2026-07-25 11:43:57"
+  },
+  {
+    "epoch": 18,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 8.814009529720155e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2497138784761142,
+      "seg": 0.13411376109398182,
+      "align": 0.036921858447826625,
+      "diversity": 0.031205809847828316,
+      "entropy": 0.031694446698187516,
+      "boundary": 0.10718037447794772,
+      "contrastive": 0.10180814212504392,
+      "tau_reg": 6.185209238276031e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11342113728118837,
+      "necrotic_core": 0.06291773568478796,
+      "edema": 0.4140283106817061,
+      "enhancing_tumor": 0.4096328163523176
+    },
+    "train_time_sec": 400.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.6,
+    "timestamp": "2026-07-25 11:50:41"
+  },
+  {
+    "epoch": 19,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 8.684896421706645e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.24019434714884566,
+      "seg": 0.13224685338327635,
+      "align": 0.03318545952463112,
+      "diversity": 0.030697052043732218,
+      "entropy": 0.030094375532612763,
+      "boundary": 0.10519622511246941,
+      "contrastive": 0.09164918804880072,
+      "tau_reg": 5.893860957105378e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11338261410564596,
+      "necrotic_core": 0.06287993481878698,
+      "edema": 0.41770125469982744,
+      "enhancing_tumor": 0.4060361963757396
+    },
+    "train_time_sec": 401.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.6,
+    "timestamp": "2026-07-25 11:57:25"
+  },
+  {
+    "epoch": 20,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 8.550178566873411e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.23792374136268035,
+      "seg": 0.13140685961139068,
+      "align": 0.03261180648573158,
+      "diversity": 0.030674944497659597,
+      "entropy": 0.028970255040705085,
+      "boundary": 0.1032640437767299,
+      "contrastive": 0.09080853861291019,
+      "tau_reg": 5.6123505972467704e-05
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7298184351086668,
+        "edema": 0.9222049481332968,
+        "enhancing_tumor": 0.9073287346206159
+      },
+      "dice": {
+        "WT": 0.8816638296203954,
+        "TC": 0.7765777486877671,
+        "ET": 0.7618908180070308
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11338718873274162,
+      "necrotic_core": 0.06273860291851578,
+      "edema": 0.4194386499167899,
+      "enhancing_tumor": 0.40443555843195267
+    },
+    "train_time_sec": 397.4,
+    "val_time_sec": 64.4,
+    "total_time_sec": 467.6,
+    "timestamp": "2026-07-25 12:05:17"
+  },
+  {
+    "epoch": 21,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 8.410063690388064e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.23235845966613622,
+      "seg": 0.13019616377890786,
+      "align": 0.030912330036629954,
+      "diversity": 0.0305334235554381,
+      "entropy": 0.02858192765446016,
+      "boundary": 0.10079585990769314,
+      "contrastive": 0.08468686548044649,
+      "tau_reg": 5.261519884427043e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11333783091407791,
+      "necrotic_core": 0.06286235861994575,
+      "edema": 0.4156234109190089,
+      "enhancing_tumor": 0.40817639954696744
+    },
+    "train_time_sec": 402.2,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.2,
+    "timestamp": "2026-07-25 12:12:01"
+  },
+  {
+    "epoch": 22,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 8.264767839234411e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2311522801144001,
+      "seg": 0.1295205824622697,
+      "align": 0.02991346034626337,
+      "diversity": 0.03014881175408173,
+      "entropy": 0.025081959328039218,
+      "boundary": 0.098908588010083,
+      "contrastive": 0.08890217506264222,
+      "tau_reg": 4.9781277287256385e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11341921112241124,
+      "necrotic_core": 0.06283009546042899,
+      "edema": 0.4180775779709073,
+      "enhancing_tumor": 0.40567311544625245
+    },
+    "train_time_sec": 400.3,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.3,
+    "timestamp": "2026-07-25 12:18:44"
+  },
+  {
+    "epoch": 23,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 8.114515049083679e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2313482660205054,
+      "seg": 0.1296435424890847,
+      "align": 0.0308090486223018,
+      "diversity": 0.030406910062747358,
+      "entropy": 0.02663147171703948,
+      "boundary": 0.0997338509425903,
+      "contrastive": 0.08486185644830765,
+      "tau_reg": 4.719019244445435e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11342908268614399,
+      "necrotic_core": 0.06273908445821005,
+      "edema": 0.4145062388282791,
+      "enhancing_tumor": 0.40932559402736685
+    },
+    "train_time_sec": 402.7,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.7,
+    "timestamp": "2026-07-25 12:25:32"
+  },
+  {
+    "epoch": 24,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 7.959536998847744e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2290490430833026,
+      "seg": 0.12893470733553258,
+      "align": 0.03008248141736486,
+      "diversity": 0.03033257859595546,
+      "entropy": 0.026374112037185,
+      "boundary": 0.09756336184135864,
+      "contrastive": 0.08429279474333772,
+      "tau_reg": 4.497559666829928e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11322490985576923,
+      "necrotic_core": 0.06287319326306706,
+      "edema": 0.4162662664108728,
+      "enhancing_tumor": 0.40763563047029094
+    },
+    "train_time_sec": 401.1,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.1,
+    "timestamp": "2026-07-25 12:32:16"
+  },
+  {
+    "epoch": 25,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 7.800072653447033e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.22113135703922024,
+      "seg": 0.12684453215773348,
+      "align": 0.026984991662669097,
+      "diversity": 0.02990434021198538,
+      "entropy": 0.023773331096840388,
+      "boundary": 0.094745072254202,
+      "contrastive": 0.078819084810711,
+      "tau_reg": 4.268106598760868e-05
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7403849991901583,
+        "edema": 0.9197999420268429,
+        "enhancing_tumor": 0.9025005725770281
+      },
+      "dice": {
+        "WT": 0.883072885108136,
+        "TC": 0.8034475062273692,
+        "ET": 0.7896498745627241
+      }
+    },
+    "expert_utilization": {
+      "background": 0.1133599817400148,
+      "necrotic_core": 0.06298370662290434,
+      "edema": 0.41506723257211536,
+      "enhancing_tumor": 0.4085890790649655
+    },
+    "train_time_sec": 399.2,
+    "val_time_sec": 61.7,
+    "total_time_sec": 467.2,
+    "timestamp": "2026-07-25 12:40:06"
+  },
+  {
+    "epoch": 26,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 7.636367895343949e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.218758781978776,
+      "seg": 0.12676090337483018,
+      "align": 0.02629057288568999,
+      "diversity": 0.030169141546802877,
+      "entropy": 0.025370228824828416,
+      "boundary": 0.09417675423006025,
+      "contrastive": 0.07358728065347284,
+      "tau_reg": 3.982023894390747e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11330942007211539,
+      "necrotic_core": 0.06288980638251973,
+      "edema": 0.41564074634800297,
+      "enhancing_tumor": 0.40816002719736194
+    },
+    "train_time_sec": 400.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.8,
+    "timestamp": "2026-07-25 12:46:48"
+  },
+  {
+    "epoch": 27,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 7.46867514540993e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.21951340446413975,
+      "seg": 0.1271899520112771,
+      "align": 0.02685559403133992,
+      "diversity": 0.02975868514171366,
+      "entropy": 0.022851248809294428,
+      "boundary": 0.09433736606442261,
+      "contrastive": 0.07340297619747091,
+      "tau_reg": 3.789789813585144e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11343197192430966,
+      "necrotic_core": 0.06293410803439349,
+      "edema": 0.41245223126232744,
+      "enhancing_tumor": 0.41118168877896943
+    },
+    "train_time_sec": 400.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.6,
+    "timestamp": "2026-07-25 12:53:32"
+  },
+  {
+    "epoch": 28,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 7.297252973710759e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.21745809560726145,
+      "seg": 0.12509449631806016,
+      "align": 0.02665465417955417,
+      "diversity": 0.02994389153825931,
+      "entropy": 0.023603303464959858,
+      "boundary": 0.09210239574258056,
+      "contrastive": 0.07611586772636691,
+      "tau_reg": 3.5485441475191395e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11339007797090729,
+      "necrotic_core": 0.06280553693602071,
+      "edema": 0.41613384299494577,
+      "enhancing_tumor": 0.40767054209812625
+    },
+    "train_time_sec": 399.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.6,
+    "timestamp": "2026-07-25 13:00:14"
+  },
+  {
+    "epoch": 29,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 7.122365700810273e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2174378825678569,
+      "seg": 0.12480533484064586,
+      "align": 0.027123434623760826,
+      "diversity": 0.02964075886565435,
+      "entropy": 0.022161262329847827,
+      "boundary": 0.09126764259078858,
+      "contrastive": 0.07684405963233826,
+      "tau_reg": 3.360717301521013e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11344039886895957,
+      "necrotic_core": 0.06293531188362919,
+      "edema": 0.41577413284331854,
+      "enhancing_tumor": 0.4078501564040927
+    },
+    "train_time_sec": 399.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.8,
+    "timestamp": "2026-07-25 13:06:59"
+  },
+  {
+    "epoch": 30,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 6.944282990207198e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.21453335832738313,
+      "seg": 0.12455282406422219,
+      "align": 0.025949570713921996,
+      "diversity": 0.029987632427401326,
+      "entropy": 0.023554414753660678,
+      "boundary": 0.09100947876991722,
+      "contrastive": 0.0715561164887959,
+      "tau_reg": 3.192239805693918e-05
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7531930895032946,
+        "edema": 0.9217176790831995,
+        "enhancing_tumor": 0.9066306173726792
+      },
+      "dice": {
+        "WT": 0.8951499274089223,
+        "TC": 0.8045372166973146,
+        "ET": 0.7899963739630373
+      }
+    },
+    "expert_utilization": {
+      "background": 0.1133864664232002,
+      "necrotic_core": 0.06279590614213511,
+      "edema": 0.4144843287721893,
+      "enhancing_tumor": 0.40933329866247536
+    },
+    "train_time_sec": 399.3,
+    "val_time_sec": 63.5,
+    "total_time_sec": 468.6,
+    "timestamp": "2026-07-25 13:14:50"
+  },
+  {
+    "epoch": 31,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 6.763279432533594e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.21372820757314767,
+      "seg": 0.12432619129239601,
+      "align": 0.025435022488390167,
+      "diversity": 0.02963013858470103,
+      "entropy": 0.021398831946459366,
+      "boundary": 0.09102257299080814,
+      "contrastive": 0.07200270816609933,
+      "tau_reg": 3.0350153199051456e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11329954850838264,
+      "necrotic_core": 0.06296926043207594,
+      "edema": 0.41827573155510356,
+      "enhancing_tumor": 0.40545545950443784
+    },
+    "train_time_sec": 400.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.6,
+    "timestamp": "2026-07-25 13:21:33"
+  },
+  {
+    "epoch": 32,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 6.579634122155994e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2095543056160682,
+      "seg": 0.12352586106288833,
+      "align": 0.024629087547285315,
+      "diversity": 0.02952285815963496,
+      "entropy": 0.021076098818991414,
+      "boundary": 0.08897424916138862,
+      "contrastive": 0.06568724158650546,
+      "tau_reg": 2.8717794271722835e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11332507011217949,
+      "necrotic_core": 0.06299839358357988,
+      "edema": 0.4152663492357002,
+      "enhancing_tumor": 0.40841018706854043
+    },
+    "train_time_sec": 398.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 398.6,
+    "timestamp": "2026-07-25 13:28:15"
+  },
+  {
+    "epoch": 33,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 6.393630226832122e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2047891161226368,
+      "seg": 0.12254852218428512,
+      "align": 0.02247543360968508,
+      "diversity": 0.029465527102880223,
+      "entropy": 0.020611470611582288,
+      "boundary": 0.08748353058031413,
+      "contrastive": 0.06184725199115228,
+      "tau_reg": 2.7045834814937677e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1134213780510355,
+      "necrotic_core": 0.06289414023976825,
+      "edema": 0.41383425018491127,
+      "enhancing_tumor": 0.409850231524285
+    },
+    "train_time_sec": 400.2,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.2,
+    "timestamp": "2026-07-25 13:34:58"
+  },
+  {
+    "epoch": 34,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 6.205554551086737e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2066777285585213,
+      "seg": 0.12182802907273879,
+      "align": 0.024205623162947332,
+      "diversity": 0.029409878440862576,
+      "entropy": 0.020269204154279987,
+      "boundary": 0.08641244364255779,
+      "contrastive": 0.06595686595903255,
+      "tau_reg": 2.5650668001445093e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11345002966284516,
+      "necrotic_core": 0.06287993481878698,
+      "edema": 0.4133305596646943,
+      "enhancing_tumor": 0.4103394758536736
+    },
+    "train_time_sec": 397.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 397.6,
+    "timestamp": "2026-07-25 13:41:39"
+  },
+  {
+    "epoch": 35,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 6.01569709397984e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20357076190705953,
+      "seg": 0.1215115048623179,
+      "align": 0.022602535195032684,
+      "diversity": 0.029449235684655357,
+      "entropy": 0.02015165265932444,
+      "boundary": 0.08682030687867287,
+      "contrastive": 0.061534980952037265,
+      "tau_reg": 2.3999875593361954e-05
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.6951512030960018,
+        "edema": 0.917941874140124,
+        "enhancing_tumor": 0.9040118442893437
+      },
+      "dice": {
+        "WT": 0.8966287303538549,
+        "TC": 0.8099941705278055,
+        "ET": 0.7985198078202418
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11344112117850098,
+      "necrotic_core": 0.06281227849174063,
+      "edema": 0.4142452443139793,
+      "enhancing_tumor": 0.4095013560157791
+    },
+    "train_time_sec": 399.3,
+    "val_time_sec": 62.8,
+    "total_time_sec": 468.0,
+    "timestamp": "2026-07-25 13:49:31"
+  },
+  {
+    "epoch": 36,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 5.824350601949148e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20055269488524755,
+      "seg": 0.12061035009541896,
+      "align": 0.02158698247252888,
+      "diversity": 0.029276527214567572,
+      "entropy": 0.01929257361170573,
+      "boundary": 0.08467250634067466,
+      "contrastive": 0.06033345736205717,
+      "tau_reg": 2.238239838879604e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11342113728118837,
+      "necrotic_core": 0.06298731817061144,
+      "edema": 0.4157570381841716,
+      "enhancing_tumor": 0.4078345063640286
+    },
+    "train_time_sec": 400.3,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.3,
+    "timestamp": "2026-07-25 13:56:13"
+  },
+  {
+    "epoch": 37,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 5.631810117416301e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19802909974868482,
+      "seg": 0.12000431506150573,
+      "align": 0.02117536687316185,
+      "diversity": 0.02903088715287473,
+      "entropy": 0.0176410628505661,
+      "boundary": 0.08370196750696153,
+      "contrastive": 0.05675328469885138,
+      "tau_reg": 2.0986138233512912e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11343389808308678,
+      "necrotic_core": 0.06297190890039447,
+      "edema": 0.4149056760046844,
+      "enhancing_tumor": 0.40868851701183434
+    },
+    "train_time_sec": 399.7,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.7,
+    "timestamp": "2026-07-25 14:02:56"
+  },
+  {
+    "epoch": 38,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 5.438372523852837e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1986713187853554,
+      "seg": 0.11983742740802482,
+      "align": 0.021588503929367158,
+      "diversity": 0.029278217002940483,
+      "entropy": 0.0192805046398887,
+      "boundary": 0.08397427695473615,
+      "contrastive": 0.05733834215031907,
+      "tau_reg": 1.9686792154583568e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11339296720907298,
+      "necrotic_core": 0.06305425218811637,
+      "edema": 0.4125815246702416,
+      "enhancing_tumor": 0.41097125593256906
+    },
+    "train_time_sec": 398.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 398.9,
+    "timestamp": "2026-07-25 14:09:39"
+  },
+  {
+    "epoch": 39,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 5.244336088007394e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19809010402617253,
+      "seg": 0.11967505608029531,
+      "align": 0.02224624302885649,
+      "diversity": 0.029191833062931397,
+      "entropy": 0.018602079317374138,
+      "boundary": 0.08319652193323278,
+      "contrastive": 0.05469785935354457,
+      "tau_reg": 1.8551889685145856e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11339344874876726,
+      "necrotic_core": 0.06294109035996055,
+      "edema": 0.4149543115138067,
+      "enhancing_tumor": 0.4087111493774655
+    },
+    "train_time_sec": 401.1,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.1,
+    "timestamp": "2026-07-25 14:16:23"
+  },
+  {
+    "epoch": 40,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 5.0500000000000035e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1949576970953972,
+      "seg": 0.11912042925711097,
+      "align": 0.021076192658607832,
+      "diversity": 0.029093636107985554,
+      "entropy": 0.018142782645373508,
+      "boundary": 0.08199281545440415,
+      "contrastive": 0.05139208199186628,
+      "tau_reg": 1.7358414964021148e-05
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7802488681420844,
+        "edema": 0.927144416741002,
+        "enhancing_tumor": 0.9149763914696659
+      },
+      "dice": {
+        "WT": 0.9049537400049823,
+        "TC": 0.8272162845746054,
+        "ET": 0.8150422703064285
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11342715652736686,
+      "necrotic_core": 0.0629581850191075,
+      "edema": 0.41362381733851084,
+      "enhancing_tumor": 0.40999084111501477
+    },
+    "train_time_sec": 397.6,
+    "val_time_sec": 62.8,
+    "total_time_sec": 467.2,
+    "timestamp": "2026-07-25 14:24:13"
+  },
+  {
+    "epoch": 41,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 4.855663911992615e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19481824487227306,
+      "seg": 0.11797802479794392,
+      "align": 0.02136383183345758,
+      "diversity": 0.02908152647140111,
+      "entropy": 0.017919499305842895,
+      "boundary": 0.08050176985396525,
+      "contrastive": 0.0552991777984311,
+      "tau_reg": 1.6144013307971194e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11338574411365877,
+      "necrotic_core": 0.06302728596523668,
+      "edema": 0.41367967594304733,
+      "enhancing_tumor": 0.4099072939780572
+    },
+    "train_time_sec": 399.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.6,
+    "timestamp": "2026-07-25 14:30:55"
+  },
+  {
+    "epoch": 42,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 4.6616274761471715e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19512630540958406,
+      "seg": 0.11837312888585516,
+      "align": 0.021764195838378547,
+      "diversity": 0.02917969396385627,
+      "entropy": 0.0186184219955384,
+      "boundary": 0.08090041751589414,
+      "contrastive": 0.05309146735228579,
+      "tau_reg": 1.5382176929485758e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1133587778907791,
+      "necrotic_core": 0.06299598588510848,
+      "edema": 0.4156845664601824,
+      "enhancing_tumor": 0.40796066976393
+    },
+    "train_time_sec": 401.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.6,
+    "timestamp": "2026-07-25 14:37:39"
+  },
+  {
+    "epoch": 43,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 4.468189882583708e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1897663724897117,
+      "seg": 0.11726520958226137,
+      "align": 0.019708833414833864,
+      "diversity": 0.02916516512779324,
+      "entropy": 0.018095576208722236,
+      "boundary": 0.07982563003815005,
+      "contrastive": 0.04688948501033108,
+      "tau_reg": 1.4254769571801727e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11339706029647435,
+      "necrotic_core": 0.06284622704018737,
+      "edema": 0.41552999221831854,
+      "enhancing_tumor": 0.40822672044501973
+    },
+    "train_time_sec": 400.0,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.0,
+    "timestamp": "2026-07-25 14:44:22"
+  },
+  {
+    "epoch": 44,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 4.275649398050862e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.18630639011778774,
+      "seg": 0.11716348494364488,
+      "align": 0.018570060533233325,
+      "diversity": 0.029012979232362623,
+      "entropy": 0.017475107343062846,
+      "boundary": 0.07898946815212597,
+      "contrastive": 0.04060560082393256,
+      "tau_reg": 1.3081787280338592e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11336816791481756,
+      "necrotic_core": 0.06291677260539941,
+      "edema": 0.4125759869637574,
+      "enhancing_tumor": 0.41113907251602566
+    },
+    "train_time_sec": 398.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 398.8,
+    "timestamp": "2026-07-25 14:51:05"
+  },
+  {
+    "epoch": 45,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 4.084302906020169e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.18619205526037683,
+      "seg": 0.11635237506129714,
+      "align": 0.01841183035429876,
+      "diversity": 0.02898024092566156,
+      "entropy": 0.017380309187167892,
+      "boundary": 0.0783853386687225,
+      "contrastive": 0.04412070652834382,
+      "tau_reg": 1.2111228201969428e-05
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7542308353534568,
+        "edema": 0.9307225529199912,
+        "enhancing_tumor": 0.9147514743744555
+      },
+      "dice": {
+        "WT": 0.9082414335792973,
+        "TC": 0.8313140510737502,
+        "ET": 0.816798802015146
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11339778260601578,
+      "necrotic_core": 0.06300369052021697,
+      "edema": 0.41411571013621795,
+      "enhancing_tumor": 0.4094828167375493
+    },
+    "train_time_sec": 399.9,
+    "val_time_sec": 63.8,
+    "total_time_sec": 468.6,
+    "timestamp": "2026-07-25 14:58:57"
+  },
+  {
+    "epoch": 46,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 3.894445448913272e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.18700492513941003,
+      "seg": 0.11610649038414807,
+      "align": 0.018572223926641828,
+      "diversity": 0.028780393271212866,
+      "entropy": 0.01600166234827033,
+      "boundary": 0.07747792027026408,
+      "contrastive": 0.04840483349578317,
+      "tau_reg": 1.1170027330935095e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11336503790680473,
+      "necrotic_core": 0.06302391518737673,
+      "edema": 0.412669887204142,
+      "enhancing_tumor": 0.41094115970167655
+    },
+    "train_time_sec": 400.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.6,
+    "timestamp": "2026-07-25 15:05:40"
+  },
+  {
+    "epoch": 47,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 3.7063697731678844e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.18338345065051634,
+      "seg": 0.115181581034551,
+      "align": 0.017466797061140706,
+      "diversity": 0.028808608873429502,
+      "entropy": 0.015734085409729363,
+      "boundary": 0.07710967579956628,
+      "contrastive": 0.0434334136848614,
+      "tau_reg": 1.049922255878851e-05
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11342161882088264,
+      "necrotic_core": 0.06287728635046844,
+      "edema": 0.4161880162105523,
+      "enhancing_tumor": 0.40751307861809666
+    },
+    "train_time_sec": 399.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.9,
+    "timestamp": "2026-07-25 15:12:24"
+  },
+  {
+    "epoch": 48,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 3.520365877844013e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17960296130391973,
+      "seg": 0.1151704391899943,
+      "align": 0.0165004799601759,
+      "diversity": 0.0288979691991498,
+      "entropy": 0.01585885562545471,
+      "boundary": 0.07590580374554454,
+      "contrastive": 0.035143472951828215,
+      "tau_reg": 9.684781880369727e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11342908268614399,
+      "necrotic_core": 0.06251492773052268,
+      "edema": 0.4112447704789201,
+      "enhancing_tumor": 0.4128112191044132
+    },
+    "train_time_sec": 398.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 398.9,
+    "timestamp": "2026-07-25 15:19:05"
+  },
+  {
+    "epoch": 49,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 3.336720567466413e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1822936181603569,
+      "seg": 0.1147544287214941,
+      "align": 0.01768200359785247,
+      "diversity": 0.028811910468901285,
+      "entropy": 0.015882997644084268,
+      "boundary": 0.07586952553408981,
+      "contrastive": 0.04174139992543044,
+      "tau_reg": 9.121778664927465e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11341945189225838,
+      "necrotic_core": 0.06290256718441814,
+      "edema": 0.4123265494021203,
+      "enhancing_tumor": 0.4113514315212032
+    },
+    "train_time_sec": 401.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.9,
+    "timestamp": "2026-07-25 15:25:50"
+  },
+  {
+    "epoch": 50,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 3.1557170097928076e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17787065805915075,
+      "seg": 0.11427992626774829,
+      "align": 0.01637852937272448,
+      "diversity": 0.02865866998934299,
+      "entropy": 0.014870954239355213,
+      "boundary": 0.07502878293798249,
+      "contrastive": 0.03405737716058833,
+      "tau_reg": 8.308153365550634e-06
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7595926987719592,
+        "edema": 0.9327438703629984,
+        "enhancing_tumor": 0.9177315518004783
+      },
+      "dice": {
+        "WT": 0.9087711143351737,
+        "TC": 0.8309611945017779,
+        "ET": 0.8194998072464157
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11337611331977318,
+      "necrotic_core": 0.06306412375184911,
+      "edema": 0.4190770136063856,
+      "enhancing_tumor": 0.40448274932199213
+    },
+    "train_time_sec": 399.7,
+    "val_time_sec": 64.4,
+    "total_time_sec": 469.2,
+    "timestamp": "2026-07-25 15:33:44"
+  },
+  {
+    "epoch": 51,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 2.9776342991897346e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17704898177019707,
+      "seg": 0.11385228812852526,
+      "align": 0.016208183172891282,
+      "diversity": 0.02866304730647473,
+      "entropy": 0.015040211565746637,
+      "boundary": 0.07401201241586314,
+      "contrastive": 0.03431771336692989,
+      "tau_reg": 7.665673547487348e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11345315967085799,
+      "necrotic_core": 0.06299887512327416,
+      "edema": 0.41570743959566075,
+      "enhancing_tumor": 0.4078405256102071
+    },
+    "train_time_sec": 398.5,
+    "val_time_sec": 0.0,
+    "total_time_sec": 398.5,
+    "timestamp": "2026-07-25 15:40:24"
+  },
+  {
+    "epoch": 52,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 2.8027470262892457e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1757273706010519,
+      "seg": 0.1130931557016539,
+      "align": 0.015748664434354846,
+      "diversity": 0.028503804050635774,
+      "entropy": 0.014092346503632603,
+      "boundary": 0.073527245046626,
+      "contrastive": 0.034757959073795086,
+      "tau_reg": 7.162692388247837e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1134579750678008,
+      "necrotic_core": 0.06304438062438363,
+      "edema": 0.4099383532883383,
+      "enhancing_tumor": 0.4135592910194773
+    },
+    "train_time_sec": 399.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.8,
+    "timestamp": "2026-07-25 15:47:07"
+  },
+  {
+    "epoch": 53,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 2.6313248545900743e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17344238884247384,
+      "seg": 0.11267307857914848,
+      "align": 0.014896746166417998,
+      "diversity": 0.028552955764123557,
+      "entropy": 0.014412657404823608,
+      "boundary": 0.07339854241845692,
+      "contrastive": 0.03141925879363656,
+      "tau_reg": 6.617488870293596e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11344232502773668,
+      "necrotic_core": 0.06300850591715976,
+      "edema": 0.4133565628081854,
+      "enhancing_tumor": 0.41019260624691817
+    },
+    "train_time_sec": 399.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.6,
+    "timestamp": "2026-07-25 15:53:49"
+  },
+  {
+    "epoch": 54,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 2.463632104656055e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17581314632863806,
+      "seg": 0.11303606093356007,
+      "align": 0.015844899528774624,
+      "diversity": 0.028530454073887487,
+      "entropy": 0.014175618386550033,
+      "boundary": 0.07286306319774828,
+      "contrastive": 0.03553367951935339,
+      "tau_reg": 6.178376974692213e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11341391418577416,
+      "necrotic_core": 0.06303908368774655,
+      "edema": 0.4106818505763067,
+      "enhancing_tumor": 0.41286515155017256
+    },
+    "train_time_sec": 399.7,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.7,
+    "timestamp": "2026-07-25 16:00:33"
+  },
+  {
+    "epoch": 55,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 2.2999273465529702e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1714398100626833,
+      "seg": 0.11227371991856329,
+      "align": 0.014303155351945434,
+      "diversity": 0.028423249236578067,
+      "entropy": 0.013412324713287724,
+      "boundary": 0.0728712676616966,
+      "contrastive": 0.028833482011880813,
+      "tau_reg": 5.760554054796079e-06
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7889348311527448,
+        "edema": 0.9329829532893885,
+        "enhancing_tumor": 0.9217416211606351
+      },
+      "dice": {
+        "WT": 0.9100297192732493,
+        "TC": 0.8196392037787515,
+        "ET": 0.8104600190665481
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11344112117850098,
+      "necrotic_core": 0.06290328949395957,
+      "edema": 0.414280878251356,
+      "enhancing_tumor": 0.40937471107618345
+    },
+    "train_time_sec": 399.3,
+    "val_time_sec": 61.7,
+    "total_time_sec": 467.4,
+    "timestamp": "2026-07-25 16:08:23"
+  },
+  {
+    "epoch": 56,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 2.14046300115226e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17131306625226664,
+      "seg": 0.11181263789292094,
+      "align": 0.014542264846323386,
+      "diversity": 0.028426276725630552,
+      "entropy": 0.013543466248074674,
+      "boundary": 0.07126271613842314,
+      "contrastive": 0.030751145133700194,
+      "tau_reg": 5.430859951666638e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11344039886895957,
+      "necrotic_core": 0.06302078517936391,
+      "edema": 0.4149928346893491,
+      "enhancing_tumor": 0.40854598126232744
+    },
+    "train_time_sec": 400.2,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.2,
+    "timestamp": "2026-07-25 16:15:06"
+  },
+  {
+    "epoch": 57,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 1.9854849509163244e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.17049978949732095,
+      "seg": 0.11155600030585036,
+      "align": 0.01444403070294773,
+      "diversity": 0.028347804380077463,
+      "entropy": 0.013012879436488467,
+      "boundary": 0.07119932377304977,
+      "contrastive": 0.029436204119389915,
+      "tau_reg": 5.067094705134221e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11341800727317554,
+      "necrotic_core": 0.06305208525949212,
+      "edema": 0.40883490507889547,
+      "enhancing_tumor": 0.4146950023884369
+    },
+    "train_time_sec": 401.2,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.2,
+    "timestamp": "2026-07-25 16:21:50"
+  },
+  {
+    "epoch": 58,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 1.835232160765593e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1684538111296396,
+      "seg": 0.11064638971962784,
+      "align": 0.013909876420493739,
+      "diversity": 0.02835530226524824,
+      "entropy": 0.012985052670172142,
+      "boundary": 0.07029398431022389,
+      "contrastive": 0.02832357861976736,
+      "tau_reg": 4.7735113536498624e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11345171505177515,
+      "necrotic_core": 0.06297094582100592,
+      "edema": 0.41283312916050297,
+      "enhancing_tumor": 0.41074420996671596
+    },
+    "train_time_sec": 400.0,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.0,
+    "timestamp": "2026-07-25 16:28:32"
+  },
+  {
+    "epoch": 59,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 1.6899363096119407e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.16752057752886115,
+      "seg": 0.11072894553534496,
+      "align": 0.013712657559363923,
+      "diversity": 0.028383214669614385,
+      "entropy": 0.01312748124869816,
+      "boundary": 0.06988907076075812,
+      "contrastive": 0.0259497653606563,
+      "tau_reg": 4.440920739511294e-06
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11341222879684418,
+      "necrotic_core": 0.06302752673508383,
+      "edema": 0.4123530340853057,
+      "enhancing_tumor": 0.41120721038276625
+    },
+    "train_time_sec": 399.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.8,
+    "timestamp": "2026-07-25 16:35:15"
+  },
+  {
+    "epoch": 60,
+    "phase": "alignment",
+    "tau_target": 1.0,
+    "lr": 1.549821433126591e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.16798939343534514,
+      "seg": 0.11049113984915926,
+      "align": 0.013978026667296405,
+      "diversity": 0.028329186955250107,
+      "entropy": 0.012752301637147585,
+      "boundary": 0.0700464697276413,
+      "contrastive": 0.027366638920953965,
+      "tau_reg": 4.176724146678676e-06
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7924667701058875,
+        "edema": 0.9381079304406219,
+        "enhancing_tumor": 0.9251866637742691
+      },
+      "dice": {
+        "WT": 0.9138361039083629,
+        "TC": 0.8433375548397031,
+        "ET": 0.8332032950243309
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11346279046474358,
+      "necrotic_core": 0.06298009507519724,
+      "edema": 0.41340014215051774,
+      "enhancing_tumor": 0.4101569723095414
+    },
+    "train_time_sec": 400.7,
+    "val_time_sec": 58.4,
+    "total_time_sec": 464.2,
+    "timestamp": "2026-07-25 16:43:04"
+  },
+  {
+    "epoch": 61,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.4151035782933568e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20633594435318217,
+      "seg": 0.11036031477105541,
+      "align": 0.013045161089766963,
+      "diversity": 0.028379004997893784,
+      "entropy": 0.013429304842834399,
+      "boundary": 0.06936510574555711,
+      "contrastive": 0.026359824694366086,
+      "tau_reg": 0.002685222079925959
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11343678732125247,
+      "necrotic_core": 0.06298442893244575,
+      "edema": 0.41466586923693294,
+      "enhancing_tumor": 0.40891291450936884
+    },
+    "train_time_sec": 402.1,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.1,
+    "timestamp": "2026-07-25 16:49:48"
+  },
+  {
+    "epoch": 62,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.2859904702798476e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20746051380502636,
+      "seg": 0.1106108203291511,
+      "align": 0.014402257265116661,
+      "diversity": 0.02852316763016893,
+      "entropy": 0.01431709906743946,
+      "boundary": 0.0688678005446645,
+      "contrastive": 0.026456882319564053,
+      "tau_reg": 0.002647083172762006
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11344112117850098,
+      "necrotic_core": 0.0630027274408284,
+      "edema": 0.4171354455590483,
+      "enhancing_tumor": 0.40642070582162226
+    },
+    "train_time_sec": 401.4,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.4,
+    "timestamp": "2026-07-25 16:56:32"
+  },
+  {
+    "epoch": 63,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.1626811921403126e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.2039730208512594,
+      "seg": 0.10994176397052331,
+      "align": 0.01321677127087883,
+      "diversity": 0.028482991274394815,
+      "entropy": 0.013749725354332073,
+      "boundary": 0.06792746663793436,
+      "contrastive": 0.02429010444244281,
+      "tau_reg": 0.00261419126121015
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11342715652736686,
+      "necrotic_core": 0.06295240654277613,
+      "edema": 0.41929298415927024,
+      "enhancing_tumor": 0.4043274527705868
+    },
+    "train_time_sec": 400.3,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.3,
+    "timestamp": "2026-07-25 17:03:17"
+  },
+  {
+    "epoch": 64,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.0453658778440112e-05,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20405273882697908,
+      "seg": 0.10950145880871726,
+      "align": 0.013548804336927078,
+      "diversity": 0.02856143615419813,
+      "entropy": 0.014322682258790576,
+      "boundary": 0.06748084694512659,
+      "contrastive": 0.026447480291988224,
+      "tau_reg": 0.0025880137707347405
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11341680342393984,
+      "necrotic_core": 0.06281877927761341,
+      "edema": 0.4145893044255424,
+      "enhancing_tumor": 0.4091751128729043
+    },
+    "train_time_sec": 401.4,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.4,
+    "timestamp": "2026-07-25 17:10:01"
+  },
+  {
+    "epoch": 65,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 9.342254191024027e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20176921701113854,
+      "seg": 0.10948673599809261,
+      "align": 0.0124301834883115,
+      "diversity": 0.02849316533427149,
+      "entropy": 0.013744164924128109,
+      "boundary": 0.06732175332981785,
+      "contrastive": 0.0232684203837001,
+      "tau_reg": 0.0025632591165888766
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7942111577333092,
+        "edema": 0.9397909788129785,
+        "enhancing_tumor": 0.9269340927826437
+      },
+      "dice": {
+        "WT": 0.9148206607926459,
+        "TC": 0.8440470155837785,
+        "ET": 0.8336672167532091
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11341511803500987,
+      "necrotic_core": 0.062914364906928,
+      "edema": 0.41977620924248027,
+      "enhancing_tumor": 0.40389430781558183
+    },
+    "train_time_sec": 400.1,
+    "val_time_sec": 59.2,
+    "total_time_sec": 465.3,
+    "timestamp": "2026-07-25 17:17:49"
+  },
+  {
+    "epoch": 66,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 8.29431186447244e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.20113233942722192,
+      "seg": 0.10898965475226603,
+      "align": 0.01284067481295495,
+      "diversity": 0.02851280241771151,
+      "entropy": 0.013796788066165445,
+      "boundary": 0.06651655942889544,
+      "contrastive": 0.024180854006606963,
+      "tau_reg": 0.002541946288091691
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11343823194033531,
+      "necrotic_core": 0.06289606639854536,
+      "edema": 0.42002251679610453,
+      "enhancing_tumor": 0.40364318486501477
+    },
+    "train_time_sec": 402.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.9,
+    "timestamp": "2026-07-25 17:24:34"
+  },
+  {
+    "epoch": 67,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 7.311447649896553e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19954494785157417,
+      "seg": 0.10871536961501313,
+      "align": 0.012504723644148204,
+      "diversity": 0.028516432858224687,
+      "entropy": 0.013713196936500657,
+      "boundary": 0.06615807847840863,
+      "contrastive": 0.022178686804920744,
+      "tau_reg": 0.002524394292615839
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11342763806706115,
+      "necrotic_core": 0.06277399608604536,
+      "edema": 0.4173596022867357,
+      "enhancing_tumor": 0.4064387635601578
+    },
+    "train_time_sec": 401.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.6,
+    "timestamp": "2026-07-25 17:31:18"
+  },
+  {
+    "epoch": 68,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 6.395177052675796e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19941777648510783,
+      "seg": 0.1086479151916288,
+      "align": 0.012311160078016796,
+      "diversity": 0.028526916006980447,
+      "entropy": 0.01378088724763634,
+      "boundary": 0.06559809243110885,
+      "contrastive": 0.024538493144825674,
+      "tau_reg": 0.0025085596353021365
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11338092871671597,
+      "necrotic_core": 0.06288715791420119,
+      "edema": 0.41907364282852566,
+      "enhancing_tumor": 0.4046582705405572
+    },
+    "train_time_sec": 401.5,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.5,
+    "timestamp": "2026-07-25 17:38:03"
+  },
+  {
+    "epoch": 69,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 5.546912895658474e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19957527814017834,
+      "seg": 0.10852287427652664,
+      "align": 0.012547960389866577,
+      "diversity": 0.028442076084073595,
+      "entropy": 0.013723039567926108,
+      "boundary": 0.06586744975233433,
+      "contrastive": 0.02386790205341593,
+      "tau_reg": 0.002495184074168845
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11338309564534024,
+      "necrotic_core": 0.06305015910071499,
+      "edema": 0.41485776280510356,
+      "enhancing_tumor": 0.40870898244884124
+    },
+    "train_time_sec": 401.1,
+    "val_time_sec": 0.0,
+    "total_time_sec": 401.1,
+    "timestamp": "2026-07-25 17:44:47"
+  },
+  {
+    "epoch": 70,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 4.767963140691308e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19858468785749736,
+      "seg": 0.10853018277991541,
+      "align": 0.012315604335837515,
+      "diversity": 0.028490331995666498,
+      "entropy": 0.013937231532001364,
+      "boundary": 0.065357084937818,
+      "contrastive": 0.023033887152690988,
+      "tau_reg": 0.0024832435070740928
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.783593260561497,
+        "edema": 0.9351882134444525,
+        "enhancing_tumor": 0.9233028370985621
+      },
+      "dice": {
+        "WT": 0.9167934530192897,
+        "TC": 0.8382922767839563,
+        "ET": 0.8282431740447473
+      }
+    },
+    "expert_utilization": {
+      "background": 0.1134057280109714,
+      "necrotic_core": 0.0629918927977071,
+      "edema": 0.41468464928500987,
+      "enhancing_tumor": 0.40891772990631164
+    },
+    "train_time_sec": 398.9,
+    "val_time_sec": 59.5,
+    "total_time_sec": 463.6,
+    "timestamp": "2026-07-25 17:52:34"
+  },
+  {
+    "epoch": 71,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 4.0595288718370355e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1980140008311535,
+      "seg": 0.10819959721970693,
+      "align": 0.01238024030530289,
+      "diversity": 0.028498896314988476,
+      "entropy": 0.01381197808281917,
+      "boundary": 0.06512550951424376,
+      "contrastive": 0.02282323942621395,
+      "tau_reg": 0.002473672767880665
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11338309564534024,
+      "necrotic_core": 0.06291629106570513,
+      "edema": 0.41667413053192803,
+      "enhancing_tumor": 0.40702648275702663
+    },
+    "train_time_sec": 402.1,
+    "val_time_sec": 0.0,
+    "total_time_sec": 402.1,
+    "timestamp": "2026-07-25 17:59:18"
+  },
+  {
+    "epoch": 72,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 3.422702443389901e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19601558600745259,
+      "seg": 0.10812114691269939,
+      "align": 0.01146183991041199,
+      "diversity": 0.028518169383560648,
+      "entropy": 0.014066144622195534,
+      "boundary": 0.0649392062603428,
+      "contrastive": 0.020119655484984764,
+      "tau_reg": 0.0024650180974104523
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11340404262204141,
+      "necrotic_core": 0.06286765555658284,
+      "edema": 0.41739644007334814,
+      "enhancing_tumor": 0.4063318617480276
+    },
+    "train_time_sec": 400.0,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.0,
+    "timestamp": "2026-07-25 18:06:02"
+  },
+  {
+    "epoch": 73,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 2.8584657955444664e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19557264973675828,
+      "seg": 0.10786221194571469,
+      "align": 0.011587073098617444,
+      "diversity": 0.028485918156729177,
+      "entropy": 0.013856508967253569,
+      "boundary": 0.0645863471818625,
+      "contrastive": 0.020309129588966274,
+      "tau_reg": 0.0024571207469545994
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1133732240816075,
+      "necrotic_core": 0.0629208656928008,
+      "edema": 0.4158670700043146,
+      "enhancing_tumor": 0.40783884022127714
+    },
+    "train_time_sec": 399.3,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.3,
+    "timestamp": "2026-07-25 18:12:46"
+  },
+  {
+    "epoch": 74,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 2.367688940315011e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19702352595164696,
+      "seg": 0.10818857218081929,
+      "align": 0.012149056643816294,
+      "diversity": 0.028490222705788985,
+      "entropy": 0.013834405964363507,
+      "boundary": 0.06496430639222565,
+      "contrastive": 0.020944718353247332,
+      "tau_reg": 0.0024508085809978684
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11338718873274162,
+      "necrotic_core": 0.06294710960613906,
+      "edema": 0.41751730653661245,
+      "enhancing_tumor": 0.4061483951245069
+    },
+    "train_time_sec": 400.9,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.9,
+    "timestamp": "2026-07-25 18:19:29"
+  },
+  {
+    "epoch": 75,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.951128620040094e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19530240166748652,
+      "seg": 0.10787688710045297,
+      "align": 0.011530533424269948,
+      "diversity": 0.028454749936814728,
+      "entropy": 0.013544213784724488,
+      "boundary": 0.06429351136847022,
+      "contrastive": 0.020582922491198353,
+      "tau_reg": 0.002445675950236545
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.7952173968181553,
+        "edema": 0.9394738654604657,
+        "enhancing_tumor": 0.9275245037158553
+      },
+      "dice": {
+        "WT": 0.9161898578916278,
+        "TC": 0.8448676291084715,
+        "ET": 0.8351333165925882
+      }
+    },
+    "expert_utilization": {
+      "background": 0.11336142635909763,
+      "necrotic_core": 0.06291990261341222,
+      "edema": 0.417446038661859,
+      "enhancing_tumor": 0.40627263236563116
+    },
+    "train_time_sec": 401.0,
+    "val_time_sec": 60.9,
+    "total_time_sec": 467.0,
+    "timestamp": "2026-07-25 18:27:21"
+  },
+  {
+    "epoch": 76,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.609427140540686e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19567523322103056,
+      "seg": 0.10767400665511791,
+      "align": 0.011957607557848826,
+      "diversity": 0.02847449893877645,
+      "entropy": 0.013630073172448081,
+      "boundary": 0.06396082648823746,
+      "contrastive": 0.02219233802615729,
+      "tau_reg": 0.0024413399157689284
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1133840587247288,
+      "necrotic_core": 0.0628854725252712,
+      "edema": 0.41762613450751973,
+      "enhancing_tumor": 0.40610433424248027
+    },
+    "train_time_sec": 398.8,
+    "val_time_sec": 0.0,
+    "total_time_sec": 398.8,
+    "timestamp": "2026-07-25 18:34:01"
+  },
+  {
+    "epoch": 77,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.3431113807311486e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19556013501710323,
+      "seg": 0.10770534502922813,
+      "align": 0.011785597930214066,
+      "diversity": 0.028466876210457473,
+      "entropy": 0.013568459565914742,
+      "boundary": 0.06428726880716552,
+      "contrastive": 0.021205727309912006,
+      "tau_reg": 0.002437832784568946
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.11340548724112426,
+      "necrotic_core": 0.06293025571683925,
+      "edema": 0.4188959546813363,
+      "enhancing_tumor": 0.4047683023607002
+    },
+    "train_time_sec": 398.6,
+    "val_time_sec": 0.0,
+    "total_time_sec": 398.6,
+    "timestamp": "2026-07-25 18:40:43"
+  },
+  {
+    "epoch": 78,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.1525919802101657e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19550021192246286,
+      "seg": 0.10769080085527424,
+      "align": 0.011973616915476663,
+      "diversity": 0.02850987190928097,
+      "entropy": 0.013669630162201131,
+      "boundary": 0.06404744082519002,
+      "contrastive": 0.021219016375210852,
+      "tau_reg": 0.0024349645007019625
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1134298049956854,
+      "necrotic_core": 0.06282335390470907,
+      "edema": 0.41959394646819526,
+      "enhancing_tumor": 0.40415289463141024
+    },
+    "train_time_sec": 399.1,
+    "val_time_sec": 0.0,
+    "total_time_sec": 399.1,
+    "timestamp": "2026-07-25 18:47:25"
+  },
+  {
+    "epoch": 79,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1.0381627060842164e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.1944977603999703,
+      "seg": 0.10777184393585713,
+      "align": 0.011312005695611764,
+      "diversity": 0.028480696850098096,
+      "entropy": 0.01371170634576496,
+      "boundary": 0.0642121924164097,
+      "contrastive": 0.019280238680259645,
+      "tau_reg": 0.002432460291402991
+    },
+    "val": null,
+    "expert_utilization": {
+      "background": 0.1133864664232002,
+      "necrotic_core": 0.06296805658284024,
+      "edema": 0.4189236432137574,
+      "enhancing_tumor": 0.40472183378020216
+    },
+    "train_time_sec": 400.4,
+    "val_time_sec": 0.0,
+    "total_time_sec": 400.4,
+    "timestamp": "2026-07-25 18:54:09"
+  },
+  {
+    "epoch": 80,
+    "phase": "refinement",
+    "tau_target": 0.5,
+    "lr": 1e-06,
+    "batch_size": 1,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 4,
+    "n_train_batches": 1014,
+    "train_loss": {
+      "total": 0.19468377184130148,
+      "seg": 0.10779117410671869,
+      "align": 0.011567631519276526,
+      "diversity": 0.02845710281032841,
+      "entropy": 0.013585685220541509,
+      "boundary": 0.06391849741362646,
+      "contrastive": 0.019982245127317385,
+      "tau_reg": 0.0024302274115471797
+    },
+    "val": {
+      "cas_fg": {
+        "necrotic_core": 0.787053673947565,
+        "edema": 0.938767015438195,
+        "enhancing_tumor": 0.9267846690840077
+      },
+      "dice": {
+        "WT": 0.91650665178895,
+        "TC": 0.8400129004977777,
+        "ET": 0.8303505474632473
+      }
+    },
+    "expert_utilization": {
+      "background": 0.1133732240816075,
+      "necrotic_core": 0.06299141125801282,
+      "edema": 0.4190004487949951,
+      "enhancing_tumor": 0.40463491586538464
+    },
+    "train_time_sec": 399.4,
+    "val_time_sec": 61.6,
+    "total_time_sec": 465.7,
+    "timestamp": "2026-07-25 19:01:58"
+  }
+]
