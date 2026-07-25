@@ -1,0 +1,40 @@
+{
+  "dice_wt": {
+    "mean": 0.9272244895497957,
+    "std": 0.04985750899154097
+  },
+  "dice_tc": {
+    "mean": 0.8827831486278248,
+    "std": 0.14150484511901967
+  },
+  "dice_et": {
+    "mean": 0.8687838128412844,
+    "std": 0.1636967209415925
+  },
+  "cas_fg_necrotic_core": 0.8022967153860895,
+  "cas_fg_edema": 0.9618231896950036,
+  "cas_fg_enhancing_tumor": 0.9540044136802747,
+  "auroc_necrotic_core": 0.9368143907882821,
+  "auroc_edema": 0.6381108770541298,
+  "auroc_enhancing_tumor": 0.6217698880454356,
+  "routing_ece": 0.841047316003997,
+  "dd_necrotic_core": {
+    "mean": 0.820043694996018,
+    "std": 0.2751720296952146,
+    "n": 168
+  },
+  "dd_edema": {
+    "mean": 0.5347227966537038,
+    "std": 0.22852684123236586,
+    "n": 168
+  },
+  "dd_enhancing_tumor": {
+    "mean": 0.3968995607022731,
+    "std": 0.20663846911732855,
+    "n": 168
+  },
+  "n_patients": 168,
+  "checkpoint": "/home/pathikreetofficial/checkpoints/20260725_094809/epoch_0080.pth",
+  "split": "test",
+  "elapsed_s": 278.43614768981934
+}
