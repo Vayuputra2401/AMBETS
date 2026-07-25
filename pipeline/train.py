@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "data"))
 from ccrnet.config.phase2_config import Phase2Config
 from ccrnet.config.env_config import apply_env
 from ccrnet.models.ccrnet import CCRNet
+from ccrnet.models.factory import build_model, ARCHES
 from ccrnet.utils.token_labels import downsample_labels_to_tokens
 from ccrnet.utils.checkpoint import save_checkpoint, load_checkpoint, reinitialize_experts, sync_checkpoint_to_gcs
 from brats_dataset import get_dataloader
@@ -194,6 +195,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=None,
                         help="Override training.seed (model init / shuffle / aug). "
                              "Vary this (data.seed fixed) for multi-seed variance runs.")
+    parser.add_argument("--model", type=str, default="ccrnet", choices=list(ARCHES),
+                        help="Backbone: ccrnet (Swin+UNETR) or segresnet (CNN). CCR module identical.")
     args = parser.parse_args()
 
     # --- Config: base YAML merged with env-specific paths ---
@@ -245,9 +248,9 @@ def main() -> None:
     _log(f"Run seed  : {config.training.seed}  (data split seed: {config.data.seed})")
 
     # --- Model ---
-    model = CCRNet(config).to(device)
+    model = build_model(config, args.model).to(device)
     total_params = sum(p.numel() for p in model.parameters())
-    _log(f"CCRNet parameters: {total_params:,}")
+    _log(f"Model [{args.model}] parameters: {total_params:,}")
 
     # --- Loss, optimizer, scheduler ---
     loss_fn   = CCRTotalLoss(config.ccr)

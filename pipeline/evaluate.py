@@ -79,6 +79,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "data"))
 from ccrnet.config.phase2_config import Phase2Config
 from ccrnet.config.env_config import apply_env
 from ccrnet.models.ccrnet import CCRNet
+from ccrnet.models.factory import build_model, ARCHES
 from ccrnet.utils.token_labels import downsample_labels_to_tokens
 from ccrnet.utils.checkpoint import load_checkpoint
 from ccrnet.utils.evaluation import (
@@ -356,6 +357,8 @@ def main() -> None:
                         help="MC-Dropout passes for uncertainty ECE comparison (requires dropout in model)")
     parser.add_argument("--no_sync_gcs", action="store_true",
                         help="Disable automatic GCS sync (default: sync whenever gcs_checkpoint_dir is set)")
+    parser.add_argument("--model", type=str, default="ccrnet", choices=list(ARCHES),
+                        help="Backbone: ccrnet (Swin+UNETR) or segresnet (CNN).")
     args = parser.parse_args()
 
     config = Phase2Config.from_yaml(args.config)
@@ -377,9 +380,9 @@ def main() -> None:
     tee = _Tee(log_path)
     sys.stdout = tee
 
-    model = CCRNet(config).to(device)
+    model = build_model(config, args.model).to(device)
     start_epoch, _ = load_checkpoint(args.checkpoint, model)
-    print(f"Loaded checkpoint (epoch {start_epoch - 1})")
+    print(f"Loaded checkpoint (epoch {start_epoch - 1}) [{args.model}]")
 
     # Guard: MC-Dropout is meaningless without an active stochastic Dropout (p>0).
     # Without one, all T passes are identical → MC ECE == routing ECE (a fake number).

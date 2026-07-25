@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from ccrnet.config.phase2_config import Phase2Config
 from ccrnet.config.env_config import apply_env
 from ccrnet.models.ccrnet import CCRNet
+from ccrnet.models.factory import build_model, ARCHES
 from ccrnet.utils.checkpoint import load_checkpoint
 from ccrnet.utils.evaluation import upsample_routing_to_volume, concept_auroc_from_volume
 from attribution_baselines import GradCAM3D, explanation_maps
@@ -63,6 +64,10 @@ def main() -> None:
     ap.add_argument("--n_cases",    type=int, default=0, help="0 = all")
     ap.add_argument("--occ_grid",   type=int, default=4)
     ap.add_argument("--ig_steps",   type=int, default=16)
+    ap.add_argument("--methods",    type=str, default="ccr,gradcam,gradient,ig,occlusion",
+                    help="comma list from {ccr,gradcam,gradient,ig,occlusion}; use 'ccr' alone "
+                         "for a non-Swin backbone (skips the Grad-CAM decoder hook).")
+    ap.add_argument("--model",      type=str, default="ccrnet", choices=list(ARCHES))
     ap.add_argument("--save_dir",   type=str, default="")
     ap.add_argument("--device",     type=str, default="")
     ap.add_argument("--no_sync_gcs", action="store_true")
@@ -76,15 +81,20 @@ def main() -> None:
         Path(config.training.checkpoint_dir) / "evals" / f"{args.split}_alignment")
     os.makedirs(save_dir, exist_ok=True)
 
-    model = CCRNet(config).to(device)
+    model = build_model(config, args.model).to(device)
     start_epoch, _ = load_checkpoint(args.checkpoint, model)
     model.eval()
-    print(f"Loaded checkpoint (epoch {start_epoch - 1}) on {device}")
-    gradcam = GradCAM3D(model, model.decoder.enc3)
+    print(f"Loaded checkpoint (epoch {start_epoch - 1}) on {device} [{args.model}]")
+
+    methods = tuple(m.strip() for m in args.methods.split(",") if m.strip())
+    # Grad-CAM hooks the Swin decoder's enc3 block; build it only if requested AND available
+    # (a CNN backbone like SegResNet has no decoder.enc3 -> run with --methods ccr).
+    gradcam = (GradCAM3D(model, model.decoder.enc3)
+               if "gradcam" in methods and hasattr(getattr(model, "decoder", None), "enc3")
+               else None)
 
     concept_names = config.ccr.concept_names
     concept_indices = (1, 2, 3)
-    methods = ("ccr",) + BASELINES
 
     loader = get_dataloader(
         data_root=config.data.data_root, split=args.split, batch_size=1,
