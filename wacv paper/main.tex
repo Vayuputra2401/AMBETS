@@ -41,8 +41,8 @@ principle: replace the encoder bottleneck with a routing layer that assigns ever
 token to one of $K$ clinically-labeled expert networks. The routing probability
 distribution is, simultaneously, the model's clinical concept assignment, the
 segmentation mechanism, and a per-voxel explanation---computed in a single forward pass,
-with no post-hoc step. We instantiate the principle as \textbf{CCR-Net} (a Swin encoder
-with a routing bottleneck and a UNETR decoder), detail its router, expert bank, dispatch
+with no post-hoc step. CCR is a drop-in bottleneck module; we instantiate it as \textbf{CCR-Net}
+(a Swin encoder with a routing bottleneck and a UNETR decoder), detail its router, expert bank, dispatch
 mechanism, five-term objective, and three-phase curriculum, and prove that its
 explanation is structurally faithful with alignment quality measured by the Concept
 Alignment Score (CAS). On the BraTS 2024 glioma benchmark, CCR-Net's routing wins on the axes a clinical explanation
@@ -55,9 +55,11 @@ chance for integrated gradients and Grad-CAM---and its causal relevance is windo
 not top is raw deletion \emph{sensitivity}, which dedicated methods (integrated gradients,
 occlusion) optimize directly and win while providing no concept labels; we report this openly.
 Ablations confirm that concept alignment is \emph{learned} (it collapses without the alignment
-loss), while the routing aligns robustly even without the warm-up phase. CCR is the first method
-to make the routing decision itself the faithful, clinically-labeled explanation for 3D
-volumetric dense prediction.
+loss), while the routing aligns robustly even without the warm-up phase. Dropped \emph{unchanged}
+into a SegResNet CNN (CCR-SegResNet), the same module reproduces every result from scratch
+($\casfg$ up to $0.96$, concept-discriminability $0.88$), so the principle is backbone-agnostic,
+not architecture-specific. CCR is the first method to make the routing decision itself the
+faithful, clinically-labeled explanation for 3D volumetric dense prediction.
 \keywords{Interpretability \and Faithfulness \and Medical image segmentation \and
 Mixture-of-experts \and Brain tumor}
 \end{abstract}
@@ -101,11 +103,13 @@ deterministically, every time the model predicts (Fig.~\ref{fig:arch}).
 
 \noindent\textbf{Contributions.}
 \begin{enumerate}
-\item \textbf{The CCR principle and CCR-Net.} The first method to route tokens to
-\emph{clinically labeled} experts at the segmentation bottleneck so that routing is at
-once the prediction and a per-voxel, concept-labeled explanation, for 3D dense prediction.
-We detail the router, expert bank, soft/hard dispatch, five-term objective, and curriculum
-(Sec.~\ref{sec:method}).
+\item \textbf{The CCR principle and a backbone-agnostic module.} The first method to route
+tokens to \emph{clinically labeled} experts at the segmentation bottleneck so that routing is at
+once the prediction and a per-voxel, concept-labeled explanation, for 3D dense prediction. CCR
+is a drop-in bottleneck module: we instantiate it, \emph{unchanged}, on a Swin transformer
+(CCR-Net) and a SegResNet CNN (CCR-SegResNet), and it transfers (Sec.~\ref{sec:method},
+Sec.~\ref{sec:backbone}). We detail the router, expert bank, soft/hard dispatch, five-term
+objective, and curriculum.
 \item \textbf{A formal faithfulness framework.} We define the Concept Alignment Score
 (CAS), distinguish faithfulness (structural) from alignment quality (CAS) from causal
 relevance (deletion AUC), and prove that CCR-Net's explanation is structurally faithful
@@ -229,7 +233,9 @@ a token sequence $\{h_t\}_{t=1}^{N=4096}$, processed by the CCR module
 connection to a MONAI UNETR decoder~\cite{cardoso2022monai} that also receives the
 remaining encoder skips. A residual boundary-refinement head ($<100$k parameters) sharpens
 edges. The routing volume is trilinearly upsampled to $128^3$ to form the per-voxel
-explanation; the decoder output is the segmentation.
+explanation; the decoder output is the segmentation. The CCR module depends only on a bottleneck
+feature grid, not on the backbone: we later insert it \emph{unchanged} at the bottleneck of a
+SegResNet CNN (CCR-SegResNet, Sec.~\ref{sec:backbone}) to show the principle is backbone-agnostic.
 
 \subsection{The CCR bottleneck module}\label{sec:module}
 Figure~\ref{fig:module} details the module. Given token $h_t$, the router computes
@@ -627,6 +633,38 @@ its concept; entropy peaks at concept boundaries.}
 \label{fig:qual}
 \end{figure}
 
+\subsection{CCR is backbone-agnostic: a CNN instantiation}\label{sec:backbone}
+To test whether the CCR principle is specific to the Swin transformer, we drop the \emph{same}
+module---identical router, experts, five-term objective, and curriculum---into a SegResNet CNN
+encoder--decoder (\textbf{CCR-SegResNet}), replacing only the backbone; the module sits unchanged
+at the CNN's $192\times16^3$ bottleneck. Trained \emph{from scratch} (no self-supervised
+pretraining, unlike CCR-Net), it reproduces every headline result (Table~\ref{tab:backbone}):
+concept alignment ($\casfg$ $0.80/0.96/0.95$), concept-discriminability ($0.85/0.91/0.89$, again
+far above the best post-hoc baseline's $0.74$), and competitive segmentation; its CAS follows the
+\emph{identical} training dynamics---flat under warm-up, then rising sharply the moment
+$\mathcal{L}_{\text{align}}$ activates. CCR is therefore a \emph{backbone-agnostic}, drop-in
+intrinsic-explanation module, not a transformer-specific model. We do not read the CNN's
+marginally higher Dice as CNNs beating transformers---SegResNet is a strong BraTS backbone---the
+point is that the principle transfers; its hard-routing utilization is more skewed than the
+transformer's, which lowers whole-volume AUROC but not the foreground concept metrics reported.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{CCR is backbone-agnostic.} The same module in a Swin transformer (CCR-Net) and
+a SegResNet CNN (CCR-SegResNet), BraTS test ($n{=}168$). The CNN trains from scratch yet
+reproduces the concept alignment, concept-discriminability, and segmentation of the pretrained
+transformer.}
+\label{tab:backbone}
+\begin{tabular}{lccc}
+\toprule
+Instantiation & Dice WT/TC/ET & $\casfg$ N/E/T & Concept-discrim.\ N/E/T \\
+\midrule
+CCR-Net (Swin, pretrained)   & $0.915/0.845/0.837$ & $0.69/0.94/0.93$ & $0.85/0.89/0.87$ \\
+CCR-SegResNet (CNN, scratch) & $0.927/0.883/0.869$ & $0.80/0.96/0.95$ & $0.85/0.91/0.89$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Ablations}
 We ablate two training choices: the alignment loss and the warm-up phase. \textbf{A1 (no
 $\mathcal{L}_{\text{align}}$)} disables the alignment loss in every phase; \textbf{A4 (no
@@ -744,7 +782,9 @@ this work, and showed that CCR-Net's explanation is structurally faithful with a
 quality equal to the Concept Alignment Score. Under an identical protocol, CCR's routing is
 intrinsic, concept-labeled, and the only explanation that discriminates the clinical concepts,
 with window-invariant causal relevance; strong post-hoc sensitivity methods win the deletion
-metric they optimize but cannot tell the concepts apart. CCR is the first method to deliver
+metric they optimize but cannot tell the concepts apart. The principle is \emph{backbone-agnostic}:
+the same module, dropped unchanged into a SegResNet CNN (CCR-SegResNet), reproduces the concept
+alignment, discriminability, and segmentation from scratch. CCR is the first method to deliver
 intrinsic, concept-labeled, faithful
 explanation for 3D volumetric dense prediction. Because CCR-Net's decoder is independently
 parameterized and skip-connected, its measured Decoder Divergence already places it in the
