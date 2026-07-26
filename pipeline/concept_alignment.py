@@ -126,6 +126,10 @@ def main() -> None:
         for method in methods:
             if method == "ccr":
                 maps = {k: ccr_vol[0, k] for k in concept_indices}
+            elif method == "segsoftmax":
+                # the model's own per-class segmentation posterior as a "concept map"
+                # (the intrinsic baseline: a plain segmentation head also discriminates concepts).
+                maps = {k: baseline_probs[0, k] for k in concept_indices}
             else:
                 maps = explanation_maps(method, model, gradcam, image, concept_indices,
                                         target_shape, baseline_probs=baseline_probs,
