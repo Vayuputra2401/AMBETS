@@ -1,0 +1,83 @@
+# A-NoCCR-SegResNet — Plain MONAI SegResNet backbone (CCR module removed)
+#
+# Purpose (reviewer W2): the accuracy-neutrality control for the CNN instantiation.
+#   CCR-SegResNet reaches Dice 0.927/0.883/0.869 — higher than CCR-Net (Swin). Without a
+#   plain-SegResNet row a reviewer cannot tell whether that number comes from CCR or simply
+#   from SegResNet being a strong BraTS CNN. This run answers exactly that.
+#   The Swin counterpart is configs/ablations/no_ccr.yaml.
+#
+# This file is brats_segresnet.yaml with ONE change: ccr.enabled true -> false.
+#   Everything else (backbone width, LR, schedule, curriculum, seed, splits) is byte-identical
+#   to run 20260725_094809 so the Dice comparison is apples-to-apples. Do not "improve" any
+#   hyperparameter here — the whole point is that only the CCR module differs.
+#
+# With enabled=false CCRSegResNet runs encode -> raw 192x16^3 bottleneck -> decode, with NO
+#   router, NO experts, and no routing losses (align/diversity/entropy/contrastive inactive).
+#   Only L_seg (+ the same boundary curriculum) trains.
+#
+# The model produces routing_probs=None, so it has NO CAS/AUROC/ECE/DD/faithfulness metrics —
+#   evaluate.py reports Dice/HD95 only. Compare its Dice to CCR-SegResNet's.
+#   INCOMPATIBLE with CCR checkpoints (different state dict).
+#
+# Usage:
+#   python pipeline/train.py --env gcp --model segresnet \
+#       --config configs/ablations/no_ccr_segresnet.yaml
+#   python pipeline/evaluate.py --env gcp --model segresnet \
+#       --config configs/ablations/no_ccr_segresnet.yaml --checkpoint .../epoch_0080.pth --split test
+
+# Reused only for in_channels (4) and drop_path_rate (SegResNet dropout); embed_dim=48 is kept
+# solely to satisfy the Phase2Config stage invariant (ccr.router.embed_dim = 192 = 4*48).
+# SegResNet has no SSL checkpoint, so pretrained_path="" (trains from scratch, as run 4 did).
+swin:
+  img_size: [128, 128, 128]
+  in_channels: 4
+  embed_dim: 48
+  window_size: [7, 7, 7]
+  patch_size: [2, 2, 2]
+  depths: [2, 2, 2, 2]
+  num_heads: [3, 6, 12, 24]
+  mlp_ratio: 4.0
+  drop_path_rate: 0.0
+  pretrained_path: ""
+  use_checkpoint: true
+
+data:
+  data_root: ""
+  brats_version: "2024"
+  spatial_size: [128, 128, 128]
+  val_fraction: 0.125
+  test_fraction: 0.125
+  num_workers: 6
+  seed: 42                  # same split as 20260725_094809 — required for a paired comparison
+
+training:
+  batch_size: 1
+  grad_accum_steps: 4
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip: 1.0
+  amp: true
+  checkpoint_dir: "checkpoints/"
+  checkpoint_every: 5
+  log_every: 10
+
+ccr:
+  enabled: false            # <-- the only change vs brats_segresnet.yaml
+  router:
+    embed_dim: 192          # = SegResNet bottleneck width (init_filters 24 * 2^3); module unused
+    num_concepts: 4
+    use_prototypes: true
+    temperature_learnable: true
+  expert:
+    embed_dim: 192
+  curriculum:
+    warmup_end_epoch: 10
+    alignment_end_epoch: 60
+    total_epochs: 80
+    tau_warmup: 2.0
+    tau_alignment: 1.0
+    tau_refinement: 0.5
+  loss:
+    align_focal_gamma: 1.0
+    align_concept_weights: [1.0, 3.0, 1.0, 1.0]
+    contrastive_ncr_et_weight: 0.3   # inactive anyway (no routing)
