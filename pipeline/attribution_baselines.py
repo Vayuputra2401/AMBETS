@@ -40,7 +40,10 @@ CLI args
     --env          local | gcp
     --config       path to YAML config (default: configs/brats_phase2.yaml)
     --split        val | test
-    --methods      comma list from {gradcam,gradient,ig,occlusion} (default all four)
+    --methods      comma list from {gradcam,gradient,ig,occlusion,segsoftmax}
+                   (default: the four post-hoc methods; segsoftmax = the model's own
+                    segmentation posterior, opt in explicitly — it is the prediction, not
+                    a post-hoc explanation)
     --n_cases      number of cases (default 40; 0 = all)
     --occ_grid     occlusion grid per axis (default 4 → 4³=64 passes/concept)
     --ig_steps     Integrated-Gradients Riemann steps (default 32)
@@ -250,6 +253,15 @@ def explanation_maps(
             maps[k] = integrated_gradients(model, image, k, steps=ig_steps)
         elif method == "occlusion":
             maps[k] = occlusion_saliency(model, image, k, baseline_probs, grid=occ_grid)
+        elif method == "segsoftmax":
+            # The model's OWN per-class segmentation posterior, used as an attribution map.
+            # Not a post-hoc method and not an explanation: it is the prediction itself, so
+            # deletion here is a closed loop (mask the voxels the model is most confident
+            # about, then measure that same confidence). We report it precisely because it is
+            # near-tautological — it bounds what the output-level "explanation" can score, and
+            # its DD is 0 by construction. See concept_alignment.py for the same map on the
+            # concept-discriminability axis.
+            maps[k] = baseline_probs[0, k]
         else:
             raise ValueError(f"unknown method: {method}")
     return maps
@@ -268,7 +280,9 @@ def main() -> None:
     parser.add_argument("--config",     type=str, default=_default_config)
     parser.add_argument("--split",      type=str, default="test", choices=["val", "test"])
     parser.add_argument("--methods",    type=str, default="gradcam,gradient,ig,occlusion",
-                        help="comma list from {gradcam,gradient,ig,occlusion}")
+                        help="comma list from {gradcam,gradient,ig,occlusion,segsoftmax}; "
+                             "segsoftmax is the model's own posterior (not post-hoc, not in "
+                             "the default set) — see explanation_maps()")
     parser.add_argument("--n_cases",    type=int, default=40,
                         help="Number of cases (deterministic first-N of split). 0 = all.")
     parser.add_argument("--occ_grid",   type=int, default=4,

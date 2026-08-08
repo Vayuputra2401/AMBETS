@@ -35,6 +35,7 @@ from typing import Dict, List
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -65,8 +66,11 @@ def main() -> None:
     ap.add_argument("--occ_grid",   type=int, default=4)
     ap.add_argument("--ig_steps",   type=int, default=16)
     ap.add_argument("--methods",    type=str, default="ccr,gradcam,gradient,ig,occlusion",
-                    help="comma list from {ccr,gradcam,gradient,ig,occlusion}; use 'ccr' alone "
-                         "for a non-Swin backbone (skips the Grad-CAM decoder hook).")
+                    help="comma list from {ccr,gradcam,gradient,ig,occlusion,segsoftmax,"
+                         "segsoftmax_16}; use 'ccr' alone for a non-Swin backbone (skips the "
+                         "Grad-CAM decoder hook). segsoftmax = the model's own posterior (the "
+                         "prediction itself, not a post-hoc method); segsoftmax_16 = the same "
+                         "posterior pooled to the router's token grid (granularity-matched).")
     ap.add_argument("--model",      type=str, default="ccrnet", choices=list(ARCHES))
     ap.add_argument("--save_dir",   type=str, default="")
     ap.add_argument("--device",     type=str, default="")
@@ -130,6 +134,18 @@ def main() -> None:
                 # the model's own per-class segmentation posterior as a "concept map"
                 # (the intrinsic baseline: a plain segmentation head also discriminates concepts).
                 maps = {k: baseline_probs[0, k] for k in concept_indices}
+            elif method == "segsoftmax_16":
+                # GRANULARITY-MATCHED control. Plain segsoftmax decides over 128^3 = 2.1M voxels
+                # while CCR routing decides over 16^3 = 4096 tokens -> 512x fewer decision units,
+                # so the raw comparison confounds "carries more concept information" with "has
+                # finer spatial resolution". Here the posterior is average-pooled DOWN to the
+                # router's own token grid and pushed back up through the identical trilinear
+                # operator used for routing (upsample_routing_to_volume), so both maps carry
+                # exactly the same spatial degrees of freedom and only the information differs.
+                pooled = F.adaptive_avg_pool3d(baseline_probs, grid)          # [1,K,h,w,d]
+                flat = pooled.flatten(2).permute(0, 2, 1)                     # [1,N,K]
+                ss16 = upsample_routing_to_volume(flat, grid, target_shape)   # [1,K,H,W,D]
+                maps = {k: ss16[0, k] for k in concept_indices}
             else:
                 maps = explanation_maps(method, model, gradcam, image, concept_indices,
                                         target_shape, baseline_probs=baseline_probs,
