@@ -54,7 +54,7 @@ REGION_MODES = ("gt", "pred")
 # segsoftmax is compared against, but is deliberately NOT called a "baseline" — keeping the
 # constants separate stops it being described as a post-hoc method anywhere downstream.
 BASELINE_METHODS = ("gradcam", "gradient", "ig", "occlusion")
-OUTPUT_METHODS = ("segsoftmax",)
+OUTPUT_METHODS = ("segsoftmax", "segsoftmax_16")
 COMPARISON_METHODS = BASELINE_METHODS + OUTPUT_METHODS
 ALIGN_METHODS = ("ccr",) + COMPARISON_METHODS
 N_BOOT = 10000
