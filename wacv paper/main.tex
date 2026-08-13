@@ -826,17 +826,18 @@ informative than the prediction itself.}
 \label{fig:qual2}
 \end{figure}
 
-\subsection{CCR-Retrofit (supplementary)}\label{sec:retrofit}
-Proposition~\ref{prop:1b} predicts that the CCR module transfers to a \emph{frozen},
-independently-trained backbone---training only the router and experts while the encoder and
-decoder weights are held fixed---with faithfulness bounded below by
-$\mathrm{CAS}\cdot(1-\mathrm{DD})$. This \emph{CCR-Retrofit} setting tests whether the
-principle carries to a backbone the method did not design. We freeze a pretrained Swin-UNETR,
-insert the CCR module at the stage-2 bottleneck, train only the CCR parameters under
-$\mathcal{L}_{\text{align}}$, and report CAS, DD, and deletion/insertion AUC, verifying the
-bound. \todo{Optional supplementary experiment---results pending, included if space permits.
-A frozen decoder cannot adapt to the routing, so we expect a larger DD than end-to-end
-CCR-Net while faithfulness continues to respect the $\mathrm{CAS}\cdot(1-\mathrm{DD})$ bound.}
+\subsection{CCR-Retrofit: a proposed test of Conjecture~\ref{prop:1b}}\label{sec:retrofit}
+\emph{We have not run this experiment; we describe it because it is the natural test of
+Conjecture~\ref{prop:1b} and we want the prediction on record before the fact.}
+Conjecture~\ref{prop:1b} concerns a \emph{frozen}, independently-trained backbone in which only
+the router and experts are trained---a setting where the decoder cannot adapt to the routing at
+all. Testing it would mean freezing a pretrained Swin-UNETR, inserting the CCR module at the
+stage-2 bottleneck, training only the CCR parameters under
+$\mathcal{L}_{\text{align}}$, and checking the measured deletion AUC against
+$\mathrm{CAS}\cdot(1-\mathrm{DD})$. The prediction is a substantially larger DD than end-to-end
+CCR-Net---a frozen decoder has no incentive to track the routing---with the inequality still
+holding. A failure would be informative in the other direction: it would show the two error
+sources do not compose as the conjecture assumes.
 
 % ====================================================================
 \section{Discussion and Limitations}\label{sec:limitations}
@@ -907,10 +908,11 @@ principle is \emph{backbone-agnostic}: the same module, dropped unchanged into a
 scratch. CCR delivers intrinsic, concept-labeled explanation for 3D volumetric dense prediction,
 where prior intrinsic methods address only scalar-output classification. Because CCR-Net's decoder is independently
 parameterized and skip-connected, its measured Decoder Divergence already places it in the
-retrofit regime of Proposition~\ref{prop:1b}: the retrofit bound is thus empirically
-\emph{supported} (Fig.~\ref{fig:bound}), not merely asserted. A full CCR-Retrofit study on a
-frozen third-party backbone (Sec.~\ref{sec:retrofit}) and extension to additional anatomies
-are promising future work.
+regime Conjecture~\ref{prop:1b} describes, and the conjectured inequality holds on every concept
+we measured (Fig.~\ref{fig:bound})---evidence for it, though not a proof. Testing it on a frozen
+third-party backbone (Sec.~\ref{sec:retrofit}), extending to additional anatomies, and a
+controlled plain-backbone accuracy comparison (Sec.~\ref{sec:limitations}) are the natural next
+steps.
 
 \bibliographystyle{splncs04}
 \bibliography{references}
