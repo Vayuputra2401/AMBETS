@@ -30,7 +30,8 @@ Plan reference: CCR-Net_Research_Plan.md Section 6.1 and 6.3.
 
 from __future__ import annotations
 
-from typing import Dict
+from contextlib import contextmanager
+from typing import Dict, Iterator, Optional
 
 import torch
 import torch.nn as nn
@@ -38,6 +39,40 @@ import torch.nn as nn
 from ccr.config.ccr_config import CCRConfig
 from ccr.modules.expert import ClinicalConceptExpert
 from ccr.modules.router import ClinicalConceptRouter
+
+
+@contextmanager
+def routing_intervention(
+    module: "CCRBottleneckModule",
+    override: Optional[torch.Tensor],
+) -> Iterator[None]:
+    """
+    Temporarily force tokens through experts the router did not choose.
+
+    `override` is an integer tensor [B, N] of target concept ids, where -1 leaves a token
+    untouched. Inside the block the module hard-dispatches according to `override`; on exit
+    the hook is always cleared, including on exception, so an intervention can never leak
+    into a subsequent forward pass.
+
+    This is the causal test of the CCR claim. The routing is asserted to be causally
+    upstream of the prediction; if that is true, re-routing tokens from concept a to expert
+    b must move the decoder's posterior toward class b over exactly those voxels. The
+    experiment is impossible for post-hoc attribution -- there is nothing in a saliency map
+    to intervene on -- which is why it isolates what CCR provides.
+
+    Example
+    -------
+    >>> override = torch.full_like(assignments, -1)
+    >>> override[assignments == 1] = 2          # necrosis tokens -> edema expert
+    >>> with routing_intervention(model.ccr, override):
+    ...     out = model(image)
+    """
+    previous = module.route_override
+    module.route_override = override
+    try:
+        yield
+    finally:
+        module.route_override = previous
 
 
 class CCRBottleneckModule(nn.Module):
@@ -80,6 +115,18 @@ class CCRBottleneckModule(nn.Module):
         super().__init__()
         self.config = config
 
+        # Causal-intervention hook (see `routing_intervention` below). When set to an
+        # integer tensor [B, N], it REPLACES the argmax assignment before dispatch, so the
+        # token is processed by an expert the router did not choose. Entries of -1 mean
+        # "leave this token alone". None (the default) disables the mechanism entirely, so
+        # training and ordinary inference are untouched.
+        #
+        # This is what makes CCR's explanation testable in a way a saliency map is not:
+        # you cannot intervene on a heatmap, but you can re-route a token and watch the
+        # prediction move. Not a plain attribute on purpose -- it is consumed by forward()
+        # and must be cleared by the caller; use the context manager.
+        self.route_override: torch.Tensor | None = None
+
         self.router = ClinicalConceptRouter(config.router)
 
         self.experts = nn.ModuleList(
@@ -120,8 +167,29 @@ class CCRBottleneckModule(nn.Module):
         # Hard assignment for metrics and hard-dispatch inference
         assignments = routing_probs.argmax(dim=-1)    # [B, N]
 
+        # --- Step 1b: Causal intervention (optional) ---
+        # Overriding the assignment forces tokens through an expert the router did not
+        # choose. `routing_probs` below is left as the router's ACTUAL belief (the
+        # explanation is what the router said); `assignments` reports what was really
+        # dispatched, so a caller can always tell the two apart.
+        intervened = self.route_override is not None
+        if intervened:
+            override = self.route_override.to(assignments.device)
+            if override.shape != assignments.shape:
+                raise ValueError(
+                    f"route_override shape {tuple(override.shape)} does not match "
+                    f"assignments {tuple(assignments.shape)}"
+                )
+            keep = override < 0                       # -1 == leave this token alone
+            assignments = torch.where(keep, assignments, override.to(assignments.dtype))
+
         # --- Step 2: Dispatch to experts ---
-        if self.training or not self.config.hard_routing_inference:
+        # An intervention forces HARD dispatch: the point is that exactly one expert (the
+        # one we chose) processes the token. Soft dispatch would blend all K experts and
+        # dilute the manipulation into a reweighting, which is not the causal test.
+        if intervened:
+            expert_outputs = self._hard_dispatch(bottleneck_tokens, assignments)
+        elif self.training or not self.config.hard_routing_inference:
             # Soft dispatch: differentiable, gradients flow to all experts and router
             expert_outputs = self._soft_dispatch(bottleneck_tokens, routing_probs)
         else:
