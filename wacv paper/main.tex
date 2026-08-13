@@ -8,6 +8,7 @@
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{multirow}
+\usepackage{pifont}   % \ding{55} (cross) in the capability columns of tab:compare
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
@@ -43,23 +44,25 @@ distribution is, simultaneously, the model's clinical concept assignment, the
 segmentation mechanism, and a per-voxel explanation---computed in a single forward pass,
 with no post-hoc step. CCR is a drop-in bottleneck module; we instantiate it as \textbf{CCR-Net}
 (a Swin encoder with a routing bottleneck and a UNETR decoder), detail its router, expert bank, dispatch
-mechanism, five-term objective, and three-phase curriculum, and prove that its
-explanation is structurally faithful with alignment quality measured by the Concept
-Alignment Score (CAS). On the BraTS 2024 glioma benchmark, CCR-Net's routing wins on the axes a clinical explanation
-requires: it is \emph{intrinsic} (one forward pass, no post-hoc gradients or perturbations) and
-\emph{concept-labeled}, it aligns with the clinical concepts ($\casfg$ up to $0.94$), it is the
-\emph{only} explanation that \emph{discriminates} them---separating necrosis, edema, and
-enhancing tumor with AUROC $0.85$--$0.89$ versus $\le0.80$ for the strongest post-hoc method and
-chance for integrated gradients and Grad-CAM---and its causal relevance is window-invariant
-(deletion AUC $0.82$--$0.87$ over both ground-truth and predicted regions). The one axis it does
-not top is raw deletion \emph{sensitivity}, which dedicated methods (integrated gradients,
-occlusion) optimize directly and win while providing no concept labels; we report this openly.
-Ablations confirm that concept alignment is \emph{learned} (it collapses without the alignment
-loss), while the routing aligns robustly even without the warm-up phase. Dropped \emph{unchanged}
-into a SegResNet CNN (CCR-SegResNet), the same module reproduces every result from scratch
-($\casfg$ up to $0.96$, concept-discriminability $0.88$), so the principle is backbone-agnostic,
-not architecture-specific. CCR is the first method to make the routing decision itself the
-faithful, clinically-labeled explanation for 3D volumetric dense prediction.
+mechanism, five-term objective, and three-phase curriculum, and characterize the sense in which its
+explanation is structurally faithful, with alignment quality measured by the Concept Alignment
+Score (CAS). We argue that a clinical explanation must satisfy two requirements at once: it must be
+\emph{concept-labeled}, and it must be \emph{distinct from and causally upstream of} the prediction.
+On the BraTS 2024 glioma benchmark these requirements separate three families. Post-hoc saliency
+(Grad-CAM, gradients, integrated gradients, occlusion) is upstream but cannot discriminate the
+clinical concepts (AUROC $0.52$--$0.73$). The model's own segmentation posterior discriminates them
+almost perfectly ($0.98$) but \emph{is} the prediction---it restates the output rather than exposing
+what produced it, and its decoder divergence is zero by construction. CCR routing satisfies both:
+it discriminates concepts at $0.88$, far above every post-hoc method, while remaining upstream
+(DD${>}0$) and intrinsic. We report the full battery openly, including where CCR loses: integrated
+gradients and occlusion win deletion \emph{sensitivity}, which they optimize directly, and the
+posterior wins discriminability. Two controls show the remaining gap is largely structural rather
+than informational---matching the posterior to the router's $16^3$ decision budget removes about
+half of it, and on edema the two become statistically indistinguishable---while CCR \emph{exceeds}
+the posterior on insertion. Ablations confirm concept alignment is \emph{learned} (it collapses
+without the alignment loss) and that warm-up is a stabilizing default, not a requirement. Dropped
+\emph{unchanged} into a SegResNet CNN (CCR-SegResNet), the same module reproduces every result from
+scratch ($\casfg$ up to $0.96$), so the principle is backbone-agnostic.
 \keywords{Interpretability \and Faithfulness \and Medical image segmentation \and
 Mixture-of-experts \and Brain tumor}
 \end{abstract}
@@ -101,6 +104,22 @@ prediction---it \emph{is} the decision mechanism. Because the routing assignment
 directly from the forward pass, the per-voxel, concept-labeled explanation comes for free,
 deterministically, every time the model predicts (Fig.~\ref{fig:arch}).
 
+\paragraph{What a clinical explanation has to be.}
+Stating the requirement precisely is what makes the comparison meaningful, so we adopt two
+criteria. An explanation must be \textbf{(i) concept-labeled}---it must say \emph{which} clinical
+concept a region is, not merely that the region matters---and \textbf{(ii) distinct from and
+causally upstream of the prediction}, so that reading it tells us something about how the output
+was produced rather than restating the output. These criteria are not rhetorical: each eliminates
+a different family. Post-hoc saliency satisfies (ii) but fails (i)---a sensitivity map has no
+concept semantics, and empirically the strongest post-hoc method separates the BraTS concepts at
+AUROC $0.73$ while integrated gradients and Grad-CAM sit near chance. The model's own segmentation
+posterior satisfies (i) trivially and fails (ii) completely: it discriminates concepts at $0.98$
+\emph{because it is the concept prediction}, offering no account of what produced it. This is not a
+straw baseline---it is free from the same forward pass, and any evaluation of concept explanations
+that omits it is incomplete---but an explanation that is identical to the thing being explained is
+vacuous. CCR routing is, to our knowledge, the first construction for 3D dense prediction that
+satisfies both criteria simultaneously.
+
 \noindent\textbf{Contributions.}
 \begin{enumerate}
 \item \textbf{The CCR principle and a backbone-agnostic module.} The first method to route
@@ -110,16 +129,17 @@ is a drop-in bottleneck module: we instantiate it, \emph{unchanged}, on a Swin t
 (CCR-Net) and a SegResNet CNN (CCR-SegResNet), and it transfers (Sec.~\ref{sec:method},
 Sec.~\ref{sec:backbone}). We detail the router, expert bank, soft/hard dispatch, five-term
 objective, and curriculum.
-\item \textbf{A formal faithfulness framework.} We define the Concept Alignment Score
-(CAS), distinguish faithfulness (structural) from alignment quality (CAS) from causal
-relevance (deletion AUC), and prove that CCR-Net's explanation is structurally faithful
+\item \textbf{A faithfulness framework.} We define the Concept Alignment Score (CAS) and Decoder
+Divergence (DD), and distinguish faithfulness (structural) from alignment quality (CAS) from
+causal relevance (deletion AUC)---three things routinely conflated in the literature
 (Sec.~\ref{sec:theory}).
-\item \textbf{CCR wins the axes a clinical explanation needs.} Against four post-hoc baselines
-(Grad-CAM, gradient, integrated gradients, occlusion) under one identical protocol, CCR is the
-\emph{only} explanation that discriminates the clinical concepts (AUROC $0.85$--$0.89$ vs.\
-$\le0.80$ for the best baseline; chance for IG/Grad-CAM), with window-invariant causal relevance;
-we show \emph{openly} that the strong sensitivity methods win the deletion metric they optimize
-yet cannot tell the concepts apart (Sec.~\ref{sec:experiments}).
+\item \textbf{An honest characterization against \emph{both} competing families.} Under one
+identical protocol on all $168$ test cases, we evaluate CCR against four post-hoc baselines
+\emph{and} against the segmentation posterior---the intrinsic baseline that concept-explanation
+evaluations typically omit. CCR is the only method satisfying both criteria above; we report
+plainly that it is not first on any single metric, and we run two controls (a granularity-matched
+posterior, and insertion) that isolate how much of the residual gap is decision budget rather than
+information (Sec.~\ref{sec:experiments}).
 \item \textbf{Ablations} isolating the role of the alignment loss (concept alignment is
 learned, not incidental) and of curriculum warm-up (the routing aligns even without it---a
 robustness result).
@@ -397,7 +417,9 @@ expert-processed features dispatched by $p$. The explanation $p(t)$ is therefore
 it incurs no post-hoc approximation gap. Its empirical alignment with clinical concepts is
 exactly $\mathrm{CAS}$.
 \end{proposition}
-\noindent\emph{Proof.} A post-hoc method $A$ produces an explanation $A(f,x)$ as a function
+\noindent\emph{Argument.} This is a structural statement about where the explanation comes from,
+not a quantitative theorem; we spell it out rather than leave it implicit.
+A post-hoc method $A$ produces an explanation $A(f,x)$ as a function
 of the trained model $f$ and input $x$, computed after $f(x)$; the map from $A(f,x)$ to the
 mechanism that produced $f(x)$ is approximate and method-dependent, which is the source of
 its unfaithfulness. In CCR-Net the quantity $p(t)$ is not a function of the output but an
@@ -424,15 +446,22 @@ on a claim that the residual is small; we establish causal relevance directly, w
 deletion/insertion AUC on the inference-time \emph{hard}-routing maps (Sec.~\ref{sec:faith}).
 
 \subsection{Extending to arbitrary backbones}
-\begin{proposition}[Retrofit bound]\label{prop:1b}
-If the CCR module is inserted into an arbitrary backbone whose decoder retains independent
-parameters, the explanation faithfulness is bounded below by
+\begin{conjecture}[Retrofit bound]\label{prop:1b}
+Let the CCR module be inserted into a backbone whose decoder retains independent parameters, and
+let \emph{explanation faithfulness} be operationalized as the measured deletion AUC of the
+hard-routing map. We conjecture that this quantity is bounded below by
 $\mathrm{CAS}(k)\cdot(1-\mathrm{DD}(k))$.
-\end{proposition}
-\noindent\emph{Proof sketch.} Faithfulness degrades only insofar as the decoder departs from
-the routing it is conditioned on; this departure is exactly $\mathrm{DD}$, and the
-alignment of the routing with ground truth is $\mathrm{CAS}$. The achievable faithfulness is
-the product of the two, giving the stated bound (tight as $\mathrm{DD}\to0$). $\square$
+\end{conjecture}
+\noindent\emph{Motivation and status.} The intuition is that faithfulness should degrade in
+proportion to how far the decoder departs from the routing it is conditioned on---a departure
+measured by $\mathrm{DD}$---scaled by how well the routing itself matches the clinical concepts,
+measured by $\mathrm{CAS}$; the product is tight as $\mathrm{DD}\to0$. We state this as a
+conjecture rather than a theorem deliberately. It presumes that these two error sources compose
+multiplicatively and that deletion AUC is the right operationalization of faithfulness, and we
+prove neither; a derivation would require a formal model of how decoder skip pathways carry
+concept information around the bottleneck. What we can report is that the inequality
+\emph{holds empirically} on every concept we measured (Fig.~\ref{fig:bound}), which is evidence
+for the conjecture and not a substitute for a proof.
 
 \medskip\noindent
 Although stated for the general setting, the bound applies to CCR-Net directly: its UNETR
@@ -535,55 +564,104 @@ dotted line marks the $0.5$ reference.}
 \end{figure}
 
 We compare CCR routing, on the same trained network and under the identical protocol of
-Eq.~\ref{eq:auc}, against four post-hoc baselines: Grad-CAM, gradient saliency, integrated
-gradients (IG), and occlusion. Table~\ref{tab:compare} and Fig.~\ref{fig:faith} report both
-axes on all $168$ test cases.
+Eq.~\ref{eq:auc}, against two families: four post-hoc baselines (Grad-CAM, gradient saliency,
+integrated gradients (IG), occlusion) and---critically---the network's own \textbf{segmentation
+posterior} ($\mathrm{softmax}_k$ of the seg head, denoted \textsc{SegPost}), obtained free from
+the same forward pass. \textsc{SegPost} is the baseline that concept-explanation evaluations
+typically omit, and omitting it would make our comparison unfair: a segmentation head is trained
+on precisely these concept labels, so it is the strongest possible concept discriminator.
+Table~\ref{tab:compare} reports all three axes on all $168$ test cases.
 
-\paragraph{Deletion measures input sensitivity, not concept faithfulness.}
-On deletion/insertion the strong sensitivity methods score highest---IG and occlusion reach
-$\approx\!0.95$ deletion AUC, above CCR's $0.79$ mean (Table~\ref{tab:compare}, middle). This is
-expected: deletion rewards concentrating importance on the few most output-sensitive voxels,
-which IG (by its completeness axiom) and occlusion (whose saliency \emph{is} a coarse deletion,
-making it nearly circular with the metric) optimize directly. Deletion is a necessary check---CCR
-clears it far above the $0.5$ floor and above Grad-CAM and gradient, and its value is
-window-invariant (Fig.~\ref{fig:window})---but it does not by itself identify a \emph{concept}
-explanation. We report it openly and do not claim to win it.
+\paragraph{Sensitivity: CCR does not win it, and the winners are informative.}
+On deletion the sensitivity methods score highest---IG and occlusion reach $0.95$, above
+\textsc{SegPost}'s $0.91$ and CCR's $0.79$. This is expected: deletion rewards concentrating
+importance on the few most output-sensitive voxels, which IG (by its completeness axiom) and
+occlusion (whose saliency \emph{is} a coarse deletion) optimize directly. \textsc{SegPost} scores
+high for a different and more revealing reason---ranking voxels by the model's own confidence and
+then measuring that same confidence is a closed loop, so its deletion score is close to
+tautological. Deletion is a necessary check, and CCR clears it far above the $0.5$ floor,
+above Grad-CAM and gradient, and window-invariantly (Fig.~\ref{fig:window}); but it does not
+identify a \emph{concept} explanation, and we do not claim it.
 
-\paragraph{Concept-discriminability: the axis a clinical explanation must win.}
-A clinical explanation must say \emph{which} concept a region is---necrosis, edema, or enhancing
-tumor---not merely which voxels matter. We measure this directly: for each method and concept
-$k$ we compute the AUROC of its map $e_k$ as a classifier for GT concept $k$ \emph{among the
-other tumor voxels} (GT$>0$, GT$\neq k$). Table~\ref{tab:compare} (right) is decisive. CCR reaches
-$0.85$--$0.89$ across all three concepts, while every post-hoc method is far weaker---occlusion
-$0.64$--$0.80$, gradient $0.46$--$0.70$, IG $0.49$--$0.64$ (chance on edema), Grad-CAM
-$\approx\!0.5$ (chance throughout). The margin is significant against every baseline (paired
-Wilcoxon $p<0.001$; pooled CCR $0.88$ $[0.87,0.89]$ vs.\ occlusion $0.73$ $[0.71,0.74]$---the
-strongest---a gap of $+0.15$ with non-overlapping bootstrap CIs). The very methods that win
-deletion cannot tell the concepts apart: their per-class maps highlight the same high-signal
-tumor structure regardless of $k$. CCR
-is the only method here that yields a concept-discriminative explanation, and it does so
-intrinsically, in one forward pass. Figure~\ref{fig:faith} shows the crossover: sensitivity
-methods dominate on the left axis, CCR on the right. Figure~\ref{fig:qualmaps} shows the same
-effect qualitatively---CCR's three per-concept maps differ and fall inside the ground-truth
-boundaries, whereas the sensitivity methods produce nearly the \emph{same} map for every concept.
+Insertion breaks the pattern, and the break is diagnostic. The self-reference that lifts
+\textsc{SegPost} on deletion does not transfer: \textbf{CCR exceeds \textsc{SegPost} on insertion}
+($0.709$ vs.\ $0.680$ mean), significantly so on necrotic core ($+0.133$ $[0.087,0.178]$,
+$p<0.001$; $+0.130$ on the predicted window), tying on edema ($p{=}0.31$) and losing modestly on
+ET ($-0.046$). Recovering a prediction requires restoring coherent predictive \emph{context},
+not merely the voxels the model was already confident about---and on the hard class the
+posterior's voxel-level ranking is unreliable where the routing's regional assignment is not.
+This is direct evidence that routing carries information the output does not, rather than a
+degraded copy of it.
+
+\paragraph{Concept-discriminability, and the ceiling that limits its interpretation.}
+A clinical explanation must say \emph{which} concept a region is. We measure this directly: for
+each method and concept $k$ we compute the AUROC of its map $e_k$ as a classifier for GT concept
+$k$ \emph{among the other tumor voxels} (GT$>0$, GT$\neq k$). Against the post-hoc family the
+result is decisive: CCR reaches $0.85$--$0.89$ across all three concepts while every post-hoc
+method is far weaker---occlusion $0.64$--$0.80$, gradient $0.46$--$0.70$, IG $0.49$--$0.64$
+(chance on edema), Grad-CAM $\approx\!0.5$ (chance throughout). Pooled, CCR scores $0.88$
+$[0.87,0.89]$ against occlusion's $0.73$ $[0.71,0.74]$, a gap of $+0.15$ with non-overlapping
+bootstrap CIs and paired Wilcoxon $p<0.001$ against every baseline. The methods that win deletion
+cannot tell the concepts apart: their per-class maps highlight the same high-signal tumor
+structure regardless of $k$ (Fig.~\ref{fig:qualmaps}).
+
+\textsc{SegPost}, however, scores $0.98$---above CCR. We report this plainly, and we argue it
+shows the metric saturates rather than that the posterior explains better. Two observations
+support this. First, \textsc{SegPost} reaches $0.982$ on CCR-Net and $0.979$ on CCR-SegResNet
+(Sec.~\ref{sec:backbone}) despite different backbones, different pretraining, and different Dice:
+a score that is invariant to everything except being a competent segmenter is measuring
+segmentation competence, not explanation quality. Under this window the posterior's AUROC is
+close to a restatement of its own accuracy, since ranking voxels is far easier than thresholding
+them. Second, and decisively for our criteria, \textsc{SegPost} \emph{is} the prediction: its
+decoder divergence is $0$ by construction, so it satisfies concept-labeling only by forfeiting
+upstream-ness entirely. An explanation identical to the thing explained answers no question about
+how the output arose.
+
+\paragraph{How much of the residual gap is decision budget?}
+CCR routing decides over $16^3{=}4096$ tokens; the posterior decides over $128^3$ voxels---$512\times$
+more decision units. The comparison above therefore confounds information with spatial resolution.
+We isolate the two with a granularity-matched control, \textsc{SegPost}$_{16}$: the posterior
+average-pooled onto the router's own token grid and restored through the \emph{identical}
+trilinear operator used for routing, so both maps carry exactly the same spatial degrees of
+freedom. Matching granularity removes roughly half the gap---the paired CCR deficit narrows from
+$-0.106$ $[-0.116,-0.096]$ to $-0.051$ $[-0.059,-0.043]$ on CCR-Net, and from $-0.090$ to $-0.039$
+on CCR-SegResNet ($52\%$ and $57\%$ of the gap respectively). Per concept the picture is sharper:
+on \emph{edema} the two become statistically indistinguishable on both backbones (paired
+difference $-0.003$ $[-0.014,+0.008]$ on Swin, $+0.007$ $[-0.004,+0.019]$, $p{=}0.70$, on the CNN,
+with CCR nominally ahead), i.e.\ at equal decision budget the bottleneck loses \emph{nothing but
+resolution} for that concept. Necrotic core and ET retain a genuine gap ($-0.07$ to $-0.10$,
+$p<0.001$), concentrated in exactly the concepts the $16^3$ bottleneck under-resolves. We
+emphasize that this control does not restore a discriminability win---\textsc{SegPost}$_{16}$
+still exceeds CCR overall---it quantifies how much of the apparent deficit is architectural
+budget rather than lost concept information.
 
 \begin{table}[t]
 \centering
-\caption{Two axes on the BraTS test split ($n{=}168$, identical protocol, per-concept mean).
-\emph{Deletion AUC} rewards input sensitivity; \emph{concept-discriminability AUROC} is concept
-$k$ vs.\ the other tumor voxels ($0.5$=chance). CCR is the only method that discriminates the
-clinical concepts; strong sensitivity methods (IG, occlusion) win deletion but fall toward chance
-on discriminability. Best per column in \textbf{bold}.}
+\caption{Three axes on the BraTS test split ($n{=}168$, identical protocol, per-concept mean,
+ground-truth window). \emph{Deletion} and \emph{insertion} measure input sensitivity;
+\emph{concept-discriminability} is concept $k$ vs.\ the other tumor voxels ($0.5$=chance).
+The lower block is the model's own output, not a post-hoc explanation: it is reported because
+omitting it would overstate our case, but it \emph{is} the prediction (DD${=}0$), so its
+discriminability is not evidence of explanatory power. Best post-hoc value per column in
+\textbf{bold}; \emph{Upstream?} marks whether the map is causally prior to the prediction,
+\emph{Concepts?} whether it can separate them above chance.}
 \label{tab:compare}
-\begin{tabular}{lcc}
+\begin{tabular}{lccccc}
 \toprule
-Method & Deletion AUC (sensitivity) & Concept-discrim.\ AUROC \\
+Method & Deletion & Insertion & Concept-discrim. & Upstream? & Concepts? \\
 \midrule
-CCR (ours)             & $0.785$          & $\mathbf{0.872}$ \\
-Grad-CAM               & $0.393$          & $0.521$ \\
-Gradient saliency      & $0.641$          & $0.601$ \\
-Integrated gradients   & $\mathbf{0.952}$ & $0.583$ \\
-Occlusion              & $\mathbf{0.952}$ & $0.741$ \\
+\multicolumn{6}{l}{\emph{Post-hoc saliency}}\\
+Grad-CAM               & $0.416$          & $0.358$          & $0.521$ & \checkmark & \ding{55} \\
+Gradient saliency      & $0.640$          & $0.449$          & $0.601$ & \checkmark & \ding{55} \\
+Integrated gradients   & $\mathbf{0.952}$ & $0.909$          & $0.583$ & \checkmark & \ding{55} \\
+Occlusion              & $\mathbf{0.952}$ & $\mathbf{0.929}$ & $0.741$ & \checkmark & \ding{55} \\
+\midrule
+\multicolumn{6}{l}{\emph{Intrinsic, upstream of the prediction}}\\
+\textbf{CCR (ours)}    & $0.785$          & $0.709$          & $0.872$ & \checkmark & \checkmark \\
+\midrule
+\multicolumn{6}{l}{\emph{The model's own output --- not an explanation}}\\
+\textsc{SegPost}       & $0.912$          & $0.680$          & $0.982$ & \ding{55} & \checkmark \\
+\textsc{SegPost}$_{16}$ (granularity-matched) & --- & --- & $0.933$ & \ding{55} & \checkmark \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -591,11 +669,13 @@ Occlusion              & $\mathbf{0.952}$ & $0.741$ \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig3_crossover.png}
-\caption{\textbf{The ranking inverts across the two axes} (per concept, BraTS test).
+\caption{\textbf{No single method leads on both axes} (per concept, BraTS test).
 \emph{Left:} deletion AUC (input sensitivity)---integrated gradients and occlusion dominate.
 \emph{Right:} concept-discriminability AUROC (concept vs.\ other tumor; dotted line $=0.5$
-chance)---CCR alone rises to the top while the sensitivity methods fall toward chance. A clinical
-concept explanation needs the right axis.}
+chance)---the sensitivity methods fall toward chance while CCR rises far above them. The
+segmentation posterior (Table~\ref{tab:compare}) would sit at the top of the right axis, but it
+is the prediction itself rather than an explanation of it. Among maps that are genuinely
+\emph{upstream} of the prediction, CCR is alone in the upper region of the right axis.}
 \label{fig:faith}
 \end{figure}
 
@@ -648,6 +728,20 @@ marginally higher Dice as CNNs beating transformers---SegResNet is a strong BraT
 point is that the principle transfers; its hard-routing utilization is more skewed than the
 transformer's, which lowers whole-volume AUROC but not the foreground concept metrics reported.
 
+The second backbone also supplies the control for our reading of the discriminability metric in
+Sec.~\ref{sec:faith}. \textsc{SegPost} scores $0.982$ on CCR-Net and $0.979$ on CCR-SegResNet, and
+\textsc{SegPost}$_{16}$ scores $0.931$ and $0.933$ respectively---near-identical across two
+architectures that differ in backbone family, pretraining regime, and Dice. A metric that returns
+the same value for any competent segmenter is characterizing the segmenter, not the explanation.
+The granularity-matched edema tie likewise replicates on both backbones, which is why we read it
+as a property of the $16^3$ bottleneck rather than a quirk of one run.
+
+We note explicitly what this section does \emph{not} establish. We did not train plain
+Swin-UNETR or plain SegResNet counterparts under our split, so we make no claim that the CCR
+bottleneck is accuracy-neutral; the Dice values here are in line with published results for these
+backbones on BraTS but are contextual rather than controlled comparisons
+(see Sec.~\ref{sec:limitations}).
+
 \begin{table}[t]
 \centering
 \caption{\textbf{CCR is backbone-agnostic.} The same module in a Swin transformer (CCR-Net) and
@@ -655,12 +749,12 @@ a SegResNet CNN (CCR-SegResNet), BraTS test ($n{=}168$). The CNN trains from scr
 reproduces the concept alignment, concept-discriminability, and segmentation of the pretrained
 transformer.}
 \label{tab:backbone}
-\begin{tabular}{lccc}
+\begin{tabular}{lcccc}
 \toprule
-Instantiation & Dice WT/TC/ET & $\casfg$ N/E/T & Concept-discrim.\ N/E/T \\
+Instantiation & Dice WT/TC/ET & $\casfg$ N/E/T & Concept-discrim. & \textsc{SegPost} / \textsc{SegPost}$_{16}$ \\
 \midrule
-CCR-Net (Swin, pretrained)   & $0.915/0.845/0.837$ & $0.69/0.94/0.93$ & $0.85/0.89/0.87$ \\
-CCR-SegResNet (CNN, scratch) & $0.927/0.883/0.869$ & $0.80/0.96/0.95$ & $0.85/0.91/0.89$ \\
+CCR-Net (Swin, pretrained)   & $0.915/0.845/0.837$ & $0.69/0.94/0.93$ & $0.872$ & $0.982$ / $0.931$ \\
+CCR-SegResNet (CNN, scratch) & $0.927/0.883/0.869$ & $0.80/0.96/0.95$ & $0.883$ & $0.979$ / $0.933$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -745,12 +839,31 @@ A frozen decoder cannot adapt to the routing, so we expect a larger DD than end-
 CCR-Net while faithfulness continues to respect the $\mathrm{CAS}\cdot(1-\mathrm{DD})$ bound.}
 
 % ====================================================================
-\section{Discussion and Limitations}
+\section{Discussion and Limitations}\label{sec:limitations}
 % ====================================================================
+\textbf{No controlled accuracy comparison.} We did not train plain-backbone counterparts
+(Swin-UNETR or SegResNet without the CCR bottleneck) under our data split. We therefore make
+\emph{no} claim that CCR is accuracy-neutral: our Dice results show that CCR-Net and
+CCR-SegResNet segment competitively and in line with published values for these backbones, but
+the cost---if any---of inserting the routing bottleneck is unquantified here. This is the most
+direct experiment a follow-up should run, and the ablation configurations are released with the
+code.
 \textbf{Necrotic core resolution.} At the $16^3$ bottleneck a case contributes only tens of
 NCR tokens, capping CAS and faithfulness for that concept; this is the single consistent
-weak spot across all metrics. A finer bottleneck trades semantic context for resolution,
-and reconciling the two is open.
+weak spot across all metrics, and it is the same concept where the granularity-matched control
+leaves a residual gap to the segmentation posterior. A finer bottleneck trades semantic context
+for resolution, and reconciling the two is open.
+\textbf{What the metrics can and cannot settle.} Deletion, insertion, and
+concept-discriminability were all designed to evaluate post-hoc saliency maps: they ask whether a
+map has found the influential voxels. CCR's claim is different in kind---that there is no gap
+between the explanation and the computation, because the routing \emph{is} the decision. We
+report these metrics because a reader is entitled to ask whether the routing is causally real,
+and they answer that (window-invariant deletion well above chance, insertion above the posterior's
+on the hard class). But we caution against reading the leaderboard as the contribution: the
+methods that top the sensitivity axes cannot label a concept at all, and the method that tops
+discriminability is the prediction itself. CCR is not first on any single column of
+Table~\ref{tab:compare}; it is the only entry that is concept-labeled \emph{and} upstream of the
+output, which is the conjunction a clinical explanation requires.
 \textbf{Calibration.} Routing entropy provides a free per-voxel uncertainty map, but its
 absolute calibration is poor (expected calibration error $\approx0.73$): peaked routing at
 low temperature is confident even where token-level accuracy is low. We therefore treat
@@ -768,9 +881,10 @@ segmentation it conditions. CCR is thus best understood as an inherently interpr
 segmentation model whose routing decision is a faithful, intrinsic explanation, rather than a
 post-hoc saliency method: its advantage over a heatmap is faithfulness, concept labels,
 modularity, and free uncertainty---not spatial sharpness. Consistently, strong sensitivity
-methods (integrated gradients, occlusion) can score higher on deletion---an input-sensitivity
-metric they optimize directly---while failing to separate the clinical concepts
-(Sec.~\ref{sec:faith}); we report this openly rather than claiming to win every metric.
+methods (integrated gradients, occlusion) score higher on deletion---an input-sensitivity
+metric they optimize directly---while failing to separate the clinical concepts, and the
+segmentation posterior separates concepts better while being the output itself
+(Sec.~\ref{sec:faith}); we report both openly rather than claiming to win every metric.
 
 % ====================================================================
 \section{Conclusion}
@@ -778,15 +892,20 @@ metric they optimize directly---while failing to separate the clinical concepts
 We introduced Clinical Concept Routing: making the routing decision at the segmentation
 bottleneck the faithful, clinically-labeled, per-voxel explanation, computed in one forward
 pass. We detailed the router, expert bank, dispatch, objective, and curriculum that make
-this work, and showed that CCR-Net's explanation is structurally faithful with alignment
-quality equal to the Concept Alignment Score. Under an identical protocol, CCR's routing is
-intrinsic, concept-labeled, and the only explanation that discriminates the clinical concepts,
-with window-invariant causal relevance; strong post-hoc sensitivity methods win the deletion
-metric they optimize but cannot tell the concepts apart. The principle is \emph{backbone-agnostic}:
-the same module, dropped unchanged into a SegResNet CNN (CCR-SegResNet), reproduces the concept
-alignment, discriminability, and segmentation from scratch. CCR is the first method to deliver
-intrinsic, concept-labeled, faithful
-explanation for 3D volumetric dense prediction. Because CCR-Net's decoder is independently
+this work, and characterized the sense in which CCR-Net's explanation is structurally faithful,
+with alignment quality measured by the Concept Alignment Score. Evaluating against post-hoc
+saliency \emph{and} against the model's own segmentation posterior under one identical protocol,
+we find that no method leads everywhere: integrated gradients and occlusion win the sensitivity
+axes they optimize but cannot separate the clinical concepts, while the posterior separates them
+almost perfectly and yet \emph{is} the prediction, with zero decoder divergence. CCR routing is
+the only map that is concept-discriminative ($0.88$, far above the best post-hoc method) while
+remaining causally upstream of the output---and it exceeds the posterior on insertion, evidence
+that it carries information the output does not. Matching the posterior to the router's decision
+budget removes about half the residual discriminability gap and closes it entirely on edema. The
+principle is \emph{backbone-agnostic}: the same module, dropped unchanged into a SegResNet CNN
+(CCR-SegResNet), reproduces the concept alignment, discriminability, and segmentation from
+scratch. CCR delivers intrinsic, concept-labeled explanation for 3D volumetric dense prediction,
+where prior intrinsic methods address only scalar-output classification. Because CCR-Net's decoder is independently
 parameterized and skip-connected, its measured Decoder Divergence already places it in the
 retrofit regime of Proposition~\ref{prop:1b}: the retrofit bound is thus empirically
 \emph{supported} (Fig.~\ref{fig:bound}), not merely asserted. A full CCR-Retrofit study on a
