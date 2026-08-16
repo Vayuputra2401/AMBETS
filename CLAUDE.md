@@ -162,11 +162,24 @@ AMBETS/
 - L_align value — should decrease monotonically after warmup ends
 - DD (Decoder Divergence) — report honestly; high DD is not hidden, it is explained
 
-## Formal claims (Propositions — do not relax without theory change)
+## ⚠️ Formal claims — Prop 1a is REFUTED (2026-08)
 
-- **Prop 1a** (CCR-Net): faithfulness = CAS. Exact by construction.
-- **Prop 1b** (CCR-Retrofit): faithfulness ≥ CAS × (1 − DD). Bounded, measurable.
-- **Prop 2**: Routing entropy ECE < MC-Dropout ECE at T=10, zero overhead. **Empirical claim — requires Phase 4 validation, not derivable from current code.**
+- **Prop 1a** (CCR-Net): ~~faithfulness = CAS, exact by construction~~ — **EMPIRICALLY REFUTED.**
+  Its premise (the decoder receives only expert-processed features dispatched by the router) is
+  false as implemented. A causal intervention moves the prediction by ~0.001; zeroing the entire
+  CCR bottleneck costs ~1.5 Dice. Two leaks: the expert's `tokens + correction` residual passes
+  the full feature vector regardless of routing, and **CCR sits at Swin stage 2 of 5, so the
+  deeper `hs[3]`/`hs[4]` bypass it entirely** — despite this file and the paper both saying
+  "encoder bottleneck". See `evals/diagnostics_202608/RESULTS.md`.
+- **Prop 1b** (CCR-Retrofit): demoted to a *conjecture* in the paper — assumes multiplicative
+  composition and a deletion-AUC operationalization, neither proved. Holds empirically.
+- **Prop 2**: Routing entropy ECE < MC-Dropout ECE. **Not supported** — routing ECE is 0.73–0.84,
+  and routing signals lose to plain `seg_confidence` (0.786 vs 0.883) at predicting model error.
+
+**Methodological lesson — apply to any future concept-bottleneck work:** CAS and
+concept-discriminability measure *alignment*, which is fully compatible with an inert
+bottleneck, and `L_align` trains exactly what CAS measures. **Alignment metrics never license
+an interpretability claim. Run `pipeline/routing_intervention.py`.**
 
 ## Known theoretical limitations (be aware, do not hide in paper)
 
