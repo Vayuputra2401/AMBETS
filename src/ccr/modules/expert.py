@@ -75,6 +75,7 @@ class ClinicalConceptExpert(nn.Module):
         self.concept_name = concept_name
 
         hidden_dim = int(config.embed_dim * config.expert_hidden_factor)
+        self.residual = getattr(config, "residual", True)
 
         # Pre-normalisation before the projection (Pre-LN style)
         self.norm = nn.LayerNorm(config.embed_dim)
@@ -85,14 +86,16 @@ class ClinicalConceptExpert(nn.Module):
 
     def _init_weights(self) -> None:
         """
-        Near-zero initialisation for fc2 so that at the start of training the
-        expert correction is close to zero (identity-like residual).
-        This prevents the router from receiving large misleading gradients in
-        the first few epochs before experts have begun to specialise.
+        In residual mode, near-zero fc2 makes the expert an identity at initialisation, so
+        the router does not receive large misleading gradients before experts specialise.
+
+        In gated mode (residual=False) that same init would be fatal: `correction` IS the
+        output, so a near-zero fc2 hands the decoder a near-zero bottleneck and the model
+        starts dead. Use standard gain there.
         """
         nn.init.xavier_uniform_(self.fc1.weight)
         nn.init.zeros_(self.fc1.bias)
-        nn.init.xavier_uniform_(self.fc2.weight, gain=0.01)
+        nn.init.xavier_uniform_(self.fc2.weight, gain=1.0 if not self.residual else 0.01)
         nn.init.zeros_(self.fc2.bias)
 
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
@@ -111,6 +114,13 @@ class ClinicalConceptExpert(nn.Module):
         """
         # Residual branch: norm → up-project → activate → down-project
         correction = self.fc2(F.gelu(self.fc1(self.norm(tokens))))  # [M, D]
+
+        if not self.residual:
+            # Gated mode: the expert-specific transform is the ONLY path to the decoder,
+            # so which expert fires actually determines what the decoder receives. With the
+            # residual on, `tokens` reaches the decoder unchanged whichever expert fires,
+            # which is why the routing intervention measured no effect.
+            return correction  # [M, D]
 
         # Residual addition: output = input + correction
         return tokens + correction  # [M, D]

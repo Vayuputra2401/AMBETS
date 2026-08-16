@@ -68,6 +68,18 @@ class CCRSegResNet(nn.Module):
         self.boundary_head = BoundaryRefinementHead(num_concepts=config.ccr.router.num_concepts)
         self._grid_shape: Optional[Tuple[int, int, int]] = None
 
+        # Skip-connection gate (see evals/diagnostics_202608). CCR sits at SegResNet's true
+        # bottleneck, so nothing DEEPER bypasses it -- but every shallower skip in `down_x`
+        # runs straight from encoder to decoder, and the diagnostic showed the decoder
+        # reconstructs the segmentation through them: zeroing the entire CCR bottleneck cost
+        # only ~1.5 Dice on edema. alpha scales those bypass paths:
+        #   1.0 -> current behaviour, routing is decorative
+        #   0.0 -> the CCR bottleneck is the only route from encoder to decoder
+        # Intermediate values trace the accuracy/causal-control trade-off. The skips carry
+        # spatial detail as well as semantics, so alpha=0 is expected to cost boundary
+        # quality -- quantifying that cost is the point of the sweep.
+        self.skip_gate = float(getattr(config.ccr, "skip_gate", 1.0))
+
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         bottleneck, down_x = self.segresnet.encode(x)    # bottleneck [B, C, h, w, d]
         B, C, h, w, d = bottleneck.shape
@@ -88,7 +100,13 @@ class CCRSegResNet(nn.Module):
 
         # decode() consumes the reversed skip list; down_x[0] (the raw bottleneck) is unused,
         # so passing ccr_spatial as the starting feature routes the CCR output into the decoder.
-        seg_logits = self.segresnet.decode(ccr_spatial, list(reversed(down_x)))
+        skips = list(reversed(down_x))
+        if self.skip_gate != 1.0:
+            # Attenuate the bypass paths so the decoder must rely on the routed bottleneck.
+            # down_x[0] is the raw bottleneck and is unused by decode(), so gating it would
+            # be a no-op; the remaining entries are the shallower skips that bypass CCR.
+            skips = [s * self.skip_gate for s in skips]
+        seg_logits = self.segresnet.decode(ccr_spatial, skips)
         seg_logits = self.boundary_head(seg_logits)
 
         return {

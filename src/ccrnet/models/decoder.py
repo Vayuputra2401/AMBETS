@@ -85,6 +85,7 @@ class SwinUNETRDecoder(nn.Module):
         spatial_dims: int = 3,
         in_channels: int = 4,
         ccr_stage: int = 1,
+        skip_gate: float = 1.0,
     ) -> None:
         super().__init__()
         from monai.networks.blocks.unetr_block import UnetrBasicBlock, UnetrUpBlock
@@ -93,6 +94,7 @@ class SwinUNETRDecoder(nn.Module):
         if ccr_stage not in (1, 2):
             raise ValueError(f"ccr_stage must be 1 or 2, got {ccr_stage}")
         self.ccr_stage = ccr_stage
+        self.skip_gate = float(skip_gate)
 
         f = embed_dim  # 48
 
@@ -190,6 +192,20 @@ class SwinUNETRDecoder(nn.Module):
             enc3 = self.enc3(ccr_feat)   # [B, 192, H/8, W/8, D/8]  ← POST-CCR
 
         enc4 = self.enc4(hs[4], hs[3])  # [B, 384, H/16, W/16, D/16]
+
+        # Bypass gate (see evals/diagnostics_202608). CCR occupies exactly ONE of the five
+        # decoder inputs; the other four run encoder->decoder without consulting the routing.
+        # enc4 is the damaging one: hs[3] and hs[4] are DEEPER and more semantic than the
+        # stage-2 CCR tap, so the decoder can decide what tissue it is looking at without
+        # the routing at all. enc0/enc1 carry mostly low-level detail, which routing has no
+        # business owning, so the gate deliberately targets the semantic paths only.
+        a = self.skip_gate
+        if a != 1.0:
+            enc4 = enc4 * a
+            if self.ccr_stage == 2:
+                enc2 = enc2 * a         # hs[1], the other semantic bypass at stage-2
+            else:
+                enc3 = enc3 * a         # hs[2], the equivalent at stage-1
 
         dec3 = self.dec3(enc4, enc3)    # [B, 192, H/8,  W/8,  D/8 ]
         dec2 = self.dec2(dec3, enc2)    # [B,  96, H/4,  W/4,  D/4 ]

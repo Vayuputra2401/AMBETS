@@ -108,6 +108,20 @@ class ExpertConfig:
     num_concepts: int = 4
     expert_hidden_factor: float = 2.667
 
+    residual: bool = True
+    """
+    If True (default), the expert returns `tokens + correction`, so the full input feature
+    vector reaches the decoder REGARDLESS of which expert fired. This is the intra-module
+    information leak measured in evals/diagnostics_202608: experts are strongly distinct
+    (pairwise divergence ~0.9) yet re-routing a token barely moves the prediction, because
+    `tokens` passes through untouched and carries everything the decoder needs. Routing
+    modulates but never gates.
+
+    Set False to return `correction` alone, making the expert-specific transform the ONLY
+    path from bottleneck to decoder. This is what makes the routing decision load-bearing;
+    expect a segmentation cost, which is the trade-off the sweep is designed to measure.
+    """
+
 
 @dataclass
 class LossWeights:
@@ -275,6 +289,19 @@ class CCRConfig:
         "enhancing_tumor",
     )
     hard_routing_inference: bool = True
+
+    skip_gate: float = 1.0
+    """
+    Scales the decoder skip paths that BYPASS the CCR bottleneck.
+
+    The 2026-08 diagnostics found the routing to be aligned but causally inert: zeroing the
+    entire CCR bottleneck cost only ~1.5 Dice on edema, because the decoder reconstructs the
+    segmentation through skips that never consult the routing. 1.0 reproduces that behaviour;
+    0.0 makes the CCR bottleneck the only encoder->decoder route. Intermediate values trace
+    the accuracy vs causal-control trade-off. Pairs with ExpertConfig.residual, which closes
+    the complementary leak INSIDE the module.
+    """
+
     enabled: bool = True
     """If False, CCRNet runs as a plain Swin+UNETR backbone (no router/experts, no
     routing losses) — the no-CCR segmentation control (W4) that shows CCR is

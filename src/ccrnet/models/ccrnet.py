@@ -95,6 +95,7 @@ class CCRNet(nn.Module):
             spatial_dims=3,
             in_channels=config.swin.in_channels,
             ccr_stage=self._CCR_STAGE,
+            skip_gate=float(getattr(config.ccr, "skip_gate", 1.0)),
         )
         self.boundary_head = BoundaryRefinementHead(
             num_concepts=config.ccr.router.num_concepts,

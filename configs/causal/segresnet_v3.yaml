@@ -1,0 +1,78 @@
+# CCR-SegResNet V3 — causal sweep
+#
+# both leaks fully closed - the CCR bottleneck is the ONLY encoder->decoder route
+#
+# WHY THIS SWEEP EXISTS. The 2026-08 diagnostics (evals/diagnostics_202608/RESULTS.md)
+# showed the shipped CCR module is ALIGNED BUT INERT: CAS 0.94, concept-discriminability
+# 0.87, yet re-routing a token moves the prediction by ~0.001 and zeroing the whole
+# bottleneck costs ~1.5 Dice. Two independent leaks cause it:
+#   (a) expert.residual=True  -> `tokens + correction` passes the full feature vector
+#       through whichever expert fires, so routing modulates but never gates.
+#   (b) skip_gate=1.0         -> the decoder reconstructs the segmentation from skips
+#       that never consult the routing.
+# Closing both is what makes "the route is the reason" true rather than asserted.
+# A smoke test on an untrained model shows the knobs are complementary: neither alone
+# restores routing control, together they raise the intervention effect ~80x.
+#
+# Baseline for this sweep is the shipped config (residual=true, skip_gate=1.0), already
+# trained as run 20260725_094809 -- it is the V0 / naive-insertion arm, not wasted work.
+#
+# Expect a segmentation cost as skip_gate falls: the skips carry spatial detail as well as
+# semantics. Quantifying that cost against the gain in causal control IS the experiment.
+#
+# Usage:
+#   python pipeline/train.py --env gcp --model segresnet --config configs/causal/segresnet_v3.yaml
+swin:
+  img_size: [128, 128, 128]
+  in_channels: 4
+  embed_dim: 48
+  window_size: [7, 7, 7]
+  patch_size: [2, 2, 2]
+  depths: [2, 2, 2, 2]
+  num_heads: [3, 6, 12, 24]
+  mlp_ratio: 4.0
+  drop_path_rate: 0.0
+  pretrained_path: ""
+  use_checkpoint: true
+
+data:
+  data_root: ""
+  brats_version: "2024"
+  spatial_size: [128, 128, 128]
+  val_fraction: 0.125
+  test_fraction: 0.125
+  num_workers: 6
+  seed: 42
+
+training:
+  batch_size: 1
+  grad_accum_steps: 4
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip: 1.0
+  amp: true
+  checkpoint_dir: "checkpoints/"
+  checkpoint_every: 5
+  log_every: 10
+
+ccr:
+  skip_gate: 0.0          # bypass paths scaled by this
+  router:
+    embed_dim: 192          # = SegResNet bottleneck width (init_filters 24 * 2^3)
+    num_concepts: 4
+    use_prototypes: true
+    temperature_learnable: true
+  expert:
+    embed_dim: 192
+    residual: false      # false = expert transform is the ONLY path to the decoder
+  curriculum:
+    warmup_end_epoch: 10
+    alignment_end_epoch: 60
+    total_epochs: 80
+    tau_warmup: 2.0
+    tau_alignment: 1.0
+    tau_refinement: 0.5
+  loss:
+    align_focal_gamma: 1.0
+    align_concept_weights: [1.0, 3.0, 1.0, 1.0]
+    contrastive_ncr_et_weight: 0.3
