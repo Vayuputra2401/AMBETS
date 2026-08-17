@@ -64,7 +64,7 @@ ccr:
     temperature_learnable: true
   expert:
     embed_dim: 192
-    residual: false      # false = expert transform is the ONLY path to the decoder
+    residual: true       # KEPT ON, deliberately -- see note below
   curriculum:
     warmup_end_epoch: 10
     alignment_end_epoch: 60
