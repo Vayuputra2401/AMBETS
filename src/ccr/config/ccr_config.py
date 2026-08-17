@@ -290,6 +290,35 @@ class CCRConfig:
     )
     hard_routing_inference: bool = True
 
+    direct_mode: bool = False
+    """
+    Make the routing an ADDITIVE TERM of the output rather than something the decoder may
+    consult:
+
+        seg_logits = upsample(routing_logits) + refine_scale * decoder_out
+
+    Motivation. Every subtractive fix we tried (skip_gate, removing the expert residual) tries
+    to force a decoder that segments fine without the bottleneck to depend on it, and the
+    optimizer routed around both. Here causal influence is ARITHMETIC: at inference `refine`
+    is a function of decoder features, so intervening on the routing shifts the output by
+    exactly upsample(delta routing). No weight configuration undoes an additive term.
+
+    The routing supplies the coarse per-concept prediction; the decoder keeps every skip and
+    contributes a bounded refinement -- which is what skips are actually good for (boundaries),
+    so segmentation should survive in a way skip_gate=0 will not allow.
+
+    KNOWN FAILURE MODE, instrumented rather than assumed away: the network can shrink the
+    routing term's MAGNITUDE relative to the refinement, making the causal effect arithmetically
+    real but numerically negligible. L_align pins the routing's direction, not its scale. The
+    model therefore reports `refine_ratio` = ||refine term|| / ||routing term|| every forward
+    pass; watch it during training. refine_scale is the knob that bounds it.
+    """
+
+    refine_scale: float = 1.0
+    """Scales the decoder's refinement in direct_mode. Smaller => the routing term dominates
+    the prediction (more faithful, likely lower Dice). This is the interpretability/accuracy
+    knob, and sweeping it traces the trade-off with a WORKING method at one end."""
+
     skip_gate: float = 1.0
     """
     Scales the decoder skip paths that BYPASS the CCR bottleneck.

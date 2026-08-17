@@ -183,6 +183,18 @@ class CCRBottleneckModule(nn.Module):
             keep = override < 0                       # -1 == leave this token alone
             assignments = torch.where(keep, assignments, override.to(assignments.dtype))
 
+            # `effective_logits` is what the routing decision WOULD have been had the router
+            # chosen the override. Needed because a model may consume routing through more
+            # than one path: dispatch (which expert runs) AND, in direct_mode, an additive
+            # term in the output. Overriding only the dispatch would leave that second path
+            # reading the router's original belief, so the intervention would silently do
+            # nothing through it. Overridden tokens get a one-hot at the original logit
+            # scale, so magnitudes stay comparable.
+            scale = logits.abs().amax(dim=-1, keepdim=True)            # [B, N, 1]
+            one_hot = torch.zeros_like(logits).scatter_(
+                -1, assignments.unsqueeze(-1), 1.0) * scale
+            effective_logits = torch.where(keep.unsqueeze(-1), logits, one_hot)
+
         # --- Step 2: Dispatch to experts ---
         # An intervention forces HARD dispatch: the point is that exactly one expert (the
         # one we chose) processes the token. Soft dispatch would blend all K experts and
@@ -197,11 +209,15 @@ class CCRBottleneckModule(nn.Module):
             expert_outputs = self._hard_dispatch(bottleneck_tokens, assignments)
 
         return {
-            "routing_probs":  routing_probs,   # [B, N, K]
+            "routing_probs":  routing_probs,   # [B, N, K]  the router's ACTUAL belief
             "expert_outputs": expert_outputs,  # [B, N, D]
             "entropy":        entropy,         # [B, N]
-            "assignments":    assignments,     # [B, N]
-            "logits":         logits,          # [B, N, K]
+            "assignments":    assignments,     # [B, N]  what was really dispatched
+            "logits":         logits,          # [B, N, K]  the router's actual logits
+            # Equals `logits` normally; under intervention it reflects the FORCED decision.
+            # Consumers that act on the routing (direct_mode) must use this; consumers that
+            # REPORT the explanation must use `logits`/`routing_probs`.
+            "effective_logits": effective_logits if intervened else logits,
         }
 
     # ------------------------------------------------------------------

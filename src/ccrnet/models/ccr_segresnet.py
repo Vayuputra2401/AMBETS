@@ -28,6 +28,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from monai.networks.nets import SegResNet
 
 from ccrnet.config.phase2_config import Phase2Config
@@ -80,6 +81,13 @@ class CCRSegResNet(nn.Module):
         # quality -- quantifying that cost is the point of the sweep.
         self.skip_gate = float(getattr(config.ccr, "skip_gate", 1.0))
 
+        # Direct mode: routing becomes an additive term of the output rather than a signal
+        # the decoder may ignore. See CCRConfig.direct_mode for why this succeeds where
+        # skip_gate and residual removal failed, and for the magnitude failure mode that
+        # `refine_ratio` (returned each forward) exists to expose.
+        self.direct_mode = bool(getattr(config.ccr, "direct_mode", False))
+        self.refine_scale = float(getattr(config.ccr, "refine_scale", 1.0))
+
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         bottleneck, down_x = self.segresnet.encode(x)    # bottleneck [B, C, h, w, d]
         B, C, h, w, d = bottleneck.shape
@@ -109,11 +117,31 @@ class CCRSegResNet(nn.Module):
         seg_logits = self.segresnet.decode(ccr_spatial, skips)
         seg_logits = self.boundary_head(seg_logits)
 
+        refine_ratio = None
+        if self.direct_mode and self.ccr_enabled:
+            # The routing logits ARE the coarse prediction; the decoder only refines.
+            # [B, N, K] -> [B, K, h, w, d] -> [B, K, H, W, D]
+            # effective_logits, not logits: under a causal intervention this reflects the
+            # FORCED routing decision, so the additive path actually responds to it.
+            eff = ccr_out.get("effective_logits", ccr_out["logits"])
+            K = eff.shape[-1]
+            routing_up = F.interpolate(
+                eff.permute(0, 2, 1).reshape(B, K, h, w, d).float(),
+                size=seg_logits.shape[2:], mode="trilinear", align_corners=False,
+            )
+            refine = self.refine_scale * seg_logits
+            # Reported so the magnitude failure mode is visible during training rather than
+            # discovered at epoch 80: if this climbs, the decoder is drowning out the routing.
+            refine_ratio = (refine.detach().norm() /
+                            routing_up.detach().norm().clamp_min(1e-8))
+            seg_logits = routing_up + refine
+
         return {
             "seg_logits":    seg_logits,
             "routing_probs": routing_probs,
             "entropy":       entropy,
             "assignments":   assignments,
+            "refine_ratio":  refine_ratio,
         }
 
     def get_grid_shape(self) -> Optional[Tuple[int, int, int]]:

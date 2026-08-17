@@ -1,0 +1,87 @@
+# CCR-SegResNet DIRECT -- routing as an additive term of the output
+#
+# THE IDEA. Every previous fix was SUBTRACTIVE: take a decoder that segments fine without
+# the bottleneck and try to force dependence by removing its alternatives (skip_gate,
+# residual removal). The optimizer routed around both -- skip_gate=0.5 was compensated
+# away, and removing the residual made the experts CONVERGE (divergence 0.90 -> 0.155).
+#
+# Direct mode is ADDITIVE instead:
+#     seg_logits = upsample(routing_logits) + refine_scale * decoder_out
+# The routing supplies the coarse per-concept prediction; the decoder keeps every skip and
+# contributes a bounded refinement -- which is what skips are good at (boundaries), so
+# segmentation should survive where skip_gate=0 will not allow it.
+#
+# WHY THIS IS DIFFERENT IN KIND. Causal influence is arithmetic. At inference `refine` is a
+# function of decoder features, so intervening on the routing shifts the output by exactly
+# upsample(delta routing). No weight configuration undoes an additive term after the fact.
+# Untrained smoke test: label-flip 0.84-0.99 vs V0's 0.0000.
+#
+# THE FAILURE MODE TO WATCH. The network can shrink the routing term's MAGNITUDE relative to
+# the refinement, making the effect arithmetically real but numerically negligible; L_align
+# pins the routing's direction, not its scale. The model reports `refine_ratio` =
+# ||refine|| / ||routing|| every forward pass. On the untrained model it is 0.08 at
+# refine_scale=1.0 and WILL climb during training. If it reaches order 1, the routing is
+# being drowned out -- lower refine_scale and retrain.
+#
+# refine_scale is the interpretability/accuracy knob; sweeping it traces the trade-off with
+# a WORKING method at one end rather than a curve of failures.
+#
+# Usage:
+#   python pipeline/train.py --env gcp --model segresnet --config configs/causal/segresnet_direct.yaml
+
+swin:
+  img_size: [128, 128, 128]
+  in_channels: 4
+  embed_dim: 48
+  window_size: [7, 7, 7]
+  patch_size: [2, 2, 2]
+  depths: [2, 2, 2, 2]
+  num_heads: [3, 6, 12, 24]
+  mlp_ratio: 4.0
+  drop_path_rate: 0.0
+  pretrained_path: ""
+  use_checkpoint: true
+
+data:
+  data_root: ""
+  brats_version: "2024"
+  spatial_size: [128, 128, 128]
+  val_fraction: 0.125
+  test_fraction: 0.125
+  num_workers: 6
+  seed: 42
+
+training:
+  batch_size: 1
+  grad_accum_steps: 4
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip: 1.0
+  amp: true
+  checkpoint_dir: "checkpoints/"
+  checkpoint_every: 5
+  log_every: 10
+
+ccr:
+  direct_mode: true       # routing is an ADDITIVE term of the output
+  refine_scale: 1.0       # decoder refinement weight; lower => routing dominates
+  skip_gate: 1.0          # skips fully intact -- direct mode does not need to starve them
+  router:
+    embed_dim: 192
+    num_concepts: 4
+    use_prototypes: true
+    temperature_learnable: true
+  expert:
+    embed_dim: 192
+    residual: true        # kept ON; removing it collapsed expert divergence in V2
+  curriculum:
+    warmup_end_epoch: 10
+    alignment_end_epoch: 60
+    total_epochs: 80
+    tau_warmup: 2.0
+    tau_alignment: 1.0
+    tau_refinement: 0.5
+  loss:
+    align_focal_gamma: 1.0
+    align_concept_weights: [1.0, 3.0, 1.0, 1.0]
+    contrastive_ncr_et_weight: 0.3
