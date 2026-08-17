@@ -1,4 +1,4 @@
-# CCR-SegResNet V3 — causal sweep
+# CCR-SegResNet V3 -- causal sweep
 #
 # both leaks fully closed - the CCR bottleneck is the ONLY encoder->decoder route
 #

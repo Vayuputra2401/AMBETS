@@ -1,4 +1,4 @@
-# CCR-SegResNet V1 — causal sweep
+# CCR-SegResNet V1 -- causal sweep
 #
 # closes the intra-module leak ONLY (expert transform is the sole path, but skips still bypass the bottleneck)
 #
