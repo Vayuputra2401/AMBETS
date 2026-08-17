@@ -326,6 +326,7 @@ def main() -> None:
 
         loss_sums = {k: 0.0 for k in ["total", "seg", "align", "diversity", "entropy", "boundary", "contrastive", "tau_reg"]}
         n_train_batches = 0
+        refine_ratio_sum, n_refine_batches = 0.0, 0
         epoch_losses: dict = {}
         accum_steps = max(config.training.grad_accum_steps, 1)
         accum_count = 0
@@ -368,6 +369,15 @@ def main() -> None:
 
             if out["assignments"] is not None:
                 tracker.update(out["assignments"])
+            # direct_mode diagnostic: ||refine|| / ||routing||. The routing term is an
+            # additive part of the output, so its causal effect is arithmetic -- but the
+            # network can still shrink it RELATIVE to the decoder's refinement, leaving the
+            # effect real but numerically negligible (L_align pins the routing's direction,
+            # not its scale). Tracked per epoch so that failure is visible while the run is
+            # cheap to kill, rather than at epoch 80.
+            if out.get("refine_ratio") is not None:
+                refine_ratio_sum += float(out["refine_ratio"])
+                n_refine_batches += 1
             epoch_losses = losses
             n_train_batches += 1
             for k in loss_sums:
@@ -390,6 +400,8 @@ def main() -> None:
             optimizer.zero_grad()
 
         train_avg = {k: v / max(n_train_batches, 1) for k, v in loss_sums.items()}
+        if n_refine_batches:
+            train_avg["refine_ratio"] = refine_ratio_sum / n_refine_batches
         train_time = time.time() - epoch_start
         _log_train_metrics(epoch, epoch_losses["phase"], epoch_losses["tau_target"], train_avg, train_time)
 
