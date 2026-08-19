@@ -130,3 +130,63 @@ def test_intervention_forces_hard_dispatch_even_when_soft_configured():
     with routing_intervention(m, override):
         hard = m(x)["expert_outputs"]
     assert not torch.allclose(soft, hard), "intervention must switch to hard dispatch"
+
+
+def _direct_module(embed_dim: int = 32, k: int = 4):
+    """Module whose consumer reads effective_logits (as direct_mode does)."""
+    return _module(embed_dim, k)
+
+
+def test_effective_logits_identity_override_matches_baseline():
+    """
+    The diagonal control of the causal experiment, at the tensor level.
+
+    direct_mode feeds `effective_logits` into the output, so if the one-hot hardening were
+    applied only to OVERRIDDEN tokens, an identity intervention a->a would still swap soft
+    logits for a one-hot and move the prediction (measured: max|delta| 14.3 on a real model)
+    even though nothing was re-routed. That would make every off-diagonal cell
+    uninterpretable. Hardening must therefore be uniform across tokens.
+    """
+    m = _direct_module()
+    x = torch.randn(1, 24, 32)
+    base_assign = m(x)["assignments"]
+
+    null = torch.full_like(base_assign, -1)
+    with routing_intervention(m, null):
+        baseline = m(x)["effective_logits"]
+
+    a = int(base_assign[0, 0])
+    ident = torch.full_like(base_assign, -1)
+    ident[base_assign == a] = a                      # route concept a to its own expert
+    with routing_intervention(m, ident):
+        identity = m(x)["effective_logits"]
+
+    assert torch.equal(identity, baseline), "identity override must be a bit-exact no-op"
+
+
+def test_effective_logits_changes_on_real_override():
+    m = _direct_module()
+    x = torch.randn(1, 24, 32)
+    base_assign = m(x)["assignments"]
+    null = torch.full_like(base_assign, -1)
+    with routing_intervention(m, null):
+        baseline = m(x)["effective_logits"]
+
+    a = int(base_assign[0, 0])
+    b = (a + 1) % 4
+    ov = torch.full_like(base_assign, -1)
+    ov[base_assign == a] = b
+    with routing_intervention(m, ov):
+        moved = m(x)["effective_logits"]
+
+    assert not torch.equal(moved, baseline), "a real re-route must change effective_logits"
+    # and it must be one-hot at the forced target for those tokens
+    sel = (base_assign == a)[0]
+    assert torch.all(moved[0][sel].argmax(-1) == b)
+
+
+def test_effective_logits_equals_logits_when_not_intervened():
+    m = _direct_module()
+    x = torch.randn(1, 16, 32)
+    out = m(x)
+    assert torch.equal(out["effective_logits"], out["logits"])

@@ -496,6 +496,14 @@ def main() -> None:
 
     # --- Decoder Divergence (W7, Def 2) — residual gap in Proposition 1 ---
     print("\n=== Decoder Divergence (DD = 1 - Pearson(decoder, routing); lower = closer) ===")
+    if bool(getattr(config.ccr, "direct_mode", False)):
+        # In direct mode seg_logits = upsample(routing_logits) + refine, so the decoder
+        # posterior is CONSTRUCTED from the routing. DD is then circular by design -- it
+        # measures how much the refinement perturbs the routing (essentially refine_ratio),
+        # NOT whether an independent decoder happens to agree with it. Not comparable to
+        # DD from non-direct runs; do not put them in one table without this caveat.
+        print("  [!] direct_mode: DD is CIRCULAR here (the decoder output contains the")
+        print("      routing term by construction) and is NOT comparable to V0/V2 DD.")
     dd_keys = [k for k in results[0] if k.startswith("dd_")]
     for ddk in dd_keys:
         concept = ddk.replace("dd_", "")

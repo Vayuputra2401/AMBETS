@@ -190,10 +190,17 @@ class CCRBottleneckModule(nn.Module):
             # reading the router's original belief, so the intervention would silently do
             # nothing through it. Overridden tokens get a one-hot at the original logit
             # scale, so magnitudes stay comparable.
+            # One-hot at the (post-override) assignment for EVERY token, not just the
+            # overridden ones. Applying it selectively silently broke the diagonal control:
+            # in direct_mode these logits feed the output, so an identity intervention
+            # a->a would swap soft logits for a one-hot and move the prediction (measured:
+            # max|delta| 14.3) even though nothing was re-routed. With the hardening applied
+            # uniformly, the all-(-1) baseline and every intervention sit on the same
+            # footing, a->a is exact-zero again, and an off-diagonal effect is attributable
+            # to the re-routing alone.
             scale = logits.abs().amax(dim=-1, keepdim=True)            # [B, N, 1]
-            one_hot = torch.zeros_like(logits).scatter_(
+            effective_logits = torch.zeros_like(logits).scatter_(
                 -1, assignments.unsqueeze(-1), 1.0) * scale
-            effective_logits = torch.where(keep.unsqueeze(-1), logits, one_hot)
 
         # --- Step 2: Dispatch to experts ---
         # An intervention forces HARD dispatch: the point is that exactly one expert (the

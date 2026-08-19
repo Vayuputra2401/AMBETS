@@ -22,10 +22,18 @@ Measurements
 
 3. BOTTLENECK NECESSITY
    How much does the decoder actually depend on the CCR bottleneck at all?
-     - bypass : feed the decoder the RAW encoder tokens (skip the experts entirely)
-     - zero   : feed the decoder zeros at the bottleneck
+     - bypass      : feed the decoder the RAW encoder tokens (skip the experts entirely)
+     - zero        : remove the CCR contribution entirely
    If Dice barely moves when the bottleneck is destroyed, the decision does not live there
    and no amount of expert specialisation would make routing causally decisive.
+
+   In DIRECT MODE the module reaches the output through two paths -- the expert features
+   the decoder consumes, and an additive routing term -- so two more modes are reported:
+     - zero_expert : only the decoder's bottleneck input removed
+     - zero_routing: only the additive routing term removed. THIS is the direct-mode
+                     number: it isolates how much the routing itself drives the prediction.
+   Ablating only `expert_outputs` (what "zero" meant before direct mode existed) would
+   leave the routing term intact and wrongly report the bottleneck as unnecessary.
 
 Together these say whether the null intervention result is fixable (experts collapsed to
 identity -> the objective needs a term that separates them) or structural (the decoder routes
@@ -100,6 +108,13 @@ def main() -> None:
         raise SystemExit("Model has no CCR module.")
     names = config.ccr.concept_names
     K = len(ccr.experts)
+    # zero        : both CCR paths removed -- total bottleneck necessity (comparable to V0/V2)
+    # zero_expert : only the decoder's bottleneck input removed
+    # zero_routing: only the additive routing term removed -- THE direct-mode number, it
+    #               measures how much the routing itself drives the prediction
+    direct = bool(getattr(config.ccr, "direct_mode", False))
+    modes = (("bypass", "zero_expert", "zero_routing", "zero") if direct
+             else ("bypass", "zero"))
     print(f"Loaded checkpoint (epoch {start_epoch - 1}) on {device} [{args.model}], K={K}")
 
     loader = get_dataloader(
@@ -144,15 +159,26 @@ def main() -> None:
             base_pred = out["seg_logits"].argmax(1)[0]
             row = {f"dice_base_{names[k]}": _dice(base_pred, label, k) for k in range(1, K)}
 
-            for mode in ("bypass", "zero"):
-                ccr._diag_mode = mode
+            # In direct_mode the CCR module reaches the output through TWO paths: the
+            # expert features the decoder consumes, AND an additive routing term
+            # (seg_logits = upsample(effective_logits) + refine_scale * decoder_out).
+            # Patching only `expert_outputs` would leave the routing term intact, so a
+            # "zeroed" bottleneck would still drive the prediction and we would wrongly
+            # conclude the bottleneck is unnecessary -- the exact opposite of the truth.
+            # So ablate the paths separately, and together.
+            for mode in modes:
                 orig_forward = ccr.forward
 
                 def patched(tokens, _orig=orig_forward, _mode=mode):
-                    o = _orig(tokens)
-                    o = dict(o)
-                    o["expert_outputs"] = (tokens if _mode == "bypass"
-                                           else torch.zeros_like(tokens))
+                    o = dict(_orig(tokens))
+                    if _mode == "bypass":
+                        o["expert_outputs"] = tokens
+                    elif _mode in ("zero_expert", "zero"):
+                        o["expert_outputs"] = torch.zeros_like(tokens)
+                    if _mode in ("zero_routing", "zero"):
+                        eff = o.get("effective_logits")
+                        if eff is not None:
+                            o["effective_logits"] = torch.zeros_like(eff)
                     return o
 
                 ccr.forward = patched
@@ -179,17 +205,17 @@ def main() -> None:
         print(f"{names[a][:17]:>18s}" + "".join(f"{pair_div_m[a, b]:>11.4f}" for b in range(K)))
 
     print("\n=== 3. Bottleneck necessity: Dice when the CCR output is replaced ===")
-    print(f"{'':>18s}{'base':>10s}{'bypass':>10s}{'zero':>10s}")
+    print(f"{'':>18s}{'base':>10s}" + "".join(f"{m:>13s}" for m in modes))
     summary: Dict = {"residual_scale": {names[k]: float(res_scale_m[k]) for k in range(K)},
                      "pairwise_divergence": pair_div_m.tolist(),
                      "concept_names": list(names), "n_cases": seen,
                      "checkpoint": args.checkpoint}
     for k in range(1, K):
         b = float(np.nanmean([r[f"dice_base_{names[k]}"] for r in dice_rows]))
-        by = float(np.nanmean([r[f"dice_bypass_{names[k]}"] for r in dice_rows]))
-        z = float(np.nanmean([r[f"dice_zero_{names[k]}"] for r in dice_rows]))
-        print(f"{names[k][:17]:>18s}{b:>10.4f}{by:>10.4f}{z:>10.4f}")
-        summary[f"dice_{names[k]}"] = {"base": b, "bypass": by, "zero": z}
+        cells = {m: float(np.nanmean([r[f"dice_{m}_{names[k]}"] for r in dice_rows]))
+                 for m in modes}
+        print(f"{names[k][:17]:>18s}{b:>10.4f}" + "".join(f"{cells[m]:>13.4f}" for m in modes))
+        summary[f"dice_{names[k]}"] = {"base": b, **cells}
 
     json_path = os.path.join(save_dir, f"{args.split}_expert_diag.json")
     with open(json_path, "w") as f:
