@@ -7,12 +7,20 @@
 **Checkpoint:** `epoch_0075.pth` (epoch 80's write failed on a full disk; ep75 is the last
 valid one and the run had converged — ep75 and ep80 val were identical to 3 decimals).
 
-**Provenance:** `evaluate.py` output pulled from GCS (`test_summary.json`, `test_results.csv`
-here). The intervention and expert-diagnostics blocks below are **transcribed verbatim from
-the run stdout** — neither script syncs to GCS, and the VM was stopped before the raw CSVs
-could be pulled. They remain at `~/checkpoints/evals/{direct_intervention,direct_expert_diag}`
-and should be rsynced in when the VM is next started. **Per-patient CIs cannot be computed
-until then.**
+**Provenance:** all raw data now in the repo and VERIFIED against the run stdout — every
+transcribed figure matched the source exactly, and the intervention diagonal is `[0.0, 0.0,
+0.0]`. `evaluate.py` output here; per-patient intervention CSV in
+`../causal_direct_intervention/`; diagnostics JSON in `../causal_direct_expert_diag/`.
+
+**Significance (bootstrap, n=168, per-patient mean off-diagonal flip):**
+
+| | mean | 95% CI |
+|---|---|---|
+| **DIRECT** | **0.8157** | [0.8117, 0.8198] |
+| V2 (gated) | 0.0012 | [0.0009, 0.0016] |
+
+Paired DIRECT − V2 = **+0.8145 [+0.8103, +0.8187]**, Wilcoxon p = 2.6e-29, n=168.
+Non-overlapping CIs by three orders of magnitude.
 
 ---
 

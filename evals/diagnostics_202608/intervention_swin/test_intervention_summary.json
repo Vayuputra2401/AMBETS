@@ -1,0 +1,236 @@
+{
+  "dtarget_necrotic_core_to_necrotic_core": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "dtarget_necrotic_core_to_edema": {
+    "mean": 0.0002837539777914344,
+    "std": 0.0005567993797267731,
+    "n": 5
+  },
+  "dtarget_necrotic_core_to_enhancing_tumor": {
+    "mean": 0.00016654236426063562,
+    "std": 0.0003497018515672649,
+    "n": 5
+  },
+  "dtarget_edema_to_necrotic_core": {
+    "mean": 0.0008771567161602433,
+    "std": 0.0016269838982947687,
+    "n": 5
+  },
+  "dtarget_edema_to_edema": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "dtarget_edema_to_enhancing_tumor": {
+    "mean": 0.0012175203024526126,
+    "std": 0.0007783058934207504,
+    "n": 5
+  },
+  "dtarget_enhancing_tumor_to_necrotic_core": {
+    "mean": 0.0018375625674707408,
+    "std": 0.0035322917522253596,
+    "n": 5
+  },
+  "dtarget_enhancing_tumor_to_edema": {
+    "mean": 0.0013760963513050229,
+    "std": 0.0022927833031365905,
+    "n": 5
+  },
+  "dtarget_enhancing_tumor_to_enhancing_tumor": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "flip_necrotic_core_to_necrotic_core": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "flip_necrotic_core_to_edema": {
+    "mean": 0.00030236486345529555,
+    "std": 0.0006047297269105911,
+    "n": 5
+  },
+  "flip_necrotic_core_to_enhancing_tumor": {
+    "mean": 0.0002816721796989441,
+    "std": 0.0005633443593978882,
+    "n": 5
+  },
+  "flip_edema_to_necrotic_core": {
+    "mean": 0.0007918859046185389,
+    "std": 0.001561617348625751,
+    "n": 5
+  },
+  "flip_edema_to_edema": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "flip_edema_to_enhancing_tumor": {
+    "mean": 0.0006916442071087658,
+    "std": 0.0010334123766588355,
+    "n": 5
+  },
+  "flip_enhancing_tumor_to_necrotic_core": {
+    "mean": 0.0019749581872019915,
+    "std": 0.003795849953044748,
+    "n": 5
+  },
+  "flip_enhancing_tumor_to_edema": {
+    "mean": 0.0014426141045987607,
+    "std": 0.0024772490833969885,
+    "n": 5
+  },
+  "flip_enhancing_tumor_to_enhancing_tumor": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "dsource_necrotic_core_to_necrotic_core": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "dsource_necrotic_core_to_edema": {
+    "mean": -0.0003665728208488872,
+    "std": 0.0007343670773115244,
+    "n": 5
+  },
+  "dsource_necrotic_core_to_enhancing_tumor": {
+    "mean": -0.00024923573431578916,
+    "std": 0.0004827157536705059,
+    "n": 5
+  },
+  "dsource_edema_to_necrotic_core": {
+    "mean": 0.0033257748109463137,
+    "std": 0.002147516685814367,
+    "n": 5
+  },
+  "dsource_edema_to_edema": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "dsource_edema_to_enhancing_tumor": {
+    "mean": 0.002358420396922156,
+    "std": 0.0019294141861282222,
+    "n": 5
+  },
+  "dsource_enhancing_tumor_to_necrotic_core": {
+    "mean": -0.001172265912464354,
+    "std": 0.002959568312431927,
+    "n": 5
+  },
+  "dsource_enhancing_tumor_to_edema": {
+    "mean": -0.0012864041178545448,
+    "std": 0.0018336462583353334,
+    "n": 5
+  },
+  "dsource_enhancing_tumor_to_enhancing_tumor": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "doff_necrotic_core_to_necrotic_core": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "doff_necrotic_core_to_edema": {
+    "mean": 0.00025855395360849796,
+    "std": 0.0004006641649375544,
+    "n": 5
+  },
+  "doff_necrotic_core_to_enhancing_tumor": {
+    "mean": 0.00014267994774854741,
+    "std": 0.00012119285995158309,
+    "n": 5
+  },
+  "doff_edema_to_necrotic_core": {
+    "mean": 0.005181973846629262,
+    "std": 0.002026368764990738,
+    "n": 5
+  },
+  "doff_edema_to_edema": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "doff_edema_to_enhancing_tumor": {
+    "mean": 0.003242862829938531,
+    "std": 0.0009251971021536465,
+    "n": 5
+  },
+  "doff_enhancing_tumor_to_necrotic_core": {
+    "mean": 0.002845183084718883,
+    "std": 0.002284969873997436,
+    "n": 5
+  },
+  "doff_enhancing_tumor_to_edema": {
+    "mean": 0.0019982238474767653,
+    "std": 0.0018688551376392299,
+    "n": 5
+  },
+  "doff_enhancing_tumor_to_enhancing_tumor": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "doutside_necrotic_core_to_necrotic_core": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "doutside_necrotic_core_to_edema": {
+    "mean": 0.0005413505656179041,
+    "std": 0.000691575260819716,
+    "n": 5
+  },
+  "doutside_necrotic_core_to_enhancing_tumor": {
+    "mean": 0.0005556553107453511,
+    "std": 0.0005280678999710869,
+    "n": 5
+  },
+  "doutside_edema_to_necrotic_core": {
+    "mean": 0.0012359834159724413,
+    "std": 0.0011356440833886585,
+    "n": 5
+  },
+  "doutside_edema_to_edema": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "doutside_edema_to_enhancing_tumor": {
+    "mean": 0.0008930287382099778,
+    "std": 0.0004732899425042973,
+    "n": 5
+  },
+  "doutside_enhancing_tumor_to_necrotic_core": {
+    "mean": 0.0009534601034829393,
+    "std": 0.0007922000242433356,
+    "n": 5
+  },
+  "doutside_enhancing_tumor_to_edema": {
+    "mean": 0.0006842330942163244,
+    "std": 0.0005469205433747508,
+    "n": 5
+  },
+  "doutside_enhancing_tumor_to_enhancing_tumor": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 5
+  },
+  "concepts": [
+    "necrotic_core",
+    "edema",
+    "enhancing_tumor"
+  ],
+  "n_cases": 5,
+  "checkpoint": "/home/pathikreetofficial/checkpoints/20260621_120750/epoch_0080.pth",
+  "split": "test",
+  "elapsed_s": 28.75483250617981
+}

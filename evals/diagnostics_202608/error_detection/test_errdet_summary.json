@@ -1,0 +1,28 @@
+{
+  "auroc_disagree_hard": {
+    "mean": 0.7257638163864613,
+    "std": 0.09447045584658346,
+    "n": 168
+  },
+  "auroc_routing_entropy": {
+    "mean": 0.5603498713601203,
+    "std": 0.07940079756851393,
+    "n": 168
+  },
+  "auroc_disagree_soft": {
+    "mean": 0.7862622509045261,
+    "std": 0.11281118204758675,
+    "n": 168
+  },
+  "auroc_seg_confidence": {
+    "mean": 0.8831104111103785,
+    "std": 0.06499297020259179,
+    "n": 168
+  },
+  "best_ccr_minus_baseline": -0.09684816020585241,
+  "mean_error_rate_in_region": 0.17100547001297986,
+  "checkpoint": "/home/pathikreetofficial/checkpoints/20260621_120750/epoch_0080.pth",
+  "split": "test",
+  "n_cases": 168,
+  "elapsed_s": 77.15174603462219
+}
