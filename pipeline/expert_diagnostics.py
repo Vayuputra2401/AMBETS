@@ -52,6 +52,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List
@@ -90,10 +91,12 @@ def main() -> None:
     ap.add_argument("--model",      type=str, default="ccrnet", choices=list(ARCHES))
     ap.add_argument("--save_dir",   type=str, default="")
     ap.add_argument("--device",     type=str, default="")
+    ap.add_argument("--no_sync_gcs", action="store_true",
+                    help="skip mirroring results to GCS")
     args = ap.parse_args()
 
     config = Phase2Config.from_yaml(args.config)
-    apply_env(config, env=args.env, config_dir=Path(__file__).parent.parent / "configs")
+    env_cfg = apply_env(config, env=args.env, config_dir=Path(__file__).parent.parent / "configs")
     device = torch.device(args.device if args.device else
                           ("cuda" if torch.cuda.is_available() else "cpu"))
     save_dir = args.save_dir or str(
@@ -225,6 +228,23 @@ def main() -> None:
     print("  residual scale ~0      -> experts are the identity; routing has no lever")
     print("  pairwise div  ~0       -> experts functionally redundant (the L_diversity gap)")
     print("  bypass/zero Dice ~base -> the decoder does not need the bottleneck at all")
+
+    # Mirror results to GCS. Without this the outputs live only on the VM disk -- which is
+    # how the direct-mode intervention and diagnostics were nearly lost when the instance
+    # was stopped. The destination is keyed on the SAVE-DIR basename rather than a hardcoded
+    # suffix (the flaw in concept_alignment.py), so two runs writing to different --save_dir
+    # values cannot overwrite each other on GCS.
+    gcs = env_cfg.get("paths", {}).get("gcs_checkpoint_dir", "")
+    if gcs and not args.no_sync_gcs:
+        run_id = Path(args.checkpoint).parent.name
+        dst = f"{gcs.rstrip(chr(47))}/{run_id}/evals/{Path(save_dir).name}"
+        print("")
+        print(f"Syncing to GCS: {save_dir} -> {dst}")
+        try:
+            subprocess.run(["gsutil", "-m", "rsync", "-r", save_dir, dst], check=True)
+            print("  GCS sync complete.")
+        except Exception as e:
+            print(f"  [warn] GCS sync failed: {e}")
 
 
 if __name__ == "__main__":
