@@ -33,6 +33,17 @@ Controls (all reported, all necessary)
 Outputs a K x K matrix of effects; the diagonal is the identity control and the
 off-diagonal is the result.
 
+SCOPE (matters for how the headline number reads)
+-------------------------------------------------
+By default the intervention is restricted to tokens overlapping the TUMOUR NEIGHBOURHOOD.
+The router assigns most of the volume to background and normal tissue (~26% of all tokens
+go to edema alone), so re-routing every token of a concept repaints the whole brain. That
+is genuine causal control, but it mostly demonstrates "the output follows the routing
+everywhere" -- which is close to tautological in direct_mode, where the routing logits are
+literally an additive term of the output. The defensible claim is concept control WHERE IT
+IS CLINICALLY MEANINGFUL, i.e. inside the tumour. `--all_tokens` restores the unrestricted
+behaviour; `scope` is recorded in the summary JSON so a CSV can never be misread.
+
 Usage
 -----
     python pipeline/routing_intervention.py \
@@ -88,6 +99,10 @@ def main() -> None:
     ap.add_argument("--concepts",   type=str, default="1,2,3",
                     help="concept ids to use as intervention sources/targets "
                          "(default: the three foreground concepts; add 0 for background)")
+    ap.add_argument("--all_tokens", action="store_true",
+                    help="re-route EVERY token assigned to the source concept, including "
+                         "background. Default restricts to the tumour neighbourhood -- see "
+                         "the note in the module docstring on why that is the honest headline.")
     ap.add_argument("--save_dir",   type=str, default="")
     ap.add_argument("--device",     type=str, default="")
     ap.add_argument("--no_sync_gcs", action="store_true",
@@ -131,6 +146,7 @@ def main() -> None:
         if seen >= n_cases:
             break
         image = batch["image"].to(device)
+        label = batch["label"].to(device)[0]
         pid = batch["patient_id"][0] if isinstance(batch["patient_id"], list) else batch["patient_id"]
         target_shape = tuple(image.shape[2:])
 
@@ -147,9 +163,22 @@ def main() -> None:
             p0 = torch.softmax(out0["seg_logits"], dim=1)[0]      # [K,H,W,D]
             a0 = out0["assignments"][0]                           # [N]
 
+        # The router sends most of the volume (~26% of tokens to edema alone) to background
+        # and normal tissue, so re-routing EVERY token of a concept repaints the whole brain.
+        # That is real causal control but it mostly demonstrates "the output follows the
+        # routing everywhere", which is near-tautological in direct mode. Restricting to the
+        # tumour neighbourhood measures concept control where it is clinically meaningful.
+        tumour_tok = None
+        if not args.all_tokens:
+            lab_grid = F.interpolate((label > 0).float().reshape(1, 1, *target_shape),
+                                     size=grid, mode="area")[0, 0]
+            tumour_tok = (lab_grid.flatten() > 0.0)
+
         row: Dict = {"patient_id": pid}
         for a in ids:
             src = (a0 == a)
+            if tumour_tok is not None:
+                src = src & tumour_tok
             n_src = int(src.sum())
             row[f"n_tokens_{names[a]}"] = n_src
             if n_src == 0:
@@ -218,7 +247,8 @@ def main() -> None:
     with open(csv_path, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(per_patient[0].keys()))
         w.writeheader(); w.writerows(per_patient)
-    summary.update({"concepts": [names[i] for i in ids], "n_cases": seen,
+    summary.update({"scope": "all_tokens" if args.all_tokens else "tumour_neighbourhood",
+                    "concepts": [names[i] for i in ids], "n_cases": seen,
                     "checkpoint": args.checkpoint, "split": args.split,
                     "elapsed_s": float(elapsed)})
     json_path = os.path.join(save_dir, f"{args.split}_intervention_summary.json")
