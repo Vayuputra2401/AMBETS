@@ -24,7 +24,51 @@ Non-overlapping CIs by three orders of magnitude.
 
 ---
 
-## 1. THE HEADLINE — causal intervention (n=168)
+## 0. SCOPE — read this before quoting any intervention number
+
+The intervention was first run over **every** token assigned to the source concept. The
+router sends most of the volume to background and normal tissue (~26% of all tokens to edema
+alone), so that repaints the whole brain: rendering the figure showed `Edema->NCR` turning
+the entire volume red. It is genuine causal control, but it mostly demonstrates "the output
+follows the routing everywhere" -- near-tautological in direct mode, where the routing logits
+are literally an additive term of the output.
+
+**Quote the TUMOUR-RESTRICTED numbers.** Both are recorded; `scope` is written into every
+summary JSON.
+
+| | tumour-restricted | all tokens |
+|---|---|---|
+| label-flip to target | **0.546** | 0.816 |
+| delta target posterior | **0.540** | 0.798 |
+| off-target \|delta\| (specificity, want ~0) | **0.079** | 0.151 |
+| outside-region \|delta\| (locality, want ~0) | **0.0046** | 0.0163 |
+
+Per-patient headline (the convention used for the V0/V2 comparison, bootstrap n=168):
+**0.636, 95% CI [0.621, 0.651]**. (The 0.546 above is the per-cell mean of the matrix; the
+two differ because restriction makes some cells NaN for some cases. Report the per-patient
+figure with its CI and say which is which.)
+
+**Restricting made the result BETTER, not just smaller:** specificity roughly doubled
+(off-target 0.151 -> 0.079) and locality improved 3.5x (0.0163 -> 0.0046). The unrestricted
+number was larger but sloppier -- it was moving things it had no business moving.
+
+## 1. THE HEADLINE — causal intervention, tumour-restricted (n=168)
+
+```
+from \ to      necrotic     edema   enhancing
+necrotic_core    0.0000    0.3119    0.2801
+edema            0.6611    0.0000    0.7721
+enhancing_tumor  0.5149    0.7384    0.0000
+```
+
+Diagonal exactly `[0.0, 0.0, 0.0]`.
+
+**NCR is weak as a SOURCE (0.28-0.31) but fine as a TARGET (0.51-0.66).** The model can be
+pushed into calling a region necrosis, but pushing necrosis tokens elsewhere works less well
+-- consistent with NCR being the scarcest concept, where the refinement term dominates the
+few tokens involved. Report this asymmetry; it is the honest texture of the result.
+
+## 1b. Unrestricted matrix (for completeness, NOT the headline)
 
 Fraction of re-routed voxels whose predicted label **became the target concept**:
 
