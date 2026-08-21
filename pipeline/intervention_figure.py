@@ -90,6 +90,12 @@ def main() -> None:
                     help="patient id; default = auto-pick the most concept-balanced case "
                          "among the first --search (a single-concept case shows nothing)")
     ap.add_argument("--search", type=int, default=25, help="cases to scan when auto-picking")
+    ap.add_argument("--all_tokens", action="store_true",
+                    help="re-route EVERY token assigned to the source concept, including "
+                         "background. Default is to restrict to the tumour neighbourhood: the "
+                         "router sends most of the volume to edema/background, so an "
+                         "unrestricted intervention repaints the whole brain and shows "
+                         "wholesale overwriting rather than targeted concept control.")
     ap.add_argument("--out", default="figures/fig_intervention.png")
     ap.add_argument("--device", default="")
     args = ap.parse_args()
@@ -169,10 +175,24 @@ def main() -> None:
     def crop(a):
         return a[y0:y1, x0:x1]
 
+    # Restrict the intervention to the tumour neighbourhood unless asked otherwise. The
+    # router assigns most of the volume to edema/background, so re-routing every token of a
+    # concept repaints the whole brain -- true, but it demonstrates "the output follows the
+    # routing everywhere" (near-tautological in direct mode) rather than concept control
+    # where it matters clinically.
+    tumour_tok = None
+    if not args.all_tokens:
+        lab_grid = F.interpolate((label > 0).float().reshape(1, 1, *shape),
+                                 size=grid, mode="area")[0, 0]
+        tumour_tok = (lab_grid.flatten() > 0.0)
+        print(f"Restricting to tumour neighbourhood: {int(tumour_tok.sum())}/{n_tok} tokens")
+
     # --- run the 3x3 interventions ---
     cells, diag_err = {}, {}
     for a, aname in CONCEPTS:
         src = (a0 == a)
+        if tumour_tok is not None:
+            src = src & tumour_tok
         for b_id, bname in CONCEPTS:
             if int(src.sum()) == 0:
                 cells[(a, b_id)] = (None, None)
