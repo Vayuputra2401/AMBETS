@@ -1,0 +1,24 @@
+\begin{abstract}
+Concept bottleneck models promise intrinsic interpretability: route the prediction through a
+human-readable concept layer, and the concept activation \emph{is} the explanation. We show
+that transplanting this idea into dense prediction fails silently, diagnose why, and repair
+it. We build a concept-routing bottleneck that assigns every encoder token to one of $K$
+clinically-labeled experts, and train it for 3D brain-tumor segmentation. By every measure
+this literature reports, it succeeds: routing tracks the clinical concepts at $\casfg$ up to
+$0.96$ and separates necrosis, edema and enhancing tumor at AUROC $0.88$, against $0.74$ for
+the strongest post-hoc attribution. Yet the routing is \emph{causally inert}. Forcing tokens
+through a different expert changes $0.2\%$ of voxel labels, and zeroing the entire bottleneck
+costs $1.5$ Dice. Alignment metrics cannot detect this, because alignment is compatible with a
+bottleneck the model never consults---and the alignment loss trains precisely what those
+metrics score. We trace the failure to two leaks that encoder--decoder architectures invite, a
+residual path \emph{through} the module and skip connections \emph{around} it, and rule out
+the obvious explanation: the experts are not degenerate ($0.9$ pairwise divergence). A linear
+probe on an encoder trained with no concept supervision already reaches $0.81$, so
+concept-discriminability gains over saliency baselines are weaker evidence than they appear.
+Attempts to force dependence by \emph{removing} the decoder's alternatives fail---the
+optimizer compensates. Making the routing an \emph{additive term of the output} instead
+succeeds: causal control rises from $0.011$ to $\mathbf{0.636}$ $[0.621,0.651]$ label-flip
+under intervention ($p{<}10^{-28}$), removing the routing term costs up to $99\%$ Dice, and
+the price is ${\approx}1$ Dice point. \textbf{A concept layer is an explanation only if the
+model consults it, and showing that requires intervening, not correlating.}
+\end{abstract}

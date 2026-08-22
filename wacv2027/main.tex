@@ -1,0 +1,62 @@
+% WACV 2027 submission — "Aligned but Inert"
+%
+% BUILD:  pdflatex main; bibtex main; pdflatex main; pdflatex main
+%
+% HARD RULES (see LAST/Paper/WACV2027/WACV2027_RULES.md):
+%   - 8 pages MAX excluding references. References are unlimited. Over = desk reject.
+%   - Do NOT alter margins or font sizes. Overriding body font is an explicit desk-reject
+%     trigger ("formatting significantly altered"). Genuine 10pt only.
+%   - A track option is MANDATORY; omitting it prints a giant :-( and errors.
+%   - Round 2 has NO rebuttal and NO revision. Every objection must be pre-empted IN the
+%     paper. Declared limitations beat discovered ones.
+%
+% NUMBERS: values written plainly are measured and traceable to evals/ in this repo.
+% Anything not yet measured uses \pending{...} and renders as loud red. NEVER replace a
+% \pending with a plausible-looking value -- fill it from a results file or leave it.
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+% Applications track: biomedical is listed explicitly under Applications in the CFP.
+\usepackage[review,applications]{wacv}
+
+\input{preamble}
+
+\definecolor{wacvblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=wacvblue]{hyperref}
+
+\def\wacvPaperID{*****} % *** Enter the WACV Paper ID here once enrolled
+\def\confName{WACV}
+\def\confYear{2027}
+
+% --- project macros ---
+\newcommand{\casfg}{\mathrm{CAS}_{\mathrm{fg}}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% Unmeasured result. Deliberately ugly so it cannot survive to submission.
+\newcounter{pend}
+\newcommand{\pending}[1]{\stepcounter{pend}\textcolor{red}{\textbf{[PENDING: #1]}}}
+\newcommand{\pendingcount}{\textcolor{red}{\textbf{%
+  \thepend\ unresolved \texttt{\textbackslash pending} placeholders remain.}}}
+
+\title{Aligned but Inert: Concept Bottlenecks in Dense Prediction,\\
+       and How to Make Them Causal}
+
+\author{Anonymous WACV submission\\
+Paper ID \wacvPaperID\\
+}
+
+\begin{document}
+\maketitle
+\input{sec/0_abstract}
+\input{sec/1_intro}
+\input{sec/2_related}
+\input{sec/3_method}
+\input{sec/4_protocol}
+\input{sec/5_experiments}
+\input{sec/6_discussion}
+
+{\small
+\bibliographystyle{ieeenat_fullname}
+\bibliography{main}
+}
+
+\end{document}
