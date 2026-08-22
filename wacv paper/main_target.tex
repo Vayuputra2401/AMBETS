@@ -33,36 +33,38 @@
 
 \begin{document}
 
-\title{The Route Is the Reason: Making Concept Routing\\
-       Causally Decisive in 3D Medical Segmentation}
-\titlerunning{The Route Is the Reason}
+\title{Aligned but Inert: Concept Bottlenecks in Dense Prediction,\\
+       and How to Make Them Causal}
+\titlerunning{Aligned but Inert}
 \author{Anonymous submission}
 \authorrunning{Anonymous}
 \institute{Paper ID \textcolor{red}{XXXX}}
 \maketitle
 
 \begin{abstract}
-Concept bottlenecks promise intrinsic interpretability: route the prediction through a
-human-readable concept layer and the concept activation \emph{is} the explanation. We show
-that this promise can fail silently in dense prediction, and we show how to repair it. We
-build Clinical Concept Routing (CCR), a bottleneck module that assigns every encoder token to
-one of $K$ clinically-labeled experts, and train it on 3D brain-tumor segmentation. By every
-standard measure it succeeds: routing correlates with the clinical concepts at $\casfg$ up to
-$0.96$, and it separates necrosis, edema and enhancing tumor at AUROC $0.88$ where the best
-post-hoc attribution reaches only $0.74$. Yet the routing is \emph{causally inert}. Forcing a
-token through a different expert moves the prediction by $0.001$ and changes $0.2\%$ of voxel
-labels; zeroing the entire bottleneck costs $1.5$ Dice. We trace this to two leaks that any
-U-Net-style architecture invites---a residual path that carries features around the routing
-decision, and skip connections that carry semantics around the bottleneck---and show the
-experts are \emph{not} degenerate ($0.9$ pairwise divergence), so alignment metrics cannot
-detect the failure. A linear probe on an ordinary segmentation encoder, trained with no
-concept supervision at all, already reaches $0.81$. We then close both leaks and sweep the
-resulting trade-off. \pending{one sentence: does routing become causally decisive, and at what
-Dice cost} Our contributions are a diagnostic protocol that concept-bottleneck work should
-adopt, evidence that the naive design fails it, and an architecture that
-\pending{passes/partially passes} it. The broader lesson is methodological: \textbf{alignment
-metrics do not license interpretability claims, because a perfectly aligned bottleneck can be
-one the model never consults.}
+Concept bottleneck models promise intrinsic interpretability: route the prediction through a
+human-readable concept layer, and the concept activation \emph{is} the explanation. We show
+that transplanting this idea into dense prediction fails silently, diagnose why, and repair
+it. We build Clinical Concept Routing (CCR), a bottleneck that assigns every encoder token to
+one of $K$ clinically-labeled experts, and train it for 3D brain-tumor segmentation. By every
+measure this literature reports, it succeeds: routing tracks the clinical concepts at
+$\casfg$ up to $0.96$ and separates necrosis, edema and enhancing tumor at AUROC $0.88$,
+against $0.74$ for the strongest post-hoc attribution. Yet the routing is \emph{causally
+inert}. Forcing tokens through a different expert changes $0.2\%$ of voxel labels, and
+zeroing the entire bottleneck costs $1.5$ Dice. Alignment metrics cannot detect this, because
+alignment is compatible with a bottleneck the model never consults---and the alignment loss
+trains precisely what those metrics score. We trace the failure to two leaks that
+encoder--decoder architectures invite, a residual path \emph{through} the module and skip
+connections \emph{around} it, and rule out the obvious explanation: the experts are not
+degenerate ($0.9$ pairwise divergence). A linear probe on an encoder trained with no concept
+supervision already reaches $0.81$, so concept-discriminability gains over saliency baselines
+are weaker evidence than they appear. Attempts to force dependence by \emph{removing} the
+decoder's alternatives fail---the optimizer compensates. Making the routing an \emph{additive
+term of the output} instead succeeds: causal control rises from $0.011$ to $\mathbf{0.636}$
+$[0.621,0.651]$ label-flip under intervention ($p{<}10^{-28}$), removing the routing term
+costs up to $99\%$ Dice, and the price is $\approx1$ Dice point. \textbf{A concept layer is an
+explanation only if the model consults it, and showing that requires intervening, not
+correlating.}
 \keywords{Interpretability \and Concept bottlenecks \and Causal intervention \and
 Medical image segmentation \and Mixture-of-experts}
 \end{abstract}
