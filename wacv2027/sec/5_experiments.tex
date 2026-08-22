@@ -270,24 +270,12 @@ T3 probe vs.\ router            & \multicolumn{3}{c}{$0.839$ vs.\ $0.872$; $0.81
 
 \subsection{Backbone transfer}
 \label{sec:backbone2}
-Table~\ref{tab:backbone} reports the natural design on both backbones. A Swin transformer with a
-UNETR decoder and a SegResNet CNN differ in pretraining, capacity and accuracy, yet produce the
-same qualitative picture: strong alignment, concept-discriminability far above the post-hoc
-baselines, and the same inertness. The leaks are properties of the architecture family rather than
-of one backbone, and the transformer exhibits the placement failure of Sec.~\ref{sec:leaks} in its
-sharpest form---its module sits at stage~2 of~5, so the two deeper and more semantic encoder
-stages bypass it entirely.
+The natural design behaves the same on both backbones. A Swin transformer~\cite{liu2021swin,dosovitskiy2021vit} with a UNETR
+decoder~\cite{hatamizadeh2022unetr}
+reaches Dice $0.915/0.845/0.837$, $\casfg$ $0.69/0.94/0.93$ and discriminability $0.872$; the
+SegResNet CNN reaches $0.927/0.883/0.869$, $0.80/0.96/0.95$ and $0.883$. They differ in
+pretraining, capacity and accuracy, yet both align well and both are inert. The leaks are
+properties of the architecture family rather than of one backbone, and the transformer shows the
+placement failure of Sec.~\ref{sec:leaks} in its sharpest form: its module sits at stage~2
+of~5, so the two deeper and more semantic encoder stages bypass it entirely.
 
-\begin{table}[t]\centering\footnotesize
-\setlength{\tabcolsep}{4pt}
-\caption{The natural design on two backbones. Both align well; both are inert.}
-\label{tab:backbone}
-\begin{tabular}{lccc}
-\toprule
-& Dice WT/TC/ET & $\casfg$ N/E/T & discrim. \\
-\midrule
-Swin + UNETR & $0.915/0.845/0.837$ & $0.69/0.94/0.93$ & $0.872$ \\
-SegResNet    & $0.927/0.883/0.869$ & $0.80/0.96/0.95$ & $0.883$ \\
-\bottomrule
-\end{tabular}
-\end{table}

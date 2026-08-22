@@ -56,55 +56,33 @@ the segmentation output itself remains a finer-grained concept map. What the rou
 low-dimensional, inspectable, and \emph{manipulable} account of the concept decision that the
 output does not provide about itself.
 
-\paragraph{What a causal bottleneck offers a clinical reader.}
-We are careful not to overstate this: we ran no reader study, and the claim that clinicians want
-concept-level explanations is an assumption of this literature rather than a finding of ours. What
-the result does change is the \emph{kind} of question the model can answer. A saliency map supports
-only ``where did the model look''. A concept-aligned but inert bottleneck adds ``what did the model
-call this region'', which the segmentation output already answers at higher resolution. A
-\emph{causal} bottleneck additionally supports counterfactuals---``what would the prediction be if
-this region were edema rather than necrosis''---answered by the model itself, in one forward pass,
-rather than by a surrogate. Whether that capability is clinically useful is an open question we
-think is now worth asking, because before this repair the counterfactual was unavailable in
-principle: the model's answer did not depend on the concept assignment.
-
-\paragraph{Reproducibility.}
-All configurations differ from one another only in the switches of Sec.~\ref{sec:fixes}; the
-backbone, losses, curriculum, optimizer, data split and seed are shared, so the comparisons in
-Table~\ref{tab:protocol} isolate the architectural change. Every reported number is computed by the
-released protocol scripts from committed per-case result files, and the intervention's identity
-diagonal is recomputed on every run as a self-check---a non-zero diagonal invalidates that run's
-matrix and is reported rather than silently absorbed. We release the module, the three switches,
-and the three diagnostic tests, since the tests are the part we expect to outlive this particular
-architecture.
+\paragraph{What a causal bottleneck offers, and reproducibility.}
+We ran no reader study, so we make no claim that clinicians want concept-level explanations.
+What the result changes is the kind of question the model can answer: a saliency map supports
+only ``where did the model look'', an aligned but inert bottleneck adds ``what did the model call
+this region'' (which the output already answers at higher resolution), and a \emph{causal}
+bottleneck additionally supports counterfactuals---``what if this region were edema---answered
+by the model itself. Before the repair that question was unanswerable in principle, because the
+output did not depend on the concept assignment. All configurations differ only in the switches
+of Sec.~\ref{sec:fixes}; backbone, losses, curriculum, optimizer, split and seed are shared,
+so the comparisons isolate the architectural change. Every number is computed by the released
+protocol scripts from committed per-case files, and the intervention diagonal is recomputed on
+every run as a self-check.
 
 \paragraph{Practical guidance.}
-Three recommendations follow directly, for anyone placing a concept layer in a dense-prediction
-network. \emph{First, run the intervention before reporting alignment.} It costs one forward pass
-per concept pair per case---minutes on a single GPU---and it is the only test here that separated
-a working design from a decorative one. \emph{Second, check where the bottleneck actually is.}
-In a hierarchical encoder the deepest stage is not the one whose width matches the module; ours
-sat at stage~2 of~5, with the two most semantic stages flowing around it, and no metric we
-reported would have revealed that. \emph{Third, prefer additive to subtractive coupling.} Both
-subtractive repairs we tried were absorbed by the optimizer, one of them while actively harming
-expert diversity; the additive form cannot be absorbed because its influence is arithmetic. The
-same three checks apply unchanged to any concept-bottleneck variant, and none of them requires
-retraining.
+Three recommendations follow, for anyone placing a concept layer in a dense-prediction
+network. Run the intervention before reporting alignment---it needs no retraining and was the
+only test that separated a working design from a decorative one. Check where the bottleneck
+actually is: in a hierarchical encoder the deepest stage is not the one whose width matches the
+module. And prefer additive to subtractive coupling, since both subtractive repairs we tried
+were absorbed by the optimizer.
 
 \section{Conclusion}
-We set out to make the routing decision the explanation, and found that the obvious implementation
-produces a concept bottleneck that is beautifully aligned and causally inert: $\casfg$ up to
-$0.96$, best-in-class concept discriminability, and a prediction that does not move when the
-routing is overwritten. The cause is not degenerate experts but two architectural leaks that
-alignment metrics cannot see. A linear probe on an unsupervised encoder reaches $0.81$, so the
-discriminability advantage over saliency baselines was weaker evidence than it appeared. Making
-the routing an additive term of the output raises causal control from $0.011$ to $0.636$ for
-${\approx}1$ Dice point. Beyond this system the lesson is methodological: \textbf{a concept layer
-is an explanation only if the model consults it, and demonstrating that requires intervening, not
+We set out to make the routing decision the explanation, and found that the obvious
+implementation yields a concept bottleneck that is beautifully aligned and causally inert:
+$\casfg$ up to $0.96$, best-in-class concept discriminability, and a prediction that does not
+move when the routing is overwritten. The cause is not degenerate experts but two architectural
+leaks alignment metrics cannot see. Making the routing an additive term of the output raises
+causal control from $0.011$ to $0.636$ for ${\approx}1$ Dice point. The lesson generalizes beyond this system: \textbf{a concept layer is
+an explanation only if the model consults it, and demonstrating that requires intervening, not
 correlating.}
-
-The broader point is not that this particular module is now causal, but that we could not have
-told the difference without asking. The configuration we would have published on the strength of
-its alignment numbers is the same one whose routing the decoder ignores entirely, and no metric in
-common use would have separated them. Intervention is cheap, it requires no retraining, and in our
-case it was the difference between a claim and a correction.

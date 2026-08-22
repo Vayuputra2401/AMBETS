@@ -1,0 +1,65 @@
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize,
+  box/.style     = {draw, rounded corners=2pt, minimum height=6.5mm, align=center, inner sep=2.5pt},
+  enc/.style     = {box, fill=black!5, minimum width=12mm},
+  routbox/.style = {box, fill=blue!10, minimum width=14mm},
+  exp/.style     = {box, fill=blue!6,  minimum width=8mm, minimum height=4.6mm},
+  dec/.style     = {box, fill=black!5, minimum width=12mm},
+  outbox/.style  = {box, fill=green!8, minimum width=13mm},
+  flow/.style    = {-{Latex[length=1.8mm]}, thick},
+  leak/.style    = {-{Latex[length=1.8mm]}, thick, red!75!black, dashed},
+  fix/.style     = {-{Latex[length=1.8mm]}, very thick, green!45!black},
+  lbl/.style     = {font=\scriptsize, align=center},
+  leaklbl/.style = {font=\scriptsize, align=center, red!75!black},
+]
+
+% --- backbone spine (single baseline, so the arcs have unobstructed room) ---
+\node[enc]     (E)  at (0,0)       {Encoder};
+\node[lbl]     (h)  at (1.75,0)    {$h_t$};
+\node[routbox] (R)  at (3.35,0)    {Router};
+\node[exp]     (E1) at (5.55,0.62) {$E_1$};
+\node[exp]     (E2) at (5.55,0.06) {$E_2$};
+\node[lbl]          at (5.55,-0.34){$\vdots$};
+\node[exp]     (EK) at (5.55,-0.72){$E_K$};
+\node[lbl]     (ht) at (7.35,0)    {$\tilde h_t$};
+\node[dec]     (D)  at (9.1,0)     {Decoder};
+\node[outbox]  (O)  at (11.5,0)    {seg logits};
+
+\draw[flow] (E) -- (h);   \draw[flow] (h) -- (R);
+\foreach \n in {E1,E2,EK}{\draw[flow] (R.east) -- (\n.west); \draw[flow] (\n.east) -- (ht);}
+\draw[flow] (ht) -- (D);  \draw[flow] (D) -- (O);
+
+% --- the explanation: straight down, clear of the Leak 2 arc ---------------
+\node[lbl, blue!55!black] (pt) at (3.35,-1.30) {$p(t)$ --- the explanation};
+\draw[-{Latex[length=1.5mm]}, blue!55!black] (R.south) -- (pt.north);
+
+% --- LEAK 1: residual carries h past the routing (arc clears E1 at y=0.62) --
+\draw[leak] (h.north) .. controls +(0.5,1.30) and +(-0.9,1.30) .. (ht.north);
+\node[leaklbl] at (4.5,1.95)
+  {\textbf{Leak 1} --- residual $E_k(h)=h+c_k(h)$:\\[-1pt]
+   $h$ arrives whichever expert fires};
+
+% --- LEAK 2: skips bypass the bottleneck (arc passes below the p(t) label) --
+\draw[leak] (E.south) .. controls +(0.8,-2.05) and +(-1.8,-2.05) .. (D.south);
+\node[leaklbl] at (5.7,-2.50)
+  {\textbf{Leak 2} --- encoder skips: the decoder can decide the concept without $p(t)$};
+
+% --- THE FIX: additive routing ---------------------------------------------
+\draw[fix] (R.north) .. controls +(0.4,1.95) and +(-1.3,1.95) .. (O.north);
+\node[font=\scriptsize, align=center, green!40!black] at (9.85,2.05)
+  {\textbf{Fix} --- additive routing (Eq.~\ref{eq:direct})};
+
+\end{tikzpicture}
+\caption{\textbf{Concept routing, and the two paths that make it inert.} The router
+assigns each bottleneck token $h_t$ to one of $K$ clinically labeled experts; the routing
+distribution $p(t)$ is read from the forward pass and is the explanation. The design is
+intrinsic only if $\tilde h_t$ is the decoder's \emph{sole} source of concept
+information, and two standard choices break that: the expert residual delivers $h$ intact
+whichever expert fires, and encoder skips let the decoder decide the concept without
+consulting $p(t)$. Either alone makes the routing inert, and neither is visible in any
+alignment metric. The fix adds the routing logits to the output rather than removing the
+decoder's alternatives, which the optimizer absorbs (Sec.~\ref{sec:fixes}).}
+\label{fig:arch}
+\end{figure*}

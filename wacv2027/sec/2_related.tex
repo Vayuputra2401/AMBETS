@@ -4,7 +4,11 @@
 \paragraph{Post-hoc attribution.}
 Grad-CAM~\cite{selvaraju2017gradcam}, integrated gradients~\cite{sundararajan2017ig},
 SHAP~\cite{lundberg2017shap} and attention rollout~\cite{abnar2020rollout} reconstruct a saliency
-map after the prediction. On dense prediction the extension proceeds through heuristics, and the
+map after the prediction. Their reliability has itself been questioned: popular methods
+can fail basic sanity checks~\cite{adebayo2018sanity}, and the analogous audit found attention
+weights a poor guide to what a model used~\cite{jain2019attention}. We apply that tradition to
+intrinsic rather than post-hoc explanation. On dense prediction the extension proceeds
+through heuristics, and the
 output is an input-\emph{sensitivity} map rather than a concept assignment. We use four such
 methods as baselines under an identical protocol. Their central limitation for our purposes is
 structural rather than empirical: a saliency map is a readout, so there is nothing in it to
@@ -12,14 +16,16 @@ intervene on. The causal test in Sec.~\ref{sec:protocol} simply cannot be run on
 
 \paragraph{Intrinsic interpretability and concept bottlenecks.}
 CBMs~\cite{koh2020cbm} and ProtoPNet~\cite{chen2019protopnet} make the explanation part of the
-computation, for scalar-output classification. Neither addresses dense prediction, where the
+computation, for scalar-output classification. Concepts have also been probed in networks not built around
+them~\cite{kim2018tcav,bau2017dissection}; those methods measure alignment between an internal
+signal and a concept, precisely the quantity we show is insufficient. Neither addresses dense prediction, where the
 explanation must be per-voxel. Critically for this paper, the standard validation in this line is
 \emph{concept accuracy or alignment}---does the concept layer predict the annotated
-concepts---which our results show is not sufficient. A line of work on \emph{concept leakage} in
-CBMs shows that soft concept representations can smuggle task information past the bottleneck
-\cite{margeloiu2021concept,mahinpei2021promises}. Our finding is complementary and more basic: leakage says the concept vector
-carries too much, whereas we find the concept vector is not read at all. The information bypasses
-the bottleneck through the \emph{architecture} rather than through the concept encoding.
+Reported failure modes for CBMs concern what the concept vector \emph{encodes}---whether
+it carries task information beyond the named concepts. Ours is complementary and more basic:
+the concept vector may encode the concepts perfectly and still not be read, because the
+information bypasses the bottleneck through the \emph{architecture} rather than through
+the concept encoding.
 
 \paragraph{Mixture-of-experts routing.}
 Sparse MoE~\cite{shazeer2017moe,fedus2022switch,riquelme2021vmoe} introduced routing for

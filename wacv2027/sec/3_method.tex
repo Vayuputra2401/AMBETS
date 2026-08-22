@@ -1,7 +1,10 @@
 \section{Concept Routing at the Bottleneck}
 \label{sec:method}
 
+\input{sec/fig_architecture}
+
 \subsection{Router, experts, dispatch}
+Fig.~\ref{fig:arch} gives the module and the two leaks at a glance.
 Let $h_t\in\mathbb{R}^D$ be the bottleneck token at spatial position $t$. A router produces
 \begin{equation}
 p(t)=\mathrm{softmax}\!\big(W h_t/\tau + \beta\,\mathrm{sim}(h_t,\Pi)\big)\in\Delta^{K-1},
@@ -10,11 +13,12 @@ p(t)=\mathrm{softmax}\!\big(W h_t/\tau + \beta\,\mathrm{sim}(h_t,\Pi)\big)\in\De
 where $\Pi$ are $K$ learnable concept prototypes and $\tau$ an annealed temperature. Each concept
 owns an expert $E_k$. Training uses soft dispatch, inference hard dispatch:
 \begin{equation}
-\tilde h_t=\textstyle\sum_k p_k(t)E_k(h_t),
+\tilde h_t=\!\sum_k p_k(t)E_k(h_t)\quad\text{(soft)},
 \qquad
-\tilde h_t=E_{k^\ast(t)}(h_t),\;\; k^\ast(t)=\argmax_k p_k(t).
+\tilde h_t=E_{k^\ast(t)}(h_t)\quad\text{(hard)},
 \label{eq:dispatch}
 \end{equation}
+where $k^\ast(t)=\argmax_k p_k(t)$ selects the highest-probability expert.
 $p(t)$ is the explanation: a per-region distribution over clinical concepts, read directly from
 the forward pass. We train with
 $\mathcal{L}=\mathcal{L}_{\text{seg}}+\lambda_1\mathcal{L}_{\text{align}}
@@ -38,7 +42,9 @@ training. It also means the decoder receives $h$ intact regardless of $k^\ast$: 
 a signal that arrives anyway.
 
 \paragraph{Skips (around the module).}
-Encoder--decoder segmentation networks connect encoder stages directly to matching decoder stages.
+Encoder--decoder segmentation networks connect encoder stages directly to matching decoder
+stages~\cite{ronneberger2015unet}, a design so standard that it is the default in the strongest
+current medical segmentation systems~\cite{isensee2021nnunet}.
 Every such connection is a path from input to output that does not pass the bottleneck. A related
 placement issue is easy to miss: in a hierarchical transformer encoder the ``bottleneck'' is
 ambiguous, and inserting the module at an intermediate stage leaves \emph{deeper}, more semantic

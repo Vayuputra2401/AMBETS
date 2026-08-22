@@ -5,44 +5,53 @@ Reallocating 'name_of_file' (item size: 1) to 17 items.
 The style file: ieeenat_fullname.bst
 Reallocating 'name_of_file' (item size: 1) to 5 items.
 Database file #1: main.bib
-You've used 14 entries,
+Repeated entry---line 108 of file main.bib
+ : @article{isensee2021nnunet
+ :                           ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 144 of file main.bib
+ : @inproceedings{liu2021swin
+ :                           ,
+I'm skipping whatever remains of this entry
+You've used 21 entries,
             2708 wiz_defined-function locations,
-            651 strings with 6819 characters,
-and the built_in function-call counts, 7416 in all, are:
-= -- 629
-> -- 523
-< -- 9
-+ -- 176
-- -- 162
-* -- 593
-:= -- 1139
-add.period$ -- 42
-call.type$ -- 14
-change.case$ -- 93
-chr.to.int$ -- 14
-cite$ -- 28
-duplicate$ -- 335
-empty$ -- 560
-format.name$ -- 183
-if$ -- 1556
+            679 strings with 8155 characters,
+and the built_in function-call counts, 11723 in all, are:
+= -- 952
+> -- 949
+< -- 10
++ -- 318
+- -- 297
+* -- 990
+:= -- 1834
+add.period$ -- 63
+call.type$ -- 21
+change.case$ -- 159
+chr.to.int$ -- 21
+cite$ -- 42
+duplicate$ -- 493
+empty$ -- 827
+format.name$ -- 327
+if$ -- 2422
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 14
-newline$ -- 78
-num.names$ -- 56
-pop$ -- 208
+missing$ -- 21
+newline$ -- 113
+num.names$ -- 84
+pop$ -- 356
 preamble$ -- 1
-purify$ -- 79
+purify$ -- 138
 quote$ -- 0
-skip$ -- 261
+skip$ -- 385
 stack$ -- 0
-substring$ -- 212
-swap$ -- 54
+substring$ -- 251
+swap$ -- 67
 text.length$ -- 3
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 154
+type$ -- 231
 warning$ -- 0
-while$ -- 57
+while$ -- 80
 width$ -- 0
-write$ -- 181
+write$ -- 266
+(There were 2 error messages)
