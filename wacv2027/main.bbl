@@ -1,4 +1,4 @@
-\begin{thebibliography}{21}
+\begin{thebibliography}{27}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -30,6 +30,11 @@ David Bau, Bolei Zhou, Aditya Khosla, Aude Oliva, and Antonio Torralba.
   representations.
 \newblock In \emph{CVPR}, 2017.
 
+\bibitem[Cardoso et~al.(2022)]{cardoso2022monai}
+M~Jorge Cardoso et~al.
+\newblock {MONAI}: An open-source framework for deep learning in healthcare.
+\newblock \emph{arXiv:2211.02701}, 2022.
+
 \bibitem[Chen et~al.(2019)Chen, Li, Tao, Barnett, Rudin, and
   Su]{chen2019protopnet}
 Chaofan Chen, Oscar Li, Daniel Tao, Alina Barnett, Cynthia Rudin, and
@@ -52,7 +57,21 @@ Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn,
 William Fedus, Barret Zoph, and Noam Shazeer.
 \newblock Switch transformers: Scaling to trillion parameter models with simple
   and efficient sparsity.
-\newblock \emph{JMLR}, 23:\penalty0 1--39, 2022.
+\newblock \emph{JMLR}, 23\penalty0 (120):\penalty0 1--39, 2022.
+
+\bibitem[Gal and Ghahramani(2016)]{gal2016dropout}
+Yarin Gal and Zoubin Ghahramani.
+\newblock Dropout as a bayesian approximation: Representing model uncertainty
+  in deep learning.
+\newblock In \emph{ICML}, pages 1050--1059, 2016.
+
+\bibitem[Hatamizadeh et~al.(2021)Hatamizadeh, Nath, Tang, Yang, Roth, and
+  Xu]{hatamizadeh2021swinunetr}
+Ali Hatamizadeh, Vishwesh Nath, Yucheng Tang, Dong Yang, Holger~R Roth, and
+  Daguang Xu.
+\newblock Swin {UNETR}: Swin transformers for semantic segmentation of brain
+  tumors in {MRI} images.
+\newblock In \emph{MICCAI BrainLes Workshop}, 2021.
 
 \bibitem[Hatamizadeh et~al.(2022)Hatamizadeh, Tang, Nath, Yang, Myronenko,
   Landman, Roth, and Xu]{hatamizadeh2022unetr}
@@ -89,6 +108,13 @@ Pang~Wei Koh, Thao Nguyen, Yew~Siang Tang, Stephen Mussmann, Emma Pierson, Been
 \newblock Concept bottleneck models.
 \newblock In \emph{ICML}, pages 5338--5348, 2020.
 
+\bibitem[Lakshminarayanan et~al.(2017)Lakshminarayanan, Pritzel, and
+  Blundell]{lakshminarayanan2017ensembles}
+Balaji Lakshminarayanan, Alexander Pritzel, and Charles Blundell.
+\newblock Simple and scalable predictive uncertainty estimation using deep
+  ensembles.
+\newblock In \emph{NeurIPS}, 2017.
+
 \bibitem[Liu et~al.(2021)Liu, Lin, Cao, Hu, Wei, Zhang, Lin, and
   Guo]{liu2021swin}
 Ze Liu, Yutong Lin, Yue Cao, Han Hu, Yixuan Wei, Zheng Zhang, Stephen Lin, and
@@ -102,10 +128,21 @@ Scott~M Lundberg and Su-In Lee.
 \newblock A unified approach to interpreting model predictions.
 \newblock In \emph{NeurIPS}, 2017.
 
-\bibitem[Menze et~al.(2014)]{menze2014brats}
+\bibitem[Menze et~al.(2015)]{menze2014brats}
 Bjoern~H Menze et~al.
 \newblock The multimodal brain tumor image segmentation benchmark ({BRATS}).
-\newblock \emph{IEEE TMI}, 34\penalty0 (10):\penalty0 1993--2024, 2014.
+\newblock \emph{IEEE TMI}, 34\penalty0 (10):\penalty0 1993--2024, 2015.
+
+\bibitem[Myronenko(2018)]{myronenko2018segresnet}
+Andriy Myronenko.
+\newblock 3{D} {MRI} brain tumor segmentation using autoencoder regularization.
+\newblock In \emph{MICCAI BrainLes Workshop}, pages 311--320, 2018.
+
+\bibitem[Petsiuk et~al.(2018)Petsiuk, Das, and Saenko]{petsiuk2018rise}
+Vitali Petsiuk, Abir Das, and Kate Saenko.
+\newblock {RISE}: Randomized input sampling for explanation of black-box
+  models.
+\newblock In \emph{BMVC}, 2018.
 
 \bibitem[Riquelme et~al.(2021)]{riquelme2021vmoe}
 Carlos Riquelme et~al.

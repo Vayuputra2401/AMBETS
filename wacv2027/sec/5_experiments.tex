@@ -5,9 +5,10 @@
 BraTS 2024 glioma~\cite{menze2014brats,baid2021brats}: four co-registered MRI modalities, labels
 remapped to $\{$0:Background, 1:NCR, 2:Edema, 3:ET$\}$, patient-wise $75/12.5/12.5$ split
 ($n_{\text{test}}{=}168$), $z$-scored per modality, $128^3$ inputs, $80$ epochs of AdamW
-($10^{-4}$, cosine), mixed precision. The bottleneck is $192\times16^3$. We report a SegResNet
-backbone throughout for comparability across configurations; a Swin transformer with a UNETR
-decoder reproduces every qualitative finding. Three configurations recur:
+($10^{-4}$, cosine), mixed precision. The bottleneck is $192\times16^3$. We report a
+SegResNet~\cite{myronenko2018segresnet} backbone throughout for comparability across
+configurations; a Swin transformer with a UNETR decoder~\cite{hatamizadeh2021swinunetr}
+reproduces every qualitative finding. All models are built on MONAI~\cite{cardoso2022monai}. Three configurations recur:
 
 \begin{itemize}\itemsep1pt
 \item[] \textbf{V0} --- the natural design (residual expert, skips intact).
@@ -71,28 +72,25 @@ structure placed there.
 A linear probe on the features entering the module scores $0.839$ against the router's $0.872$.
 Run on a model trained with \emph{no} concept supervision, the probe still reaches $\mathbf{0.811}$
 ---above every post-hoc method in Table~\ref{tab:aligns}. The concept structure is largely a
-property of a competent segmentation encoder, not of the concept machinery. This has a consequence
-beyond our system: reporting that a concept module separates concepts better than saliency
-baselines is weak evidence, because logistic regression on an unsupervised bottleneck clears that
-bar.
+property of a competent segmentation encoder, not of the concept machinery. This has a consequence beyond our
+system: reporting that a concept module separates concepts better than saliency baselines is weak
+evidence, because logistic regression on an unsupervised bottleneck clears that bar.
 
 \subsection{The output is a stronger concept classifier than the routing}
 \label{sec:segpost}
 A second control tightens the same point. The network's own segmentation posterior---free from
 the same forward pass---separates the concepts at $0.979$, well above the routing's $0.883$. It
-reaches $0.982$ on the transformer backbone despite different pretraining and a different Dice,
-so the metric saturates for any competent segmenter: under this window it is close to a
-restatement of segmentation accuracy, because ranking voxels is far easier than thresholding
-them. Matched to the router's $16^3$ decision budget by average-pooling and re-upsampling through
+reaches $0.982$ on the transformer backbone despite different pretraining and Dice, so the metric
+saturates for any competent segmenter: under this window it nearly restates segmentation accuracy,
+because ranking voxels is far easier than thresholding them. Matched to the router's $16^3$ decision budget by average-pooling and re-upsampling through
 the identical operator, the posterior falls to $0.935$, so roughly half the residual gap is
 spatial resolution rather than concept information.
 
-We report this because omitting it would overstate our case, and because it changes what a
-discriminability number means. The posterior is not an explanation: it \emph{is} the prediction,
-and restating the output explains nothing about how the output arose. But together with the probe
-control (Sec.~\ref{sec:probe}) it establishes that concept-discriminability cannot carry an
-interpretability claim on its own---an unsupervised linear probe clears the post-hoc baselines,
-and the model's own output beats everything.
+We report this because omitting it would overstate our case. The posterior is not an explanation:
+it \emph{is} the prediction, and restating the output explains nothing about how the output arose.
+But with the probe control (Sec.~\ref{sec:probe}) it establishes that concept-discriminability
+cannot carry an interpretability claim alone---an unsupervised linear probe clears the post-hoc
+baselines, and the model's own output beats everything.
 
 \subsection{Repair}
 \label{sec:repair}
@@ -273,7 +271,7 @@ T3 probe vs.\ router            & \multicolumn{3}{c}{$0.839$ vs.\ $0.872$; $0.81
 The natural design behaves the same on both backbones. A Swin transformer~\cite{liu2021swin,dosovitskiy2021vit} with a UNETR
 decoder~\cite{hatamizadeh2022unetr}
 reaches Dice $0.915/0.845/0.837$, $\casfg$ $0.69/0.94/0.93$ and discriminability $0.872$; the
-SegResNet CNN reaches $0.927/0.883/0.869$, $0.80/0.96/0.95$ and $0.883$. They differ in
+SegResNet~\cite{myronenko2018segresnet} CNN reaches $0.927/0.883/0.869$, $0.80/0.96/0.95$ and $0.883$. They differ in
 pretraining, capacity and accuracy, yet both align well and both are inert. The leaks are
 properties of the architecture family rather than of one backbone, and the transformer shows the
 placement failure of Sec.~\ref{sec:leaks} in its sharpest form: its module sits at stage~2

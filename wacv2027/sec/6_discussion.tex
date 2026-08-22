@@ -5,9 +5,8 @@
 $\casfg$ and concept-discriminability measure correlation between an internal signal and annotated
 concepts. A module can maximize both while contributing nothing to the prediction, and the
 alignment loss trains precisely what these metrics score. Any claim that a concept layer makes a
-model interpretable requires an intervention. We state this as the paper's transferable lesson
-because it cost us: on the correlational evidence alone we had concluded the module worked, and
-only the causal test reversed that reading.
+model interpretable therefore requires an intervention. This lesson cost us: on the correlational
+evidence alone we had concluded the module worked, and only the causal test reversed that reading.
 
 \paragraph{Additive beats subtractive.}
 Both failed repairs share a shape: they try to force a decoder that segments well without its
@@ -29,9 +28,9 @@ nothing, including the things it should.
 \paragraph{No controlled accuracy comparison.}
 We did not train plain-backbone counterparts under our split, so we make \emph{no} claim that the
 module is accuracy-neutral in absolute terms. The ${\approx}1$ Dice point in
-Table~\ref{tab:repair} is a \emph{relative} cost measured against the same architecture with an
-inert bottleneck, which is the quantity the trade-off argument needs, but it is not a statement
-about the cost of adding the module to a plain network.
+Table~\ref{tab:repair} is a \emph{relative} cost against the same architecture with an inert
+bottleneck---the quantity the trade-off argument needs, but not the cost of adding the module
+to a plain network.
 
 \paragraph{An unexplained interaction.}
 Zeroing both CCR paths is \emph{less} damaging than zeroing the routing term alone (edema $0.801$
@@ -46,7 +45,8 @@ forces transition-zone tokens into one concept. We evaluate one dataset and one 
 leaks are properties of the architecture family rather than of the data, but that expectation is
 untested. Routing entropy is a per-voxel uncertainty signal but poorly calibrated (ECE $0.68$), and
 plain segmentation confidence predicts model error better than any routing-derived signal we tried
-($0.883$ vs.\ $0.786$), so we make no uncertainty claim.
+($0.883$ vs.\ $0.786$), so we make no uncertainty claim and do not position routing entropy
+against MC-dropout~\cite{gal2016dropout} or deep ensembles~\cite{lakshminarayanan2017ensembles}.
 
 \paragraph{What the explanation is, and is not.}
 CCR explains at the level of clinical concepts---which expert processed each region, and with what
@@ -61,21 +61,21 @@ We ran no reader study, so we make no claim that clinicians want concept-level e
 What the result changes is the kind of question the model can answer: a saliency map supports
 only ``where did the model look'', an aligned but inert bottleneck adds ``what did the model call
 this region'' (which the output already answers at higher resolution), and a \emph{causal}
-bottleneck additionally supports counterfactuals---``what if this region were edema---answered
+bottleneck additionally supports counterfactuals---``what if this region were edema?''---answered
 by the model itself. Before the repair that question was unanswerable in principle, because the
-output did not depend on the concept assignment. All configurations differ only in the switches
-of Sec.~\ref{sec:fixes}; backbone, losses, curriculum, optimizer, split and seed are shared,
-so the comparisons isolate the architectural change. Every number is computed by the released
-protocol scripts from committed per-case files, and the intervention diagonal is recomputed on
-every run as a self-check.
+output did not depend on the concept assignment. Configurations differ only in the switches of
+Sec.~\ref{sec:fixes}---backbone, losses, curriculum, optimizer, split and seed are shared---so
+the comparisons isolate the architectural change. Every number is computed by the released
+scripts from committed per-case files, and the intervention diagonal is recomputed each run as
+a self-check.
 
 \paragraph{Practical guidance.}
-Three recommendations follow, for anyone placing a concept layer in a dense-prediction
-network. Run the intervention before reporting alignment---it needs no retraining and was the
-only test that separated a working design from a decorative one. Check where the bottleneck
-actually is: in a hierarchical encoder the deepest stage is not the one whose width matches the
-module. And prefer additive to subtractive coupling, since both subtractive repairs we tried
-were absorbed by the optimizer.
+Three recommendations follow for anyone placing a concept layer in a dense-prediction network.
+Run the intervention before reporting alignment---it needs no retraining and was the only test
+that separated a working design from a decorative one. Check where the bottleneck actually is: in
+a hierarchical encoder the deepest stage is not the one whose width matches the module. And prefer
+additive to subtractive coupling: both subtractive repairs we tried were absorbed by the
+optimizer.
 
 \section{Conclusion}
 We set out to make the routing decision the explanation, and found that the obvious
