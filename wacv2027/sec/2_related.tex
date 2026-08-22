@@ -1,2 +1,30 @@
 \section{Related Work}
-\pending{body of this section not yet ported}
+\label{sec:related}
+
+\paragraph{Post-hoc attribution.}
+Grad-CAM~\cite{selvaraju2017gradcam}, integrated gradients~\cite{sundararajan2017ig},
+SHAP~\cite{lundberg2017shap} and attention rollout~\cite{abnar2020rollout} reconstruct a saliency
+map after the prediction. On dense prediction the extension proceeds through heuristics, and the
+output is an input-\emph{sensitivity} map rather than a concept assignment. We use four such
+methods as baselines under an identical protocol. Their central limitation for our purposes is
+structural rather than empirical: a saliency map is a readout, so there is nothing in it to
+intervene on. The causal test in Sec.~\ref{sec:protocol} simply cannot be run on them.
+
+\paragraph{Intrinsic interpretability and concept bottlenecks.}
+CBMs~\cite{koh2020cbm} and ProtoPNet~\cite{chen2019protopnet} make the explanation part of the
+computation, for scalar-output classification. Neither addresses dense prediction, where the
+explanation must be per-voxel. Critically for this paper, the standard validation in this line is
+\emph{concept accuracy or alignment}---does the concept layer predict the annotated
+concepts---which our results show is not sufficient. A line of work on \emph{concept leakage} in
+CBMs shows that soft concept representations can smuggle task information past the bottleneck
+\cite{margeloiu2021concept,mahinpei2021promises}. Our finding is complementary and more basic: leakage says the concept vector
+carries too much, whereas we find the concept vector is not read at all. The information bypasses
+the bottleneck through the \emph{architecture} rather than through the concept encoding.
+
+\paragraph{Mixture-of-experts routing.}
+Sparse MoE~\cite{shazeer2017moe,fedus2022switch,riquelme2021vmoe} introduced routing for
+conditional computation. There, routing is causally decisive because the selected expert's output
+\emph{is} the layer output. Our results show that transplanting the mechanism into a
+skip-connected encoder--decoder silently voids that property---which is exactly the assumption an
+interpretability claim would rest on. We inherited the intuition without checking that the
+conditions supporting it still held.

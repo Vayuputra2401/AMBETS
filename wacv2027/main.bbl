@@ -1,0 +1,98 @@
+\begin{thebibliography}{14}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abnar and Zuidema(2020)]{abnar2020rollout}
+Samira Abnar and Willem Zuidema.
+\newblock Quantifying attention flow in transformers.
+\newblock In \emph{ACL}, 2020.
+
+\bibitem[Baid et~al.(2021)]{baid2021brats}
+Ujjwal Baid et~al.
+\newblock The {RSNA-ASNR-MICCAI BraTS 2021} benchmark on brain tumor
+  segmentation and radiogenomic classification.
+\newblock \emph{arXiv:2107.02314}, 2021.
+
+\bibitem[Chen et~al.(2019)Chen, Li, Tao, Barnett, Rudin, and
+  Su]{chen2019protopnet}
+Chaofan Chen, Oscar Li, Daniel Tao, Alina Barnett, Cynthia Rudin, and
+  Jonathan~K Su.
+\newblock This looks like that: deep learning for interpretable image
+  recognition.
+\newblock In \emph{NeurIPS}, 2019.
+
+\bibitem[Fedus et~al.(2022)Fedus, Zoph, and Shazeer]{fedus2022switch}
+William Fedus, Barret Zoph, and Noam Shazeer.
+\newblock Switch transformers: Scaling to trillion parameter models with simple
+  and efficient sparsity.
+\newblock \emph{JMLR}, 23:\penalty0 1--39, 2022.
+
+\bibitem[Koh et~al.(2020)Koh, Nguyen, Tang, Mussmann, Pierson, Kim, and
+  Liang]{koh2020cbm}
+Pang~Wei Koh, Thao Nguyen, Yew~Siang Tang, Stephen Mussmann, Emma Pierson, Been
+  Kim, and Percy Liang.
+\newblock Concept bottleneck models.
+\newblock In \emph{ICML}, pages 5338--5348, 2020.
+
+\bibitem[Lundberg and Lee(2017)]{lundberg2017shap}
+Scott~M Lundberg and Su-In Lee.
+\newblock A unified approach to interpreting model predictions.
+\newblock In \emph{NeurIPS}, 2017.
+
+\bibitem[Mahinpei et~al.(2021)Mahinpei, Clark, Lage, Doshi-Velez, and
+  Pan]{mahinpei2021promises}
+Anita Mahinpei, Justin Clark, Isaac Lage, Finale Doshi-Velez, and Weiwei Pan.
+\newblock Promises and pitfalls of black-box concept learning models.
+\newblock In \emph{ICML Workshop on Theoretic Foundation, Criticism, and
+  Application Trend of Explainable AI}, 2021.
+
+\bibitem[Margeloiu et~al.(2021)Margeloiu, Ashman, Bhatt, Chen, Jamnik, and
+  Weller]{margeloiu2021concept}
+Andrei Margeloiu, Matthew Ashman, Umang Bhatt, Yanzhi Chen, Mateja Jamnik, and
+  Adrian Weller.
+\newblock Do concept bottleneck models learn as intended?
+\newblock In \emph{ICLR Workshop on Responsible AI}, 2021.
+
+\bibitem[Menze et~al.(2014)]{menze2014brats}
+Bjoern~H Menze et~al.
+\newblock The multimodal brain tumor image segmentation benchmark ({BRATS}).
+\newblock \emph{IEEE TMI}, 34\penalty0 (10):\penalty0 1993--2024, 2014.
+
+\bibitem[Riquelme et~al.(2021)]{riquelme2021vmoe}
+Carlos Riquelme et~al.
+\newblock Scaling vision with sparse mixture of experts.
+\newblock In \emph{NeurIPS}, 2021.
+
+\bibitem[Rudin(2019)]{rudin2019stop}
+Cynthia Rudin.
+\newblock Stop explaining black box machine learning models for high stakes
+  decisions and use interpretable models instead.
+\newblock \emph{Nature Machine Intelligence}, 1\penalty0 (5):\penalty0
+  206--215, 2019.
+
+\bibitem[Selvaraju et~al.(2017)Selvaraju, Cogswell, Das, Vedantam, Parikh, and
+  Batra]{selvaraju2017gradcam}
+Ramprasaath~R Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam,
+  Devi Parikh, and Dhruv Batra.
+\newblock Grad-cam: Visual explanations from deep networks via gradient-based
+  localization.
+\newblock In \emph{ICCV}, pages 618--626, 2017.
+
+\bibitem[Shazeer et~al.(2017)Shazeer, Mirhoseini, Maziarz, Davis, Le, Hinton,
+  and Dean]{shazeer2017moe}
+Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le,
+  Geoffrey Hinton, and Jeff Dean.
+\newblock Outrageously large neural networks: The sparsely-gated
+  mixture-of-experts layer.
+\newblock \emph{ICLR}, 2017.
+
+\bibitem[Sundararajan et~al.(2017)Sundararajan, Taly, and
+  Yan]{sundararajan2017ig}
+Mukund Sundararajan, Ankur Taly, and Qiqi Yan.
+\newblock Axiomatic attribution for deep networks.
+\newblock In \emph{ICML}, pages 3319--3328, 2017.
+
+\end{thebibliography}

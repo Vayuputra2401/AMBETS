@@ -1,2 +1,110 @@
 \section{Discussion and Limitations}
-\pending{body of this section not yet ported}
+\label{sec:discussion}
+
+\paragraph{What alignment metrics can and cannot show.}
+$\casfg$ and concept-discriminability measure correlation between an internal signal and annotated
+concepts. A module can maximize both while contributing nothing to the prediction, and the
+alignment loss trains precisely what these metrics score. Any claim that a concept layer makes a
+model interpretable requires an intervention. We state this as the paper's transferable lesson
+because it cost us: on the correlational evidence alone we had concluded the module worked, and
+only the causal test reversed that reading.
+
+\paragraph{Additive beats subtractive.}
+Both failed repairs share a shape: they try to force a decoder that segments well without its
+bottleneck to depend on it, by removing alternatives. The optimizer routed around both. Making the
+routing a term of the output instead means causal influence is arithmetic, and no weight
+configuration undoes it after the fact. We expect this to generalize to other concept-bottleneck
+designs in dense prediction, though we have tested it only here.
+
+\paragraph{Reported metrics that do not transfer.}
+Three comparisons become invalid under Eq.~\ref{eq:direct} and we flag them rather than tabulate
+them. Decoder Divergence, $1-\mathrm{Pearson}(\text{decoder},\text{routing})$, is circular: the
+decoder output \emph{contains} the routing term by construction, so it measures how much the
+refinement perturbs the routing, not independent agreement. Segmentation loss is not comparable
+across additive and non-additive configurations, because the larger logit scale lowers
+cross-entropy without improving the argmax. And V2's low off-target figure ($0.022$ vs.\ DIRECT's
+$0.079$) reflects its near-zero effect rather than better precision---an inert module perturbs
+nothing, including the things it should.
+
+\paragraph{No controlled accuracy comparison.}
+We did not train plain-backbone counterparts under our split, so we make \emph{no} claim that the
+module is accuracy-neutral in absolute terms. The ${\approx}1$ Dice point in
+Table~\ref{tab:repair} is a \emph{relative} cost measured against the same architecture with an
+inert bottleneck, which is the quantity the trade-off argument needs, but it is not a statement
+about the cost of adding the module to a plain network.
+
+\paragraph{An unexplained interaction.}
+Zeroing both CCR paths is \emph{less} damaging than zeroing the routing term alone (edema $0.801$
+vs.\ $0.418$, Table~\ref{tab:necessity}). The decoder is trained to add to a routing base; stripping
+the base while leaving the expert path appears to leave it miscalibrated, whereas zeroing both puts
+it in a cleaner regime. We report this because it is real and we cannot yet explain it.
+
+\paragraph{Resolution, granularity, and scope.}
+The bottleneck is $16^3$, so the explanation is coarse and necrotic core---tens of tokens per
+case---is the consistent weak spot across every metric. $K{=}4$ follows the BraTS protocol and
+forces transition-zone tokens into one concept. We evaluate one dataset and one anatomy; the two
+leaks are properties of the architecture family rather than of the data, but that expectation is
+untested. Routing entropy is a per-voxel uncertainty signal but poorly calibrated (ECE $0.68$), and
+plain segmentation confidence predicts model error better than any routing-derived signal we tried
+($0.883$ vs.\ $0.786$), so we make no uncertainty claim.
+
+\paragraph{What the explanation is, and is not.}
+CCR explains at the level of clinical concepts---which expert processed each region, and with what
+confidence---not the router's internal reasoning. Its advantage over a saliency map is that it is
+concept-labeled, intrinsic, modular, and now demonstrably causal; it is not spatially sharper, and
+the segmentation output itself remains a finer-grained concept map. What the routing adds is a
+low-dimensional, inspectable, and \emph{manipulable} account of the concept decision that the
+output does not provide about itself.
+
+\paragraph{What a causal bottleneck offers a clinical reader.}
+We are careful not to overstate this: we ran no reader study, and the claim that clinicians want
+concept-level explanations is an assumption of this literature rather than a finding of ours. What
+the result does change is the \emph{kind} of question the model can answer. A saliency map supports
+only ``where did the model look''. A concept-aligned but inert bottleneck adds ``what did the model
+call this region'', which the segmentation output already answers at higher resolution. A
+\emph{causal} bottleneck additionally supports counterfactuals---``what would the prediction be if
+this region were edema rather than necrosis''---answered by the model itself, in one forward pass,
+rather than by a surrogate. Whether that capability is clinically useful is an open question we
+think is now worth asking, because before this repair the counterfactual was unavailable in
+principle: the model's answer did not depend on the concept assignment.
+
+\paragraph{Reproducibility.}
+All configurations differ from one another only in the switches of Sec.~\ref{sec:fixes}; the
+backbone, losses, curriculum, optimizer, data split and seed are shared, so the comparisons in
+Table~\ref{tab:protocol} isolate the architectural change. Every reported number is computed by the
+released protocol scripts from committed per-case result files, and the intervention's identity
+diagonal is recomputed on every run as a self-check---a non-zero diagonal invalidates that run's
+matrix and is reported rather than silently absorbed. We release the module, the three switches,
+and the three diagnostic tests, since the tests are the part we expect to outlive this particular
+architecture.
+
+\paragraph{Practical guidance.}
+Three recommendations follow directly, for anyone placing a concept layer in a dense-prediction
+network. \emph{First, run the intervention before reporting alignment.} It costs one forward pass
+per concept pair per case---minutes on a single GPU---and it is the only test here that separated
+a working design from a decorative one. \emph{Second, check where the bottleneck actually is.}
+In a hierarchical encoder the deepest stage is not the one whose width matches the module; ours
+sat at stage~2 of~5, with the two most semantic stages flowing around it, and no metric we
+reported would have revealed that. \emph{Third, prefer additive to subtractive coupling.} Both
+subtractive repairs we tried were absorbed by the optimizer, one of them while actively harming
+expert diversity; the additive form cannot be absorbed because its influence is arithmetic. The
+same three checks apply unchanged to any concept-bottleneck variant, and none of them requires
+retraining.
+
+\section{Conclusion}
+We set out to make the routing decision the explanation, and found that the obvious implementation
+produces a concept bottleneck that is beautifully aligned and causally inert: $\casfg$ up to
+$0.96$, best-in-class concept discriminability, and a prediction that does not move when the
+routing is overwritten. The cause is not degenerate experts but two architectural leaks that
+alignment metrics cannot see. A linear probe on an unsupervised encoder reaches $0.81$, so the
+discriminability advantage over saliency baselines was weaker evidence than it appeared. Making
+the routing an additive term of the output raises causal control from $0.011$ to $0.636$ for
+${\approx}1$ Dice point. Beyond this system the lesson is methodological: \textbf{a concept layer
+is an explanation only if the model consults it, and demonstrating that requires intervening, not
+correlating.}
+
+The broader point is not that this particular module is now causal, but that we could not have
+told the difference without asking. The configuration we would have published on the strength of
+its alignment numbers is the same one whose routing the decoder ignores entirely, and no metric in
+common use would have separated them. Intervention is cheap, it requires no retraining, and in our
+case it was the difference between a claim and a correction.
