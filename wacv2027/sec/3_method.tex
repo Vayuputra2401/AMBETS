@@ -88,18 +88,18 @@ throughout training rather than assuming it stays small.
 \label{sec:twopath}
 One implementation detail is essential and easy to get wrong. Under Eq.~\ref{eq:direct} the
 routing reaches the output through \emph{two} paths: the expert features the decoder consumes, and
-the additive term. An intervention that overrides only the dispatch leaves the additive path
-reading the router's original logits, so it silently does nothing through the path that matters.
-We therefore expose an \emph{effective} logit tensor that reflects the forced decision, and the
-model consumes that; the reported explanation remains the router's actual belief, so an
-intervention can never contaminate the map we publish.
+the additive term. An intervention overriding only the dispatch leaves the additive path reading
+the router's original logits, so it silently does nothing through the path that matters. We
+therefore expose an \emph{effective} logit tensor reflecting the forced decision, which the model
+consumes; the reported explanation stays the router's actual belief, so an intervention cannot
+contaminate the map we publish.
 
-The hardening must also be applied uniformly. If only the overridden tokens are converted to a
-one-hot, an identity intervention $a\!\to\!a$ swaps soft logits for a hard assignment and moves
-the prediction even though nothing was re-routed---in our case by $14.3$ logits---which destroys
-the diagonal control that licenses reading the off-diagonal cells. Applying it to every token
-makes the baseline and every intervention commensurable, and restores $a\!\to\!a$ to a bit-exact
-no-op. We verified both properties before trusting any number in Sec.~\ref{sec:repair}.
+The hardening must also be applied uniformly. If only the overridden tokens become one-hot, an
+identity intervention $a\!\to\!a$ swaps soft logits for a hard assignment and moves the prediction
+though nothing was re-routed---here by $14.3$ logits---destroying the diagonal control that
+licenses reading the off-diagonal cells. Applying it to every token makes baseline and
+intervention commensurable and restores $a\!\to\!a$ to a bit-exact no-op. We verified both before
+trusting any number in Sec.~\ref{sec:repair}.
 
 The same care applies to ablation. Patching only the decoder's bottleneck input leaves the
 additive term intact and measures a $0.09$ logit change where the true effect is $7.0$; a study

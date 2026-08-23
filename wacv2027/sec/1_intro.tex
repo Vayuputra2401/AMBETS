@@ -10,12 +10,11 @@ whose decisions are interpretable by construction. Concept Bottleneck Models
 (CBMs)~\cite{koh2020cbm} realize this for classification by forcing the prediction through a
 human-readable concept layer, so that the concept activation \emph{is} the explanation.
 
-Extending that idea to dense prediction is attractive, and---as we show---treacherous. We build
-the natural extension: replace the encoder bottleneck of a segmentation network with a router
-that assigns every token to one of $K$ clinically labeled experts $\{$Background, Necrotic core,
-Edema, Enhancing tumor$\}$. The routing distribution is a per-region, concept-labeled map
-computed in a single forward pass with no post-hoc step. It looks exactly like an intrinsic
-explanation should.
+Extending that idea to dense prediction is attractive and---as we show---treacherous. We build the
+natural extension: replace the encoder bottleneck of a segmentation network with a router that
+assigns every token to one of $K$ clinically labeled experts $\{$Background, Necrotic core, Edema,
+Enhancing tumor$\}$. The routing distribution is a per-region, concept-labeled map computed in one
+forward pass with no post-hoc step. It looks exactly like an intrinsic explanation should.
 
 \paragraph{It aligns beautifully, and it does nothing.}
 Trained end-to-end, the routing tracks the clinical concepts closely ($\casfg$ up to $0.96$) and
@@ -23,7 +22,7 @@ discriminates them far better than any post-hoc method ($0.88$ vs.\ $0.74$ for t
 baseline). These are the metrics this literature reports, and by both the module is a success.
 But when we \emph{intervene}---force the tokens the router assigned to one concept through a
 different concept's expert, changing nothing else---the prediction does not move. Only $1.1\%$ of
-affected voxels change label, and zeroing the entire bottleneck costs $1.5$ Dice on edema.
+affected voxels change label, and zeroing the entire bottleneck costs at most $3.1$ Dice.
 
 The failure is invisible to alignment metrics \emph{by construction}. $\casfg$ measures
 correlation between the routing and the ground truth, and correlation is perfectly compatible
@@ -32,20 +31,18 @@ $\casfg$ scores, so a high value confirms that the router learned its supervisio
 network uses it.
 
 \paragraph{Why it happens.}
-We rule out the obvious explanation: the experts have \emph{not} collapsed to a shared function.
-They displace tokens by $59$--$74\%$ of their norm and differ pairwise by $0.93$. The cause is
-architectural, and it is two independent leaks that encoder--decoder designs invite. The expert
+We rule out the obvious explanation: the experts have \emph{not} collapsed to a shared
+function---they displace tokens by $59$--$74\%$ of their norm and differ pairwise by $0.93$. The
+cause is architectural: two independent leaks that encoder--decoder designs invite. The expert
 computes $h + c_k(h)$, so the residual carries the full feature vector to the decoder whichever
-expert fires---routing modulates the representation but never gates it. And the decoder's skip
-connections carry encoder features directly to the output, so it can decide what tissue it is
-looking at without consulting the routing. Either leak alone suffices, and neither is visible in
-$\casfg$.
+expert fires; routing modulates the representation but never gates it. And skip connections carry
+encoder features straight to the output, so the decoder can decide what tissue it sees without
+consulting the routing. Either leak alone suffices, and neither is visible in $\casfg$.
 
 \paragraph{A control that reframes the baseline.}
-We also find that a linear probe on an encoder trained with \emph{no} concept supervision already
-separates the concepts at $0.81$---above every post-hoc method we test. Concept-discriminability
-gains over saliency baselines are therefore much weaker evidence for a concept module than the
-literature treats them as.
+A linear probe on an encoder trained with \emph{no} concept supervision already separates the
+concepts at $0.81$---above every post-hoc method we test---so discriminability gains over saliency
+baselines are far weaker evidence for a concept module than the literature treats them as.
 
 \paragraph{Closing the leaks.}
 Attempts to force dependence by \emph{removing} the decoder's alternatives fail: a scalar gate on
@@ -53,8 +50,8 @@ the skip connections is compensated away during training, and removing the exper
 backfires, collapsing pairwise expert divergence from $0.93$ to $0.16$ because every expert must
 then independently reconstruct the full signal. Making the routing an \emph{additive term of the
 output} succeeds, because causal influence becomes arithmetic rather than something the optimizer
-can route around. Causal control rises from $0.011$ to $0.636$, removing the routing term costs
-up to $99\%$ Dice, and the price is ${\approx}1$ Dice point.
+can route around. Causal control rises from $0.011$ to $0.636$, removing the routing term now collapses the
+prediction (necrosis Dice $0.48\!\to\!0.01$), and the price is ${\approx}1$ Dice point.
 
 \noindent\textbf{Contributions.}
 \begin{enumerate}\itemsep2pt

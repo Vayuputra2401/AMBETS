@@ -20,11 +20,10 @@ Three details make this a control rather than a demonstration. The baseline must
 same hard-dispatch path, so the identity intervention $a\!\to\!a$ is a bit-exact no-op and any
 off-diagonal effect is attributable to re-routing alone. When a model consumes routing through
 more than one path---as Eq.~\ref{eq:direct} does---the intervention must move \emph{all} of them,
-or it silently does nothing through the one it missed. And the intervention should be restricted
-to the tumor neighborhood: a router typically sends most of the volume to background, so
-re-routing every token of a concept repaints the whole brain, which demonstrates that the output
-follows the routing everywhere rather than concept control where it is clinically meaningful. We
-report both scopes and quote the restricted one.
+or it silently does nothing through the one it missed. And it should be restricted to the tumor
+neighborhood: re-routing every token of a concept repaints the whole brain, showing that the
+output follows the routing everywhere rather than concept control where it is clinically
+meaningful (Sec.~\ref{sec:repair}). We report both scopes and quote the restricted one.
 
 \emph{This test is impossible for post-hoc attribution.} There is nothing in a saliency map to
 intervene on, because the map is a readout: editing it changes nothing about the model.

@@ -16,6 +16,12 @@ reproduces every qualitative finding. All models are built on MONAI~\cite{cardos
 \item[] \textbf{DIRECT} --- additive routing, Eq.~\ref{eq:direct}, $\lambda{=}1$.
 \end{itemize}
 
+\paragraph{Provenance.}
+We diagnosed the failure first on Swin and replicated it on SegResNet, which agree on every
+qualitative finding (Sec.~\ref{sec:backbone2}). Every headline number, and all of V2 and DIRECT,
+is SegResNet at $n{=}168$. Three V0 diagnostics ran on Swin only---the intervention pilot
+($n{=}5$), expert divergence, and the linear probe---and carry a $\dagger$ wherever they appear.
+
 \subsection{The natural design aligns}
 \label{sec:aligns}
 Table~\ref{tab:aligns} reports the standard picture. Segmentation is competitive, routing tracks
@@ -53,32 +59,33 @@ segmentation does not need the alignment.
 
 \paragraph{Intervention.}
 Re-routing moves almost nothing. Averaged over concept pairs, $1.1\%$ of re-routed voxels change
-label (Table~\ref{tab:repair}, V2 row; V0 gives $0.1\%$ on a smaller pilot). The identity diagonal
-is exactly $0$, so this is a property of the model rather than of the instrumentation.
+label (Table~\ref{tab:repair}, V2 row; V0 gives $0.1\%$ on a smaller Swin pilot$^\dagger$). The
+identity diagonal is exactly $0$, so this is a property of the model rather than of the
+instrumentation.
 
 \paragraph{The experts are not degenerate.}
 The obvious explanation is false. Experts displace tokens by $0.59$--$0.74$ of their norm and
-differ pairwise by $0.93$ (relative $L_2$). The routing selects genuinely different
+differ pairwise by $0.93$ (relative $L_2$, Swin$^\dagger$). The routing selects genuinely different
 transformations; they simply do not reach the output.
 
 \paragraph{Bottleneck ablation.}
 They do not reach the output because the output does not need them. Replacing the module with raw
-features or with \emph{zeros} costs almost nothing: edema Dice $0.879\!\to\!0.865$, ET
-$0.862\!\to\!0.806$. A decoder that can segment without its bottleneck will ignore any concept
+features or with \emph{zeros} costs almost nothing: on SegResNet the worst concept loses $3.1$
+Dice (necrosis $0.514\!\to\!0.483$) and edema loses $0.6$; on Swin$^\dagger$, edema
+$0.879\!\to\!0.865$ and ET $0.862\!\to\!0.806$. A decoder that can segment without its bottleneck will ignore any concept
 structure placed there.
 
 \subsection{The probe control}
 \label{sec:probe}
-A linear probe on the features entering the module scores $0.839$ against the router's $0.872$.
+A linear probe on the features entering the module scores $0.839$ against the router's
+$0.872$ (Swin$^\dagger$).
 Run on a model trained with \emph{no} concept supervision, the probe still reaches $\mathbf{0.811}$
 ---above every post-hoc method in Table~\ref{tab:aligns}. The concept structure is largely a
-property of a competent segmentation encoder, not of the concept machinery. This has a consequence beyond our
-system: reporting that a concept module separates concepts better than saliency baselines is weak
-evidence, because logistic regression on an unsupervised bottleneck clears that bar.
+property of a competent segmentation encoder, not of the concept machinery.
 
 \subsection{The output is a stronger concept classifier than the routing}
 \label{sec:segpost}
-A second control tightens the same point. The network's own segmentation posterior---free from
+A second control tightens the same point. The network's own segmentation posterior---free, from
 the same forward pass---separates the concepts at $0.979$, well above the routing's $0.883$. It
 reaches $0.982$ on the transformer backbone despite different pretraining and Dice, so the metric
 saturates for any competent segmenter: under this window it nearly restates segmentation accuracy,
@@ -99,13 +106,15 @@ baselines, and the model's own output beats everything.
 \caption{Causal control and its price (BraTS test, $n{=}168$). Label-flip is the mean off-diagonal
 fraction of re-routed voxels whose predicted label became the target concept, tumor-restricted and
 scope-matched; the identity diagonal is exactly $0$ in every configuration. Subtractive repair
-(V2) does not work; additive routing (DIRECT) does, for ${\approx}1$ Dice point.}
+(V2) does not work; additive routing (DIRECT) does, for ${\approx}1$ Dice point.
+$^\dagger$V0's label-flip is a Swin pilot ($n{=}5$); its remaining columns and both other rows are
+SegResNet at $n{=}168$.}
 \label{tab:repair}
 \begin{tabular}{llccccc}
 \toprule
 & Repair & Label-flip $\uparrow$ & 95\% CI & Dice WT/TC/ET & $\casfg$ N/E/T & routing ECE $\downarrow$ \\
 \midrule
-V0 & none (natural design) & \multicolumn{2}{c}{$0.001$ \; \footnotesize(pilot, $n{=}5$)} & $0.927/0.883/0.869$ & $0.80/0.96/0.95$ & $0.841$ \\
+V0 & none (natural design) & \multicolumn{2}{c}{$0.001^\dagger$ \; \footnotesize(Swin pilot, $n{=}5$)} & $0.927/0.883/0.869$ & $0.80/0.96/0.95$ & $0.841$ \\
 V2 & gated expert, $\alpha{=}0.5$ & $0.011$ & $[0.009,0.014]$ & $0.925/0.872/0.854$ & $0.79/0.96/0.95$ & $0.673$ \\
 \textbf{DIRECT} & additive routing & $\mathbf{0.636}$ & $[0.621,0.651]$ & $0.927/0.873/0.858$ & $\mathbf{0.81}/0.96/0.95$ & $\mathbf{0.681}$ \\
 \bottomrule
@@ -118,11 +127,11 @@ $\casfg$ $-0.001$ on edema, and causal control still at $0.011$. A scalar gate i
 during training---normalization affine parameters can simply rescale to undo it---so at
 convergence it constrains nothing.
 
-Removing the expert residual is worse than ineffective: pairwise expert divergence \emph{collapses}
-from $0.93$ to $0.16$. With $E_k(h)=h+c_k(h)$ each expert supplies only a concept-specific
-correction and is free to differ; with $E_k(h)=c_k(h)$ every expert must independently reconstruct
-whatever the decoder needs, so they converge on approximately the same map. Making the expert the
-sole path made the experts interchangeable.
+Removing the expert residual is worse than ineffective: pairwise divergence \emph{collapses} from
+$0.93$ to $0.16$. With $E_k(h)=h+c_k(h)$ each expert supplies only a concept-specific correction
+and is free to differ; with $E_k(h)=c_k(h)$ every expert must independently reconstruct whatever
+the decoder needs, so they converge on nearly the same map. Making the expert the sole path made
+the experts interchangeable.
 
 \paragraph{Additive routing works.}
 Table~\ref{tab:repair} gives the result. Causal control rises from $0.011$ $[0.009,0.014]$ to
@@ -131,9 +140,9 @@ $p{=}2.6\times10^{-29}$ over $168$ matched cases. Fig.~\ref{fig:intervention} sh
 as images.
 
 Two independent measurements corroborate it. Removing only the routing term collapses the model
-(Table~\ref{tab:necessity}): NCR $-99\%$, ET $-80\%$, edema $-53\%$, against ${\approx}1.5\%$ for
-zeroing V0's entire bottleneck. And the magnitude ratio $\rho$ converged at $0.35$, so the routing
-term dominates the logits roughly $3\!:\!1$---the failure mode we instrumented for did not occur.
+(Table~\ref{tab:necessity}): NCR $-99\%$, ET $-80\%$, edema $-53\%$, against ${\le}6\%$ for
+zeroing an inert bottleneck entirely. And $\rho$ converged at $0.35$, so the routing term
+dominates the logits roughly $3\!:\!1$---the failure mode we instrumented for did not occur.
 
 \begin{table}[t]\centering\small
 \caption{Bottleneck necessity for DIRECT (Dice, $n{=}40$). Each path is ablated separately;
@@ -152,7 +161,7 @@ ET    & $0.852$ & $0.597$ & $0.428$ & $\mathbf{0.172}$ \\
 \end{table}
 
 \paragraph{The price.}
-Whole tumor is free ($0.9273$ vs.\ $0.9272$); TC and ET cost ${\approx}1$ Dice point each.
+Whole tumor is free ($0.927$ both); TC and ET cost ${\approx}1$ Dice point each.
 Alignment is marginally \emph{better} than the inert baseline ($\casfg$ NCR $0.809$ vs.\ $0.802$),
 calibration improves substantially (ECE $0.841\!\to\!0.681$), and token-level AUROC rises on edema
 ($0.638\!\to\!0.900$) and ET ($0.622\!\to\!0.839$) while falling on NCR ($0.937\!\to\!0.783$).
@@ -185,12 +194,12 @@ Diagonals are the identity control and are exactly zero in both.}
 \end{figure}
 
 \paragraph{The effect is specific and local.}
-A large flip rate would mean little if the intervention simply perturbed everything, so we report
-the two controls that separate concept-specific control from generic disturbance
-(Table~\ref{tab:specificity}). Classes other than the source and target move by $0.079$ on
-average---an order of magnitude below the $0.636$ target effect---and voxels \emph{outside} the
-re-routed region move by $0.005$. The source class falls by $0.544$, mirroring the target's rise.
-The intervention does what it is supposed to do, where it is supposed to do it.
+A large flip rate would mean little if the intervention perturbed everything, so we report two
+controls separating concept-specific control from generic disturbance
+(Table~\ref{tab:specificity}). Off-target classes move by $0.079$---an order of magnitude below
+the $0.636$ target effect---and voxels \emph{outside} the re-routed region by $0.005$, while the
+source class falls by $0.544$, mirroring the target's rise. The intervention does what it is
+supposed to do, where it is supposed to do it.
 
 \begin{table}[t]\centering\footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -211,30 +220,26 @@ outside the region $\to 0$           & $\mathbf{0.005}$ & $0.016$ \\
 \end{table}
 
 \paragraph{Scope matters, and the smaller number is the honest one.}
-A router typically assigns most of the volume to background: here roughly a quarter of all tokens
-go to the edema expert, the majority of them normal tissue. Re-routing \emph{every} token of a
-concept therefore repaints the whole brain, and reports $0.816$ rather than $0.636$. That larger
-figure is not wrong, but it mostly demonstrates that the output follows the routing everywhere,
-which under Eq.~\ref{eq:direct} is close to tautological. Restricting to the tumor neighborhood
-measures concept control where it is clinically meaningful---and, as Table~\ref{tab:specificity}
-shows, roughly halves the off-target disturbance and cuts the out-of-region leakage by
-$3.5\times$. We quote the restricted number throughout and report the scope with every
-measurement.
+A router assigns most of the volume to background---here roughly a quarter of all tokens go to
+the edema expert, mostly normal tissue---so re-routing \emph{every} token of a concept repaints
+the whole brain and reports $0.816$ rather than $0.636$. That figure is not wrong, but it mostly
+shows that the output follows the routing everywhere, which under Eq.~\ref{eq:direct} is close to
+tautological. Restricting to the tumor neighborhood measures concept control where it is
+clinically meaningful, and halves the off-target disturbance while cutting out-of-region leakage
+$3.5\times$ (Table~\ref{tab:specificity}). We quote the restricted number throughout and report
+the scope with every measurement.
 
 \paragraph{Where it is weakest, and why.}
-The effect is not uniform, and the asymmetry is mechanistically informative rather than merely a
+The effect is not uniform, and the asymmetry is mechanistically informative rather than a mere
 caveat. Necrotic core is weak as a \emph{source} ($0.28$--$0.31$) but works as a \emph{target}
-($0.51$--$0.66$): the model can be pushed into calling a region necrosis, but pushing necrosis
-tokens elsewhere works less well. The source-class posteriors say why. Routing edema or ET tokens
-away drops their own class by $0.81$ and $0.58$ respectively, whereas routing necrosis away drops
-it by only $0.23$---because the model was never confident about necrosis to begin with (its
-isolated Dice is $0.483$, against $0.898$ for edema). There is little confidence to remove, so the
-re-routed region is contested rather than reassigned, and off-target classes absorb the difference
-($0.09$--$0.11$ from necrosis against $0.03$--$0.06$ elsewhere). Causal control is therefore
-bounded by how decisively the model held the original concept, which is a property of the
-underlying segmentation problem rather than of the routing mechanism. Necrotic core is the
-scarcest concept at a $16^3$ bottleneck---tens of tokens per case---and is the consistent weak
-spot across every metric we report, not only this one.
+($0.51$--$0.66$): the model can be pushed into calling a region necrosis more easily than pushed
+off it. The source-class posteriors say why. Routing edema or ET tokens away drops their own class
+by $0.81$ and $0.58$, whereas routing necrosis away drops it by $0.23$---the model was never
+confident about necrosis to begin with (isolated Dice $0.483$, against $0.898$ for edema). There
+is little confidence to remove, so the region is contested rather than reassigned and off-target
+classes absorb the difference ($0.09$--$0.11$ against $0.03$--$0.06$ elsewhere). Causal control is
+therefore bounded by how decisively the model held the original concept---a property of the
+segmentation problem, not of the routing mechanism.
 
 \subsection{The protocol, applied}
 \label{sec:summary}
@@ -248,7 +253,9 @@ the whole point: alignment cannot separate them, and intervention can.
 \setlength{\tabcolsep}{4pt}
 \caption{The diagnostic protocol across configurations. Alignment separates none of them; the
 causal tests separate DIRECT from both. Ablation reports edema Dice with the module's contribution
-removed, relative to that configuration's own baseline.}
+removed, relative to that configuration's own baseline. $^\dagger$V0's three causal entries are
+Swin; V2 and DIRECT are SegResNet. Sec.~\ref{sec:backbone2} shows both backbones align and both
+are inert, so the separation the protocol reports is not a backbone effect.}
 \label{tab:protocol}
 \begin{tabular}{lccc}
 \toprule
@@ -259,9 +266,9 @@ $\casfg$ (edema)                & $0.962$ & $0.961$ & $0.962$ \\
 concept-discrim.                & $0.883$ & $0.879$ & $0.881$ \\
 \midrule
 \multicolumn{4}{l}{\emph{causal --- separates DIRECT}}\\
-T1 intervention $\uparrow$      & $0.001$ & $0.011$ & $\mathbf{0.636}$ \\
-T2 ablation, edema $\downarrow$ & $-1.6\%$ & $-0.7\%$ & $\mathbf{-53\%}$ \\
-T3 probe vs.\ router            & \multicolumn{3}{c}{$0.839$ vs.\ $0.872$; $0.811$ unsup.} \\
+T1 intervention $\uparrow$      & $0.001^\dagger$ & $0.011$ & $\mathbf{0.636}$ \\
+T2 ablation, edema $\downarrow$ & $-1.6\%^\dagger$ & $-0.7\%$ & $\mathbf{-53\%}$ \\
+T3 probe vs.\ router            & \multicolumn{3}{c}{$0.839$ vs.\ $0.872$; $0.811$ unsup.$^\dagger$} \\
 \bottomrule
 \end{tabular}
 \end{table}
