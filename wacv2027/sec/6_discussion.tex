@@ -17,12 +17,10 @@ prediction, though we have tested it only here.
 
 
 \paragraph{Reported metrics that do not transfer.}
-Three comparisons become invalid under Eq.~\ref{eq:direct}, and we flag rather than tabulate them.
-Decoder Divergence, $1-\mathrm{Pearson}(\text{decoder},\text{routing})$, is circular: the decoder
-output \emph{contains} the routing term, so it measures how much the refinement perturbs the
-routing, not independent agreement. Segmentation loss is not comparable across additive and
-non-additive configurations, since the larger logit scale lowers cross-entropy without improving
-the argmax. V2's low off-target figure ($0.022$ vs.\ DIRECT's $0.079$) reflects its near-zero
+Two comparisons become invalid under Eq.~\ref{eq:direct}, and we flag rather than tabulate them.
+Segmentation loss is not comparable across additive and non-additive configurations, since the
+larger logit scale lowers cross-entropy without improving the argmax. And GATED's low off-target
+figure ($0.022$ vs.\ DIRECT's $0.079$) reflects its near-zero
 effect, not better precision---an inert module perturbs nothing, including what it should.
 
 \paragraph{No controlled accuracy comparison.}

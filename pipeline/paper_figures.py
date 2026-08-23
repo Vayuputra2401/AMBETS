@@ -60,7 +60,7 @@ def fig_cas_emergence(out_png: Path):
     fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.35), sharey=True)
     for ax, c in zip(axes, CONCEPTS):
         ax.axvspan(0, 10, color="0.92", zorder=0)
-        ax.plot(e0, c0[c], "o-", color=C_V0, ms=3, lw=1.6, label="V0 (natural)")
+        ax.plot(e0, c0[c], "o-", color=C_V0, ms=3, lw=1.6, label="NATURAL")
         ax.plot(e1, c1[c], "s-", color=C_DIRECT, ms=3, lw=1.6, label="DIRECT (additive)")
         ax.axvline(11, color="0.35", ls="--", lw=1.0)
         ax.set_title(SHORT[c], fontsize=10)
@@ -97,7 +97,7 @@ def fig_intervention_matrices(out_png: Path):
 
     # wspace: without it the right panel's y-tick labels collide with the left panel's edge
     fig, axes = plt.subplots(1, 2, figsize=(6.6, 2.9), gridspec_kw={"wspace": 0.35})
-    for ax, M, title in ((axes[0], v2, "V2 (subtractive repair)"),
+    for ax, M, title in ((axes[0], v2, "GATED (subtractive repair)"),
                          (axes[1], dr, "DIRECT (additive routing)")):
         im = ax.imshow(M, cmap="viridis", vmin=0, vmax=1)   # shared scale: the point is the gap
         ax.set_xticks(range(3)); ax.set_yticks(range(3))
@@ -113,7 +113,7 @@ def fig_intervention_matrices(out_png: Path):
     fig.colorbar(im, ax=axes, fraction=0.030, pad=0.02,
                  label="fraction of voxels flipped to target")
     fig.savefig(out_png, dpi=300, bbox_inches="tight")
-    print(f"  {out_png}   (V2 off-diag mean {v2[~np.eye(3,dtype=bool)].mean():.4f} | "
+    print(f"  {out_png}   (GATED off-diag mean {v2[~np.eye(3,dtype=bool)].mean():.4f} | "
           f"DIRECT {dr[~np.eye(3,dtype=bool)].mean():.4f}; diagonals "
           f"{np.diag(v2).sum():.1f}/{np.diag(dr).sum():.1f})")
 

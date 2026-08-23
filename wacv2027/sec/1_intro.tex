@@ -12,8 +12,8 @@ human-readable concept layer, so that the concept activation \emph{is} the expla
 
 Extending that idea to dense prediction is attractive and---as we show---treacherous. We build the
 natural extension: replace the encoder bottleneck of a segmentation network with a router that
-assigns every token to one of $K$ clinically labeled experts $\{$Background, Necrotic core, Edema,
-Enhancing tumor$\}$. The routing distribution is a per-region, concept-labeled map computed in one
+assigns every token to one of $K$ clinically labeled experts $\{$Background, necrotic core (NCR),
+edema, enhancing tumor (ET)$\}$. The routing distribution is a per-region, concept-labeled map computed in one
 forward pass with no post-hoc step. It looks exactly like an intrinsic explanation should.
 
 \paragraph{It aligns beautifully, and it does nothing.}
@@ -59,7 +59,7 @@ prediction (necrosis Dice $0.48\!\to\!0.01$), and the price is ${\approx}1$ Dice
 intervention, bottleneck ablation, and a linear-probe control. Three cheap tests that separate a
 bottleneck the model uses from one it ignores. Alignment metrics cannot.
 \item \textbf{Evidence that the natural design fails it} (Sec.~\ref{sec:inert}). A bottleneck with
-$\casfg$ up to $0.96$ and best-in-class concept discriminability is causally inert, and we localize
+$\casfg$ up to $0.96$ and best-in-class concept-discriminability is causally inert, and we localize
 the cause to two specific architectural leaks.
 \item \textbf{A repair and its price} (Sec.~\ref{sec:repair}). Additive routing makes the
 bottleneck causally decisive---$0.636$ $[0.621,0.651]$ label-flip under intervention against
