@@ -17,10 +17,8 @@ prediction, though we have tested it only here.
 
 
 \paragraph{Reported metrics that do not transfer.}
-Two comparisons become invalid under Eq.~\ref{eq:direct}, and we flag rather than tabulate them.
-Segmentation loss is not comparable across additive and non-additive configurations, since the
-larger logit scale lowers cross-entropy without improving the argmax. And GATED's low off-target
-figure ($0.022$ vs.\ DIRECT's $0.079$) reflects its near-zero
+One comparison becomes invalid under Eq.~\ref{eq:direct}, and we flag rather than tabulate it.
+GATED's low off-target figure ($0.022$ vs.\ DIRECT's $0.079$) reflects its near-zero
 effect, not better precision---an inert module perturbs nothing, including what it should.
 
 \paragraph{No controlled accuracy comparison.}
@@ -32,9 +30,9 @@ to a plain network.
 
 \paragraph{An unexplained interaction.}
 Zeroing both CCR paths is \emph{less} damaging than zeroing the routing term alone (edema $0.801$
-vs.\ $0.418$, Table~\ref{tab:necessity}). The decoder is trained to add to a routing base;
-stripping the base while leaving the expert path appears to leave it miscalibrated, whereas
-zeroing both puts it in a cleaner regime. We report this because we cannot yet explain it.
+vs.\ $0.418$, Table~\ref{tab:necessity}). The decoder is trained to add to a routing base, so
+stripping the base while leaving the expert path may leave it miscalibrated. We report this
+because we cannot fully explain it.
 
 \paragraph{Resolution, granularity, and scope.}
 The bottleneck is $16^3$, so the explanation is coarse, and necrotic core---tens of tokens per
@@ -58,10 +56,9 @@ itself. Before the repair that question was unanswerable in principle, because t
 depend on the concept assignment.
 
 \paragraph{Reproducibility.}
-Configurations differ only in the switches of Sec.~\ref{sec:fixes}---backbone, losses, curriculum,
-optimizer, split and seed are shared---so the comparisons isolate the architectural change. Every
-number comes from the released scripts and committed per-case files, and the intervention diagonal
-is recomputed each run as a self-check.
+Backbone, losses, curriculum, optimizer, split and seed are shared across configurations, so the
+comparisons isolate the architectural change. Every number comes from the released scripts and
+committed per-case files, and the intervention diagonal is recomputed each run as a self-check.
 
 \paragraph{Practical guidance.}
 Three recommendations follow for anyone placing a concept layer in a dense-prediction network.

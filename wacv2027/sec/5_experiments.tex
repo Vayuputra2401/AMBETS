@@ -5,7 +5,8 @@
 BraTS 2024 glioma~\cite{menze2014brats,baid2021brats}: four co-registered MRI modalities, labels
 remapped to $\{$0:Background, 1:NCR, 2:Edema, 3:ET$\}$, patient-wise $75/12.5/12.5$ split
 ($n_{\text{test}}{=}168$), $z$-scored per modality, $128^3$ inputs, $80$ epochs of AdamW
-($10^{-4}$, cosine), mixed precision. The bottleneck is $192\times16^3$. Dice is reported two ways, labeled throughout: over
+($10^{-4}$, cosine), mixed precision. The bottleneck is $192\times16^3$. The split is our own, so absolute Dice is not comparable to BraTS leaderboard results; every
+comparison here is within-split. Dice is reported two ways, labeled throughout: over
 the nested BraTS regions---whole tumor (WT), tumor core (TC), enhancing tumor (ET)---and
 \emph{per class} (NCR, edema, ET). The two differ slightly on ET, since the regions are nested and
 the classes are not. We report a
@@ -23,13 +24,14 @@ reproduces every qualitative finding. All models are built on MONAI~\cite{cardos
 We diagnosed the failure first on Swin and replicated it on SegResNet, which agree on every
 qualitative finding (Sec.~\ref{sec:backbone2}). Every headline number, and all of GATED and DIRECT,
 is SegResNet at $n{=}168$. Three NATURAL diagnostics ran on Swin only---the intervention pilot
-($n{=}5$), expert divergence, and the linear probe---and carry a $\dagger$ wherever they appear.
+($n{=}5$), expert divergence, and the linear probe---and carry a $\dagger$.
 
 \subsection{The natural design aligns}
 \label{sec:aligns}
-Table~\ref{tab:aligns} reports the standard picture. Segmentation is competitive, routing tracks
-the concepts closely, and on concept-discriminability NATURAL reaches $0.88$ against $0.74$ for the
-strongest post-hoc method, with integrated gradients and Grad-CAM near chance. By every measure
+Table~\ref{tab:aligns} reports the standard picture. Segmentation is accurate (Dice $0.93$ whole
+tumor), routing tracks the concepts closely, and on concept-discriminability NATURAL reaches
+$0.88$ against $0.74$ for the
+strongest post-hoc method, integrated gradients and Grad-CAM being near chance. By every measure
 this literature reports, the module works.
 
 \begin{table}[t]\centering\footnotesize
@@ -53,8 +55,8 @@ Grad-CAM    & --- & --- & $0.521$ \\
 \end{table}
 
 Removing $\mathcal{L}_{\text{align}}$ collapses $\casfg$ to $-0.01/0.32/0.09$ while Dice barely
-moves ($0.905$ vs.\ $0.927$ WT). We read this at the time as evidence that alignment is
-\emph{learned} rather than incidental. It is---but the same number says something we missed: the
+moves ($0.905$ vs.\ $0.927$ WT). We read this as evidence that alignment is
+\emph{learned} rather than incidental. It is---but it also says something we missed: the
 segmentation does not need the alignment.
 
 \subsection{\ldots and is inert}
