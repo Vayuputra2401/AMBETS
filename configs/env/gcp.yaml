@@ -5,10 +5,10 @@ env: gcp
 
 # GCP metadata (informational — printed at training start, not used by PyTorch code)
 gcp:
-  project:      "research-454007"
-  bucket:       "research-brats"
-  instance:     "ccr-research"
-  zone:         "asia-east1-c"
+  project:      "PROJECT"
+  bucket:       "BUCKET"
+  instance:     "INSTANCE"
+  zone:         "ZONE"
   machine_type: "n1-standard-8"
   accelerator:  "nvidia-tesla-t4"
 
@@ -16,24 +16,24 @@ gcp:
 # Reading training data from local SSD avoids gcsfuse API call charges (~5K INR/run).
 #
 # Training data (with GT labels — used for train/val/test splits in paper):
-#   gsutil -m cp -r gs://research-brats/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2 ~/data/
+#   gsutil -m cp -r gs://BUCKET/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2 ~/data/
 #
 # Official BraTS validation data (NO GT labels — for BraTS leaderboard submission only):
-#   gsutil -m cp -r gs://research-brats/BraTS2024-BraTS-GLI-ValidationData/validation_data ~/data/brats_official_val/
+#   gsutil -m cp -r gs://BUCKET/BraTS2024-BraTS-GLI-ValidationData/validation_data ~/data/brats_official_val/
 #   Submit predictions to: https://www.synapse.org/ (BraTS 2024 GLI task) to get official Dice/HD95
 #   NOTE: evaluate.py cannot run on this data (no GT). Use visualize.py or inference-only script.
 #
 # pretrained_path is repo-relative (resolved from the repo root at runtime, like local.yaml).
 # Copy the weights in once, no gcsfuse mount needed:
-#   gsutil cp gs://research-brats/pretrained/model_swinvit.pt pretrained/model_swinvit.pt
+#   gsutil cp gs://BUCKET/pretrained/model_swinvit.pt pretrained/model_swinvit.pt
 # checkpoint_dir is local; gcs_checkpoint_dir synced per checkpoint via gcloud storage cp.
 paths:
   # ~ expands to the current user's home (apply_env → _expand), so these are portable
-  # across instances regardless of VM username (g21cs2026, pathikreetofficial, ...).
+  # across instances regardless of VM username.
   data_root:               "~/data/training_data1_v2"
   brats_official_val_root: "~/data/brats_official_val/validation_data"
   checkpoint_dir:          "~/checkpoints"
   pretrained_path:         "pretrained/model_swinvit.pt"
-  gcs_checkpoint_dir:      "gs://research-brats/checkpoints"
-  gcs_training_data:       "gs://research-brats/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
-  gcs_val_data:            "gs://research-brats/BraTS2024-BraTS-GLI-ValidationData/validation_data"
+  gcs_checkpoint_dir:      "gs://BUCKET/checkpoints"
+  gcs_training_data:       "gs://BUCKET/BraTS2024-BraTS-GLI-TrainingData/training_data1_v2"
+  gcs_val_data:            "gs://BUCKET/BraTS2024-BraTS-GLI-ValidationData/validation_data"

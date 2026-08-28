@@ -34,7 +34,7 @@
     "n": 168
   },
   "n_patients": 168,
-  "checkpoint": "/home/pathikreetofficial/checkpoints/20260723_110310/epoch_0040.pth",
+  "checkpoint": "checkpoints/20260723_110310/epoch_0040.pth",
   "split": "test",
   "elapsed_s": 319.5705816745758
 }

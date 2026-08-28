@@ -157,7 +157,7 @@
     "occlusion"
   ],
   "n_cases": 168,
-  "checkpoint": "/home/pathikreetofficial/checkpoints/20260722_202827/epoch_0040.pth",
+  "checkpoint": "checkpoints/20260722_202827/epoch_0040.pth",
   "split": "test",
   "elapsed_s": 23095.394125938416
 }

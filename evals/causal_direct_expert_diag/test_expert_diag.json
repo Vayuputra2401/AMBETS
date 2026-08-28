@@ -38,7 +38,7 @@
     "enhancing_tumor"
   ],
   "n_cases": 40,
-  "checkpoint": "/home/pathikreetofficial/checkpoints/20260817_212748/epoch_0075.pth",
+  "checkpoint": "checkpoints/20260817_212748/epoch_0075.pth",
   "dice_necrotic_core": {
     "base": 0.4827969776172387,
     "bypass": 0.4838018052672085,

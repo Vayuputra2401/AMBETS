@@ -231,7 +231,7 @@
     "enhancing_tumor"
   ],
   "n_cases": 168,
-  "checkpoint": "/home/pathikreetofficial/checkpoints/20260817_212748/epoch_0075.pth",
+  "checkpoint": "checkpoints/20260817_212748/epoch_0075.pth",
   "split": "test",
   "elapsed_s": 270.47833132743835
 }

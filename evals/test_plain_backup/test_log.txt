@@ -190,9 +190,9 @@ Mean Dice ET: 0.837 ± 0.204
 === Calibration ===
   Routing ECE: 0.7284
 
-Per-patient CSV: /home/g21cs2026/checkpoints/evals/test/test_results.csv
-Summary JSON:    /home/g21cs2026/checkpoints/evals/test/test_summary.json
-Log file:        /home/g21cs2026/checkpoints/evals/test/test_log.txt
-Routing NIfTIs (first 5 cases): /home/g21cs2026/checkpoints/evals/test/
+Per-patient CSV: checkpoints/evals/test/test_results.csv
+Summary JSON:    checkpoints/evals/test/test_summary.json
+Log file:        checkpoints/evals/test/test_log.txt
+Routing NIfTIs (first 5 cases): checkpoints/evals/test/
 
-Syncing to GCS: /home/g21cs2026/checkpoints/evals/test/ → gs://research-brats/checkpoints/20260621_120750/evals/test/
+Syncing to GCS: checkpoints/evals/test/ → gs://BUCKET/checkpoints/20260621_120750/evals/test/

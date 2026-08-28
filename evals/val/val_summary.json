@@ -19,7 +19,7 @@
   "auroc_enhancing_tumor": 0.7682707632796798,
   "routing_ece": 0.7398650979508233,
   "n_patients": 168,
-  "checkpoint": "/home/g21cs2026/checkpoints/20260621_120750/epoch_0080.pth",
+  "checkpoint": "checkpoints/20260621_120750/epoch_0080.pth",
   "split": "val",
   "elapsed_s": 418.3596580028534
 }

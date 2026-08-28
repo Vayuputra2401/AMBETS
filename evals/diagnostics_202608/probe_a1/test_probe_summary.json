@@ -31,7 +31,7 @@
     "n": 163
   },
   "probe_mean": 0.8114770604912614,
-  "checkpoint": "/home/pathikreetofficial/checkpoints/20260722_202827/epoch_0040.pth",
+  "checkpoint": "checkpoints/20260722_202827/epoch_0040.pth",
   "split": "test",
   "fit_split": "val",
   "n_fit": 40,

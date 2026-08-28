@@ -28,3 +28,7 @@ detector_agent-agent/
 
 # Paper source stays local -- repo is the code + supplementary release
 wacv2027/
+
+# Internal notes, plans and drafts -- not part of the release
+*.md
+.claude/

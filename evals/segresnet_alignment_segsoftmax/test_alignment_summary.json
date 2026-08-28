@@ -95,7 +95,7 @@
     "segsoftmax_16"
   ],
   "n_cases": 168,
-  "checkpoint": "/home/pathikreetofficial/checkpoints/20260725_094809/epoch_0080.pth",
+  "checkpoint": "checkpoints/20260725_094809/epoch_0080.pth",
   "split": "test",
   "elapsed_s": 661.6963257789612
 }

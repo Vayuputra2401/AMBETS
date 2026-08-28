@@ -24,7 +24,7 @@ def _expand(path: str) -> str:
 
     Lets configs use portable paths like ``~/data/training_data1_v2`` that resolve to
     the current user's home on any instance (the VM username is not stable across
-    machines — e.g. g21cs2026 vs pathikreetofficial).
+    machines).
     """
     return os.path.expanduser(os.path.expandvars(path))
 
