@@ -48,7 +48,7 @@ src/ccrnet/          full models — CCR-SegResNet and CCR-Swin/UNETR
 pipeline/            training, evaluation, and the three diagnostic tests
 configs/             hyperparameters; configs/causal/ holds the three configurations
 evals/               every result file the paper and supplement are rendered from
-tests/               187 unit and integration tests
+tests/               228 unit and integration tests
 ```
 
 ## The diagnostic protocol
