@@ -1,8 +1,0 @@
-# LaTeX build artefacts -- main.pdf is kept deliberately so the built paper is versioned
-*.aux
-*.blg
-*.brf
-*.fdb_latexmk
-*.fls
-*.log
-*.out

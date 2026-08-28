@@ -25,3 +25,6 @@ detector_agent-agent/
 
 # Local IDE settings
 .claude/settings.local.json
+
+# Paper source stays local -- repo is the code + supplementary release
+wacv2027/
